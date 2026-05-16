@@ -13,7 +13,7 @@ builder.Services.AddEndpointsApiExplorer();
 
 // Configure DbContext
 builder.Services.AddDbContext<BilliardManagementDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DBDefault")));
 
 // Configure Swagger
 builder.Services.AddSwaggerGen(options =>
