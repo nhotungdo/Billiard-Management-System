@@ -6,14 +6,14 @@ namespace BilliardManagement.Common.Responses
         public string Message { get; set; } = string.Empty;
         public T? Data { get; set; }
 
-        public ApiResponse(bool success, string message, T? data = default)
+        public static ApiResponse<T> Ok(T data, string message = "Success")
         {
-            Success = success;
-            Message = message;
-            Data = data;
+            return new ApiResponse<T> { Success = true, Message = message, Data = data };
         }
 
-        public static ApiResponse<T> Ok(T data, string message = "Success") => new ApiResponse<T>(true, message, data);
-        public static ApiResponse<T> Fail(string message) => new ApiResponse<T>(false, message);
+        public static ApiResponse<T> Fail(string message)
+        {
+            return new ApiResponse<T> { Success = false, Message = message };
+        }
     }
 }

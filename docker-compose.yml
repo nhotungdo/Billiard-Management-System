@@ -1,0 +1,24 @@
+version: '3.4'
+
+services:
+  billiard.api:
+    image: billiardmanagementapi
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DBDefault=Server=sqlserver;Database=BilliardDb;User=sa;Password=Your_password123;TrustServerCertificate=True;
+      - JwtSettings__Secret=SuperSecretKeyForBilliardManagementSystem12345
+    depends_on:
+      - sqlserver
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Your_password123
+    ports:
+      - "1433:1433"

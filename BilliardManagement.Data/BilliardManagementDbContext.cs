@@ -26,7 +26,7 @@ namespace BilliardManagement.Data
             
             // Precision for decimal properties
             modelBuilder.Entity<BilliardTable>()
-                .Property(t => t.PricePerHour)
+                .Property(t => t.HourlyRate)
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<TableSession>()
@@ -50,15 +50,15 @@ namespace BilliardManagement.Data
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<Invoice>()
-                .Property(i => i.SubTotal)
+                .Property(i => i.Subtotal)
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<Invoice>()
-                .Property(i => i.DiscountAmount)
+                .Property(i => i.Discount)
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<Invoice>()
-                .Property(i => i.FinalAmount)
+                .Property(i => i.TotalAmount)
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<Shift>()
