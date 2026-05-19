@@ -15,9 +15,9 @@ namespace BilliardManagement.Models.Models
         public DateTime ShiftDate { get; set; }
 
         [Required]
-        public DateTime StartShift { get; set; }
+        public DateTime StartTime { get; set; }
 
-        public DateTime? EndShift { get; set; }
+        public DateTime? EndTime { get; set; }
 
         public decimal TotalRevenue { get; set; } = 0;
 

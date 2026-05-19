@@ -17,10 +17,10 @@ namespace BilliardManagement.Models.Models
         public string TableType { get; set; } = string.Empty;
 
         [Required]
-        public decimal PricePerHour { get; set; }
+        public decimal HourlyRate { get; set; }
 
         [Required]
-        public TableStatus Status { get; set; } = TableStatus.Available;
+        public TableStatus Status { get; set; } = TableStatus.Empty;
 
         public bool IsActive { get; set; } = true;
 

@@ -4,6 +4,9 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
 using BilliardManagement.Data;
+using BilliardManagement.Business;
+using BilliardManagement.API.Middlewares;
+using BilliardManagement.API.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +17,12 @@ builder.Services.AddEndpointsApiExplorer();
 // Configure DbContext
 builder.Services.AddDbContext<BilliardManagementDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DBDefault")));
+
+// Add Business Layer Services
+builder.Services.AddBusinessLayer();
+
+// Add SignalR
+builder.Services.AddSignalR();
 
 // Configure Swagger
 builder.Services.AddSwaggerGen(options =>
@@ -45,8 +54,8 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // Configure JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ?? "DefaultSecretKeyForDevelopmentOnly");
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var key = Encoding.ASCII.GetBytes(jwtSettings["Secret"] ?? "SuperSecretKeyForBilliardManagementSystem12345");
 
 builder.Services.AddAuthentication(options =>
 {
@@ -57,23 +66,32 @@ builder.Services.AddAuthentication(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
+        ValidateIssuer = false,
+        ValidateAudience = false,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(key)
     };
 });
 
-// Configure AutoMapper & FluentValidation (placeholder for now)
-builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
 
 var app = builder.Build();
 
+// Use Custom Exception Middleware
+app.UseMiddleware<ExceptionMiddleware>();
+
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -81,9 +99,19 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors("AllowAll");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Redirect root to Swagger
+app.MapGet("/", () => Results.Redirect("/swagger"));
+
+// Map Hubs
+app.MapHub<TableHub>("/hubs/table");
+app.MapHub<OrderHub>("/hubs/order");
+app.MapHub<NotificationHub>("/hubs/notification");
 
 app.Run();

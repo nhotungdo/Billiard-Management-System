@@ -3,7 +3,7 @@ namespace BilliardManagement.Models.Enums
     public enum SessionStatus
     {
         Active = 1,
-        Completed = 2,
-        Cancelled = 3
+        Finished = 2,
+        Paused = 3
     }
 }
