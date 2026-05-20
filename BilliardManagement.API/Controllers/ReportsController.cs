@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using BilliardManagement.Business.Interfaces;
 using BilliardManagement.Common.Responses;
@@ -17,6 +17,7 @@ namespace BilliardManagement.API.Controllers
             _reportService = reportService;
         }
 
+        // dashboard admin 
         [HttpGet("dashboard")]
         public async Task<IActionResult> GetDashboard()
         {
@@ -24,6 +25,7 @@ namespace BilliardManagement.API.Controllers
             return Ok(ApiResponse<object>.Ok(data));
         }
 
+        // báo cáo doanh thu hàng ngày trong 7 ngày gần nhất
         [HttpGet("revenue/daily")]
         public async Task<IActionResult> GetDailyRevenue([FromQuery] int days = 7)
         {

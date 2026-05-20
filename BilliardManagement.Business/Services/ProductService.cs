@@ -23,7 +23,7 @@ namespace BilliardManagement.Business.Services
 
         public async Task<IEnumerable<ProductDto>> GetAllProductsAsync()
         {
-            var products = await _unitOfWork.Repository<Product>().GetAllAsync();
+            var products = await _unitOfWork.Repository<Product>().GetAllAsync(null, "Category");
             return _mapper.Map<IEnumerable<ProductDto>>(products);
         }
 

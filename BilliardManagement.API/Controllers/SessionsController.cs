@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using BilliardManagement.Business.Interfaces;
 using BilliardManagement.Common.Responses;
@@ -19,6 +19,7 @@ namespace BilliardManagement.API.Controllers
             _sessionService = sessionService;
         }
 
+        // Bắt đầu phiên chơi cho một bàn
         [HttpPost("start/{tableId}")]
         public async Task<IActionResult> StartSession(Guid tableId)
         {
@@ -29,6 +30,8 @@ namespace BilliardManagement.API.Controllers
             return Ok(ApiResponse<SessionDto>.Ok(session, "Session started"));
         }
 
+
+        // Kết thúc phiên chơi
         [HttpPost("end/{sessionId}")]
         public async Task<IActionResult> EndSession(Guid sessionId)
         {
@@ -36,6 +39,7 @@ namespace BilliardManagement.API.Controllers
             return Ok(ApiResponse<SessionDto>.Ok(session, "Session ended"));
         }
 
+        // Lấy danh sách các phiên chơi đang hoạt động
         [HttpGet("active")]
         public async Task<IActionResult> GetActiveSessions()
         {

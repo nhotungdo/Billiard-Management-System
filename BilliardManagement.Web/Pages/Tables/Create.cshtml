@@ -1,0 +1,58 @@
+@page
+@model BilliardManagement.Web.Pages.Tables.CreateModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Create Table";
+}
+
+<div class="mb-4">
+    <a href="/Tables" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-arrow-left me-2"></i>Back to Tables</a>
+</div>
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800"><i class="fa-solid fa-circle-plus me-2 text-primary"></i>Create Table</h1>
+</div>
+
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger" role="alert">
+        <i class="fa-solid fa-circle-exclamation me-2"></i>@Model.ErrorMessage
+    </div>
+}
+
+<div class="card shadow mb-4" style="max-width: 600px;">
+    <div class="card-header py-3" style="background-color: #f8f9fc;">
+        <h6 class="m-0 font-weight-bold text-primary">Table Specifications</h6>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            <div class="mb-3">
+                <label asp-for="TableData.TableName" class="form-label font-weight-bold">Table Name</label>
+                <input asp-for="TableData.TableName" class="form-control" placeholder="e.g., Table 01, VIP 02" required />
+                <span asp-validation-for="TableData.TableName" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="TableData.Type" class="form-label font-weight-bold">Table Type</label>
+                <select asp-for="TableData.Type" class="form-select">
+                    <option value="0">Pool</option>
+                    <option value="1">Carom</option>
+                    <option value="2">Snooker</option>
+                </select>
+                <span asp-validation-for="TableData.Type" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="TableData.HourlyRate" class="form-label font-weight-bold">Hourly Rate (VND)</label>
+                <input asp-for="TableData.HourlyRate" type="number" step="1000" min="0" class="form-control" placeholder="e.g., 50000" required />
+                <span asp-validation-for="TableData.HourlyRate" class="text-danger small"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary px-4 py-2"><i class="fa-solid fa-save me-2"></i>Save Table</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

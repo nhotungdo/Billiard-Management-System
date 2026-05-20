@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using BilliardManagement.Business.Interfaces;
 using BilliardManagement.Common.Responses;
@@ -18,7 +18,7 @@ namespace BilliardManagement.API.Controllers
         {
             _userService = userService;
         }
-
+        // lấy tất cả người dùng (chỉ dành cho admin)
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAll()
@@ -27,6 +27,7 @@ namespace BilliardManagement.API.Controllers
             return Ok(ApiResponse<IEnumerable<UserDto>>.Ok(users));
         }
 
+        // lấy thông tin người dùng theo id
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -34,6 +35,7 @@ namespace BilliardManagement.API.Controllers
             return Ok(ApiResponse<UserDto>.Ok(user));
         }
 
+        // cập nhật vai trò người dùng (chỉ dành cho admin)
         [HttpPut("{id}/role")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateRole(Guid id, [FromBody] UserRole role)

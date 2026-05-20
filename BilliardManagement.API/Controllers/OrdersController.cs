@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using BilliardManagement.Business.Interfaces;
 using BilliardManagement.Common.Responses;
@@ -23,6 +23,7 @@ namespace BilliardManagement.API.Controllers
             _hubContext = hubContext;
         }
 
+        // tạo hóa đơn mới
         [HttpPost]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderDto dto)
         {

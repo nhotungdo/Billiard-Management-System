@@ -15,7 +15,7 @@ namespace BilliardManagement.API.Controllers
         {
             _authService = authService;
         }
-
+        // POST: api/auth/login
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
@@ -23,6 +23,7 @@ namespace BilliardManagement.API.Controllers
             return Ok(ApiResponse<AuthResponseDto>.Ok(result, "Login successful"));
         }
 
+        // POST: api/auth/register
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {

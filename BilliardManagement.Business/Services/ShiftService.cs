@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -16,12 +16,14 @@ namespace BilliardManagement.Business.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
 
+        // Constructor
         public ShiftService(IUnitOfWork unitOfWork, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
 
+        // khi nhân viên check-in, tạo một ca mới với thời gian bắt đầu và lưu vào cơ sở dữ liệu
         public async Task<ShiftDto> CheckInAsync(Guid userId)
         {
             var activeShift = await _unitOfWork.Repository<Shift>().GetFirstOrDefaultAsync(s => s.UserId == userId && s.EndTime == null);
@@ -39,6 +41,7 @@ namespace BilliardManagement.Business.Services
             return _mapper.Map<ShiftDto>(shift);
         }
 
+        // khi nhân viên check-out, cập nhật thời gian kết thúc của ca làm việc và tính toán doanh thu nếu cần thiết
         public async Task<ShiftDto> CheckOutAsync(Guid shiftId)
         {
             var shift = await _unitOfWork.Repository<Shift>().GetByIdAsync(shiftId);
@@ -46,7 +49,7 @@ namespace BilliardManagement.Business.Services
 
             shift.EndTime = DateTime.UtcNow;
 
-            // Calculate revenue collected by this staff during their shift
+            // Tính doanh thu của ca làm việc bằng cách lấy tất cả hóa đơn đã thanh toán trong khoảng thời gian của ca và tính tổng doanh thu
             var invoices = await _unitOfWork.Repository<Invoice>().GetAllAsync(i => i.CreatedAt >= shift.StartTime && i.CreatedAt <= shift.EndTime && i.IsPaid);
             shift.TotalRevenue = invoices.Sum(i => i.TotalAmount);
 
@@ -56,6 +59,7 @@ namespace BilliardManagement.Business.Services
             return _mapper.Map<ShiftDto>(shift);
         }
 
+        // lấy danh sách các ca làm việc của ngày hôm nay, bao gồm cả ca đang hoạt động và đã kết thúc
         public async Task<IEnumerable<ShiftDto>> GetTodayShiftsAsync()
         {
             var today = DateTime.UtcNow.Date;

@@ -15,19 +15,24 @@ namespace BilliardManagement.Models.Models
         public Guid? OrderId { get; set; }
 
         [Required]
+        [Column("SubTotal")]
         public decimal Subtotal { get; set; }
 
+        [Column("DiscountAmount")]
         public decimal Discount { get; set; } = 0;
 
         [Required]
+        [Column("FinalAmount")]
         public decimal TotalAmount { get; set; }
 
         [Required]
         public PaymentMethod PaymentMethod { get; set; }
 
+        [Column("PaidAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public bool IsPaid { get; set; } = false;
+        [NotMapped]
+        public bool IsPaid { get; set; } = true;
 
         // Navigation properties
         [ForeignKey("TableSessionId")]

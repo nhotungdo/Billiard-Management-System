@@ -1,0 +1,138 @@
+@page
+@model BilliardManagement.Web.Pages.Dashboard.IndexModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800"><i class="fa-solid fa-gauge-high me-2 text-primary"></i>Dashboard Overview</h1>
+    <span class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"><i class="fas fa-calendar fa-sm text-white-50 me-2"></i>Today is @DateTime.Now.ToString("dd MMMM yyyy")</span>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        <i class="fa-solid fa-circle-exclamation me-2"></i>@Model.ErrorMessage
+    </div>
+}
+
+<div class="row">
+    <!-- Total Revenue Card -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2" style="border-left: 4px solid #4e73df;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Revenue</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            @string.Format("{0:C0}", Model.DashboardData?.TotalRevenue ?? 0)
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Tables Card -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2" style="border-left: 4px solid #1cc88a;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Active Tables</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            @(Model.DashboardData?.ActiveTables ?? 0)
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-table fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders Today Card -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2" style="border-left: 4px solid #36b9cc;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Orders Today</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            @(Model.DashboardData?.OrdersToday ?? 0)
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-receipt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Customer Card -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2" style="border-left: 4px solid #f6c23e;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Top Customer</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            @(string.IsNullOrEmpty(Model.DashboardData?.TopCustomer) ? "N/A" : Model.DashboardData.TopCustomer)
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-user fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Quick Actions -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3" style="background-color: #f8f9fc;">
+                <h6 class="m-0 font-weight-bold text-primary"><i class="fa-solid fa-bolt me-2"></i>Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-6 mb-3">
+                        <a href="/Tables" class="btn btn-primary w-100 py-3 shadow-sm"><i class="fa-solid fa-table-list me-2"></i>Manage Tables</a>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <a href="/Sessions" class="btn btn-success w-100 py-3 shadow-sm"><i class="fa-solid fa-clock-rotate-left me-2"></i>Active Sessions</a>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <a href="/Orders" class="btn btn-info text-white w-100 py-3 shadow-sm"><i class="fa-solid fa-receipt me-2"></i>New Orders</a>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <a href="/Invoices" class="btn btn-secondary w-100 py-3 shadow-sm"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Invoices & Billing</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- System Info -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3" style="background-color: #f8f9fc;">
+                <h6 class="m-0 font-weight-bold text-primary"><i class="fa-solid fa-circle-info me-2"></i>Billiard Club Information</h6>
+            </div>
+            <div class="card-body">
+                <p>Welcome to the Billiard Management System Admin portal. Here you can control table usage, monitor live sessions, register order items, and overview billing and daily/monthly/yearly revenue reports.</p>
+                <div class="alert alert-info border-0 shadow-sm mb-0">
+                    <strong>Realtime SignalR Hub:</strong> Active and monitoring table statuses automatically. Use the navigation panel on the left to navigate between modules.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

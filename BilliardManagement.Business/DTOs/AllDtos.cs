@@ -21,7 +21,7 @@ namespace BilliardManagement.Business.DTOs
     public class CreateOrderDto { public Guid SessionId { get; set; } public List<CreateOrderItemDto> Items { get; set; } = new(); }
     public class CreateOrderItemDto { public Guid ProductId { get; set; } public int Quantity { get; set; } }
 
-    public class BillDto { public Guid Id { get; set; } public Guid SessionId { get; set; } public decimal Subtotal { get; set; } public decimal Discount { get; set; } public decimal Total { get; set; } public PaymentMethod PaymentMethod { get; set; } }
+    public class BillDto { public Guid Id { get; set; } public Guid SessionId { get; set; } public decimal Subtotal { get; set; } public decimal Discount { get; set; } public decimal Total { get; set; } public PaymentMethod PaymentMethod { get; set; } public bool IsPaid { get; set; } }
     public class GenerateBillDto { public decimal Discount { get; set; } public PaymentMethod PaymentMethod { get; set; } }
     
     public class ShiftDto { public Guid Id { get; set; } public Guid UserId { get; set; } public DateTime CheckIn { get; set; } public DateTime? CheckOut { get; set; } public decimal Revenue { get; set; } }

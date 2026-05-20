@@ -1,0 +1,222 @@
+@page
+@model BilliardManagement.Web.Pages.Revenue.IndexModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Revenue Reports";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800"><i class="fa-solid fa-chart-line me-2 text-primary"></i>Revenue Analytics</h1>
+</div>
+
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger" role="alert">
+        <i class="fa-solid fa-circle-exclamation me-2"></i>@Model.ErrorMessage
+    </div>
+}
+
+<div class="row">
+    <!-- Daily Card -->
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2" style="border-left: 4px solid #4e73df;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Last 7 Days Total</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@string.Format("{0:C0}", Model.TotalDaily)</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-day fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Card -->
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2" style="border-left: 4px solid #1cc88a;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Last 30 Days Total</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@string.Format("{0:C0}", Model.TotalMonthly)</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Yearly Card -->
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2" style="border-left: 4px solid #f6c23e;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Last 365 Days Total</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@string.Format("{0:C0}", Model.TotalYearly)</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Line Chart -->
+    <div class="col-xl-8 col-lg-7">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between" style="background-color: #f8f9fc;">
+                <h6 class="m-0 font-weight-bold text-primary">Revenue Trend</h6>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-xs btn-outline-primary active" id="btnDailyChart">Daily (7d)</button>
+                    <button type="button" class="btn btn-xs btn-outline-primary" id="btnMonthlyChart">Monthly (30d)</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-area" style="position: relative; height: 350px;">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Table Summary -->
+    <div class="col-xl-4 col-lg-5">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3" style="background-color: #f8f9fc;">
+                <h6 class="m-0 font-weight-bold text-primary">Daily Breakdowns (Last 7 Days)</h6>
+            </div>
+            <div class="card-body p-0" style="max-height: 350px; overflow-y: auto;">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 text-center">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Date</th>
+                                <th>Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.DailyRevenue.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="2" class="text-muted py-4">No recent records.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var day in Model.DailyRevenue)
+                                {
+                                    <tr>
+                                        <td>@day.Date.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                                        <td class="font-weight-bold text-success">@string.Format("{0:C0}", day.TotalRevenue)</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function() {
+            var ctx = document.getElementById('revenueChart').getContext('2d');
+            var chart;
+
+            // Load data arrays from backend model serialized to JSON
+            var dailyLabels = @Html.Raw(Json.Serialize(Model.DailyRevenue.Select(r => r.Date.ToLocalTime().ToString("dd/MM"))));
+            var dailyData = @Html.Raw(Json.Serialize(Model.DailyRevenue.Select(r => r.TotalRevenue)));
+
+            var monthlyLabels = @Html.Raw(Json.Serialize(Model.MonthlyRevenue.Select(r => r.Date.ToLocalTime().ToString("dd/MM"))));
+            var monthlyData = @Html.Raw(Json.Serialize(Model.MonthlyRevenue.Select(r => r.TotalRevenue)));
+
+            function initChart(labels, data, labelName) {
+                if (chart) {
+                    chart.destroy();
+                }
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: labelName,
+                            lineTension: 0.3,
+                            backgroundColor: "rgba(78, 115, 223, 0.05)",
+                            borderColor: "rgba(78, 115, 223, 1)",
+                            pointRadius: 3,
+                            pointBackgroundColor: "rgba(78, 115, 223, 1)",
+                            pointBorderColor: "rgba(78, 115, 223, 1)",
+                            pointHoverRadius: 5,
+                            pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
+                            pointHoverBorderColor: "rgba(78, 115, 223, 1)",
+                            pointHitRadius: 10,
+                            pointBorderWidth: 2,
+                            data: data,
+                        }],
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false,
+                                    drawBorder: false
+                                }
+                            },
+                            y: {
+                                ticks: {
+                                    maxTicksLimit: 5,
+                                    padding: 10,
+                                    callback: function(value, index, values) {
+                                        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value);
+                                    }
+                                },
+                                grid: {
+                                    color: "rgb(234, 236, 244)",
+                                    zeroLineColor: "rgb(234, 236, 244)",
+                                    drawBorder: false,
+                                    borderDash: [2],
+                                    zeroLineBorderDash: [2]
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Initialize with Daily chart
+            initChart(dailyLabels, dailyData, 'Daily Revenue (VND)');
+
+            // Tab Switching
+            $('#btnDailyChart').on('click', function() {
+                $(this).addClass('active');
+                $('#btnMonthlyChart').removeClass('active');
+                initChart(dailyLabels, dailyData, 'Daily Revenue (VND)');
+            });
+
+            $('#btnMonthlyChart').on('click', function() {
+                $(this).addClass('active');
+                $('#btnDailyChart').removeClass('active');
+                initChart(monthlyLabels, monthlyData, 'Monthly Revenue (VND)');
+            });
+        });
+    </script>
+}

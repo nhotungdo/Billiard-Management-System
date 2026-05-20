@@ -1,5 +1,6 @@
 using BilliardManagement.Models.Enums;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BilliardManagement.Models.Models
 {
@@ -17,6 +18,7 @@ namespace BilliardManagement.Models.Models
         public string TableType { get; set; } = string.Empty;
 
         [Required]
+        [Column("PricePerHour")]
         public decimal HourlyRate { get; set; }
 
         [Required]

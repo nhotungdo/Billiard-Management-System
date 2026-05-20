@@ -87,6 +87,25 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Seed Admin User if not exists
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<BilliardManagementDbContext>();
+    var adminUser = dbContext.Users.FirstOrDefault(u => u.Username == "admin");
+    if (adminUser == null)
+    {
+        dbContext.Users.Add(new BilliardManagement.Models.Models.User
+        {
+            FullName = "Admin Portal",
+            Username = "admin",
+            PasswordHash = "123456",
+            Role = BilliardManagement.Models.Enums.UserRole.Admin,
+            IsActive = true
+        });
+        dbContext.SaveChanges();
+    }
+}
+
 // Use Custom Exception Middleware
 app.UseMiddleware<ExceptionMiddleware>();
 

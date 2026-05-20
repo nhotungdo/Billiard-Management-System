@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -21,7 +21,7 @@ namespace BilliardManagement.Business.Services
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
-
+        // Khi một người chơi bắt đầu chơi, tạo một phiên mới với thời gian bắt đầu và lưu vào cơ sở dữ liệu
         public async Task<SessionDto> StartSessionAsync(Guid tableId, Guid userId)
         {
             var table = await _unitOfWork.Repository<BilliardTable>().GetByIdAsync(tableId);
@@ -44,7 +44,7 @@ namespace BilliardManagement.Business.Services
 
             return _mapper.Map<SessionDto>(session);
         }
-
+        // Khi người chơi kết thúc phiên, cập nhật thời gian kết thúc, tính toán tổng tiền dựa trên thời gian chơi và giá giờ của bàn, sau đó lưu vào cơ sở dữ liệu
         public async Task<SessionDto> EndSessionAsync(Guid sessionId)
         {
             var session = await _unitOfWork.Repository<TableSession>().GetByIdAsync(sessionId);
@@ -70,7 +70,7 @@ namespace BilliardManagement.Business.Services
 
             return _mapper.Map<SessionDto>(session);
         }
-
+        // Cung cấp API để lấy danh sách các phiên đang hoạt động, bao gồm thông tin về bàn, người chơi và thời gian bắt đầu
         public async Task<IEnumerable<SessionDto>> GetActiveSessionsAsync()
         {
             var sessions = await _unitOfWork.Repository<TableSession>().GetAllAsync(s => s.Status == SessionStatus.Active);

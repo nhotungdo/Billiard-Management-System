@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using BilliardManagement.Business.Interfaces;
 using BilliardManagement.Common.Responses;
@@ -18,7 +18,7 @@ namespace BilliardManagement.API.Controllers
         {
             _shiftService = shiftService;
         }
-
+        // nhân viên bắt đầu ca làm việc
         [HttpPost("checkin")]
         public async Task<IActionResult> CheckIn()
         {
@@ -28,14 +28,14 @@ namespace BilliardManagement.API.Controllers
             var shift = await _shiftService.CheckInAsync(userId);
             return Ok(ApiResponse<ShiftDto>.Ok(shift, "Checked in successfully"));
         }
-
+        // nhân viên kết thúc ca làm việc
         [HttpPost("checkout/{shiftId}")]
         public async Task<IActionResult> CheckOut(Guid shiftId)
         {
             var shift = await _shiftService.CheckOutAsync(shiftId);
             return Ok(ApiResponse<ShiftDto>.Ok(shift, "Checked out successfully"));
         }
-
+        // admin xem tất cả ca làm việc trong ngày
         [HttpGet("today")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetTodayShifts()

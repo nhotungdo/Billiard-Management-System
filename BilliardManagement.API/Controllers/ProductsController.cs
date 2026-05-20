@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using BilliardManagement.Business.Interfaces;
 using BilliardManagement.Common.Responses;
@@ -18,6 +18,7 @@ namespace BilliardManagement.API.Controllers
             _productService = productService;
         }
 
+        // lấy danh sách sản phẩm
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -25,6 +26,7 @@ namespace BilliardManagement.API.Controllers
             return Ok(ApiResponse<IEnumerable<ProductDto>>.Ok(products));
         }
 
+        //  tạo mới sản phẩm dành cho admin
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] CreateProductDto dto)

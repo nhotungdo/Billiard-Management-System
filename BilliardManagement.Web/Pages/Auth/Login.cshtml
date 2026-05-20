@@ -1,0 +1,131 @@
+@page
+@model BilliardManagement.Web.Pages.Auth.LoginModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Đăng nhập";
+}
+
+<link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+
+<div class="auth-body">
+    <!-- Header -->
+    <header class="auth-header">
+        <a href="#" class="auth-logo">
+            RackMaster Pro
+        </a>
+        <a href="#" class="auth-help" title="Trợ giúp">
+            <i class="fa-regular fa-circle-question"></i>
+        </a>
+    </header>
+
+    <!-- Main Content -->
+    <div class="auth-card-container">
+        <div class="auth-card">
+            <!-- Icon Box -->
+            <div class="auth-icon-box">
+                <!-- A cue ball/aim icon matching RackMaster Pro billiard theme -->
+                <i class="fa-solid fa-crosshairs"></i>
+            </div>
+
+            <!-- Title -->
+            <h1 class="auth-title">Chào mừng trở lại</h1>
+            <p class="auth-subtitle">Đăng nhập để quản lý bàn bida của bạn</p>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="auth-alert-danger alert alert-dismissible fade show" role="alert">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                    <div>@Model.ErrorMessage</div>
+                    <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <form method="post" id="loginForm">
+                <!-- Username -->
+                <div class="auth-form-group">
+                    <label asp-for="LoginData.Username" class="auth-label">Email hoặc Tên đăng nhập</label>
+                    <div class="auth-input-wrapper">
+                        <input class="auth-input" asp-for="LoginData.Username" type="text" placeholder="username@example.com" required autocomplete="username" />
+                        <i class="fa-regular fa-user auth-input-icon"></i>
+                    </div>
+                    <span asp-validation-for="LoginData.Username" class="text-danger small mt-1 d-block"></span>
+                </div>
+
+                <!-- Password -->
+                <div class="auth-form-group">
+                    <div class="auth-label-row">
+                        <label asp-for="LoginData.Password" class="auth-label">Mật khẩu</label>
+                        <a href="/Auth/ForgotPassword" class="auth-label-link">Quên mật khẩu?</a>
+                    </div>
+                    <div class="auth-input-wrapper">
+                        <input class="auth-input auth-input-password" asp-for="LoginData.Password" type="password" placeholder="••••••••" required autocomplete="current-password" id="passwordInput" />
+                        <i class="fa-solid fa-lock auth-input-icon"></i>
+                        <button type="button" class="auth-input-action" id="togglePasswordBtn" title="Hiện mật khẩu">
+                            <i class="fa-regular fa-eye" id="togglePasswordIcon"></i>
+                        </button>
+                    </div>
+                    <span asp-validation-for="LoginData.Password" class="text-danger small mt-1 d-block"></span>
+                </div>
+
+                <!-- Remember Me -->
+                <div class="auth-checkbox-group">
+                    <input type="checkbox" id="rememberMe" class="auth-checkbox-input" />
+                    <label for="rememberMe" class="auth-checkbox-label">Ghi nhớ đăng nhập</label>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="auth-btn">
+                    <span>Đăng nhập</span>
+                    <i class="fa-solid fa-arrow-right-long ms-1"></i>
+                </button>
+            </form>
+
+            <!-- Card Footer Link -->
+            <div class="auth-card-footer">
+                Chưa có tài khoản? <a href="/Auth/Register" class="auth-card-footer-link">Đăng ký ngay</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="auth-footer">
+        <div class="auth-footer-brand">RackMaster Pro</div>
+        <div>&copy; 2024 RackMaster Pro. All rights reserved.</div>
+        <div class="auth-footer-links">
+            <a href="#" class="auth-footer-link">Terms of Service</a>
+            <a href="#" class="auth-footer-link">Privacy Policy</a>
+            <a href="#" class="auth-footer-link">Contact Support</a>
+        </div>
+    </footer>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const passwordInput = document.getElementById("passwordInput");
+            const togglePasswordBtn = document.getElementById("togglePasswordBtn");
+            const togglePasswordIcon = document.getElementById("togglePasswordIcon");
+
+            if (togglePasswordBtn && passwordInput && togglePasswordIcon) {
+                togglePasswordBtn.addEventListener("click", function () {
+                    const isPassword = passwordInput.getAttribute("type") === "password";
+                    
+                    // Toggle type
+                    passwordInput.setAttribute("type", isPassword ? "text" : "password");
+                    
+                    // Toggle icon class
+                    if (isPassword) {
+                        togglePasswordIcon.classList.remove("fa-regular", "fa-eye");
+                        togglePasswordIcon.classList.add("fa-regular", "fa-eye-slash");
+                        togglePasswordBtn.setAttribute("title", "Ẩn mật khẩu");
+                    } else {
+                        togglePasswordIcon.classList.remove("fa-regular", "fa-eye-slash");
+                        togglePasswordIcon.classList.add("fa-regular", "fa-eye");
+                        togglePasswordBtn.setAttribute("title", "Hiện mật khẩu");
+                    }
+                });
+            }
+        });
+    </script>
+}
