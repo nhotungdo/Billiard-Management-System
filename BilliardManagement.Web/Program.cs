@@ -9,12 +9,13 @@ builder.Services.AddRazorPages();
 // Configure HttpContextAccessor for Session and Token management
 builder.Services.AddHttpContextAccessor();
 
-// Configure Session
+// Configure Session with 30-minute timeout
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromHours(12);
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    options.Cookie.Name = ".BilliardMgmt.Session";
 });
 
 // Configure HttpClient
@@ -47,7 +48,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// Use Session
+// Use Session BEFORE middleware that reads it
 app.UseSession();
 
 // Custom Middleware

@@ -59,7 +59,7 @@ namespace BilliardManagement.Web.Pages.Auth
                     // Log in immediately upon successful registration
                     HttpContext.Session.SetString("JWToken", response.Token);
                     HttpContext.Session.SetString("Username", response.User.Username);
-                    HttpContext.Session.SetString("UserRole", response.User.Role.ToString());
+                    HttpContext.Session.SetString("UserRole", response.User.Role == 1 ? "Admin" : "Staff");
                     HttpContext.Session.SetString("FullName", response.User.FullName);
                     TempData["SuccessMessage"] = "Đăng ký tài khoản thành công!";
                     return RedirectToPage("/Dashboard/Index");

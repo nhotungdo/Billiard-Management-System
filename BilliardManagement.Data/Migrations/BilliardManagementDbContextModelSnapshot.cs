@@ -263,11 +263,20 @@ namespace BilliardManagement.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("DurationHours")
+                        .HasColumnType("int");
+
                     b.Property<int?>("DurationMinutes")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("EndTime")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsFinished")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("RemainingMinutes")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("datetime2");
@@ -278,7 +287,7 @@ namespace BilliardManagement.Data.Migrations
                     b.Property<Guid>("TableId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal?>("TotalPrice")
+                    b.Property<decimal>("TotalPrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 

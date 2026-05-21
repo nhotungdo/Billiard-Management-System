@@ -98,7 +98,8 @@
         // Show loading spinner on link click and form submit
         $(document).ready(function() {
             $('form').on('submit', function() {
-                if($(this).valid && !$(this).valid()) return;
+                // Only block if jQuery Validation is present AND form is invalid
+                if(typeof $(this).valid === 'function' && !$(this).valid()) return;
                 $('#loading-overlay').css('display', 'flex');
             });
             

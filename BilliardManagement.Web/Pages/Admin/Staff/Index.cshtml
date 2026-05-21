@@ -1,0 +1,61 @@
+@page
+@model BilliardManagement.Web.Pages.Admin.Staff.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Quản lý Nhân viên";
+}
+
+<div class="dashboard-header mb-4">
+    <h1 class="page-title"><i class="fa-solid fa-users-gear me-2"></i>Quản lý Nhân viên</h1>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-warning">@Model.ErrorMessage</div>
+}
+
+<div class="card-panel">
+    <div class="panel-header"><h5 class="panel-title">Danh sách nhân viên (@Model.StaffList.Count người)</h5></div>
+    <div class="panel-body p-0">
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr><th>#</th><th>Họ tên</th><th>Tên đăng nhập</th><th>SĐT</th><th>Vai trò</th><th>Trạng thái</th></tr>
+                </thead>
+                <tbody>
+                    @{int i = 1;}
+                    @foreach (var s in Model.StaffList)
+                    {
+                        <tr>
+                            <td>@(i++)</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar-xs">@s.FullName.Substring(0,1).ToUpper()</div>
+                                    <span>@s.FullName</span>
+                                </div>
+                            </td>
+                            <td><code>@s.Username</code></td>
+                            <td>@(s.PhoneNumber ?? "—")</td>
+                            <td>
+                                @if (s.Role == 1)
+                                { <span class="badge-role admin-badge">Admin</span> }
+                                else
+                                { <span class="badge-role staff-badge">Staff</span> }
+                            </td>
+                            <td>
+                                @if (s.IsActive)
+                                { <span class="status-dot active"><i class="fa-solid fa-circle"></i> Hoạt động</span> }
+                                else
+                                { <span class="status-dot inactive"><i class="fa-solid fa-circle"></i> Ngừng</span> }
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.StaffList.Any())
+                    {
+                        <tr><td colspan="6" class="text-center py-4 text-muted">Không có dữ liệu</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -26,14 +26,14 @@ namespace BilliardManagement.API.Controllers
             if (!Guid.TryParse(userIdStr, out var userId)) return Unauthorized();
 
             var shift = await _shiftService.CheckInAsync(userId);
-            return Ok(ApiResponse<ShiftDto>.Ok(shift, "Checked in successfully"));
+            return Ok(ApiResponse<ShiftDto>.Ok(shift, "Bắt đầu ca làm việc thành công"));
         }
         // nhân viên kết thúc ca làm việc
         [HttpPost("checkout/{shiftId}")]
         public async Task<IActionResult> CheckOut(Guid shiftId)
         {
             var shift = await _shiftService.CheckOutAsync(shiftId);
-            return Ok(ApiResponse<ShiftDto>.Ok(shift, "Checked out successfully"));
+            return Ok(ApiResponse<ShiftDto>.Ok(shift, "Kết thúc ca làm việc thành công"));
         }
         // admin xem tất cả ca làm việc trong ngày
         [HttpGet("today")]

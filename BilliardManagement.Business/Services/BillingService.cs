@@ -27,8 +27,9 @@ namespace BilliardManagement.Business.Services
             var session = await _unitOfWork.Repository<TableSession>().GetFirstOrDefaultAsync(s => s.Id == sessionId, "Orders,Orders.OrderItems");
             if (session == null) throw new CustomException("Session not found", 404);
 
-            decimal ordersTotal = session.Orders?.Sum(o => o.TotalAmount) ?? 0;
-            decimal sessionTotal = session.TotalPrice ?? 0;
+            var orders = await _unitOfWork.Repository<Order>().GetAllAsync(o => o.TableSessionId == sessionId);
+            decimal ordersTotal = orders.Sum(o => o.TotalAmount);
+            decimal sessionTotal = session.TotalPrice;
             decimal subtotal = ordersTotal + sessionTotal;
 
             var invoice = new Invoice

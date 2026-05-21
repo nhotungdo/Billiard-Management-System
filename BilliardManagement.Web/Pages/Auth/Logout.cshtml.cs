@@ -8,7 +8,12 @@ namespace BilliardManagement.Web.Pages.Auth
         public IActionResult OnGet()
         {
             HttpContext.Session.Clear();
-            TempData["SuccessMessage"] = "Logged out successfully.";
+            return RedirectToPage("/Auth/Login");
+        }
+
+        public IActionResult OnPost()
+        {
+            HttpContext.Session.Clear();
             return RedirectToPage("/Auth/Login");
         }
     }

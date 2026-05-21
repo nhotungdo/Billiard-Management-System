@@ -11,7 +11,12 @@ using BilliardManagement.API.Hubs;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        // Enums serialize as numeric values (1, 2) for Web client compatibility
+    });
 builder.Services.AddEndpointsApiExplorer();
 
 // Configure DbContext
@@ -87,23 +92,11 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Seed Admin User if not exists
+// Seed sample data if not exists
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<BilliardManagementDbContext>();
-    var adminUser = dbContext.Users.FirstOrDefault(u => u.Username == "admin");
-    if (adminUser == null)
-    {
-        dbContext.Users.Add(new BilliardManagement.Models.Models.User
-        {
-            FullName = "Admin Portal",
-            Username = "admin",
-            PasswordHash = "123456",
-            Role = BilliardManagement.Models.Enums.UserRole.Admin,
-            IsActive = true
-        });
-        dbContext.SaveChanges();
-    }
+    DbSeeder.Seed(dbContext);
 }
 
 // Use Custom Exception Middleware

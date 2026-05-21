@@ -49,8 +49,7 @@ namespace BilliardManagement.Business.Mappings
             // Invoice: TableSessionId -> SessionId, TotalAmount -> Total
             CreateMap<Invoice, BillDto>()
                 .ForMember(dest => dest.SessionId, opt => opt.MapFrom(src => src.TableSessionId))
-                .ForMember(dest => dest.Total, opt => opt.MapFrom(src => src.TotalAmount))
-                .ForMember(dest => dest.IsPaid, opt => opt.MapFrom(src => true));
+                .ForMember(dest => dest.Total, opt => opt.MapFrom(src => src.TotalAmount));
             CreateMap<BillDto, Invoice>()
                 .ForMember(dest => dest.TableSessionId, opt => opt.MapFrom(src => src.SessionId))
                 .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => src.Total));

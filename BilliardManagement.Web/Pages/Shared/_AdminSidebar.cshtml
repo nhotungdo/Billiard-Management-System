@@ -1,0 +1,68 @@
+@{
+    var currentPath = Context.Request.Path.Value?.ToLower() ?? "";
+    string IsActive(string path) => currentPath.StartsWith(path.ToLower()) ? "active" : "";
+}
+
+<nav id="admin-sidebar">
+    <!-- Brand -->
+    <div class="sidebar-brand">
+        <div class="brand-icon">
+            <i class="fa-solid fa-circle-dot"></i>
+        </div>
+        <div class="brand-text">
+            <span class="brand-name">BilliardPro</span>
+            <span class="brand-sub">Admin Panel</span>
+        </div>
+        <button class="sidebar-close-btn d-md-none" id="sidebarClose">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+
+    <!-- Menu -->
+    <div class="sidebar-menu-label">MENU CHÍNH</div>
+    <ul class="sidebar-nav">
+        <li class="nav-item">
+            <a class="nav-link @IsActive("/admin/dashboard")" href="/Admin/Dashboard/Index">
+                <span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span>
+                <span class="nav-text">Dashboard</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @IsActive("/admin/tables")" href="/Admin/Tables/Index">
+                <span class="nav-icon"><i class="fa-solid fa-table-cells"></i></span>
+                <span class="nav-text">Quản lý Bàn</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @IsActive("/admin/products")" href="/Admin/Products/Index">
+                <span class="nav-icon"><i class="fa-solid fa-box-open"></i></span>
+                <span class="nav-text">Sản phẩm</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @IsActive("/admin/revenue")" href="/Admin/Revenue/Index">
+                <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
+                <span class="nav-text">Doanh thu</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @IsActive("/admin/staff")" href="/Admin/Staff/Index">
+                <span class="nav-icon"><i class="fa-solid fa-users-gear"></i></span>
+                <span class="nav-text">Nhân viên</span>
+            </a>
+        </li>
+    </ul>
+
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-menu-label">HỆ THỐNG</div>
+    <ul class="sidebar-nav">
+        <li class="nav-item">
+            <a class="nav-link" href="/Auth/Logout">
+                <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+                <span class="nav-text">Đăng xuất</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+<!-- Sidebar Overlay (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>

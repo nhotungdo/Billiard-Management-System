@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -50,7 +50,7 @@ namespace BilliardManagement.Business.Services
             shift.EndTime = DateTime.UtcNow;
 
             // Tính doanh thu của ca làm việc bằng cách lấy tất cả hóa đơn đã thanh toán trong khoảng thời gian của ca và tính tổng doanh thu
-            var invoices = await _unitOfWork.Repository<Invoice>().GetAllAsync(i => i.CreatedAt >= shift.StartTime && i.CreatedAt <= shift.EndTime && i.IsPaid);
+            var invoices = await _unitOfWork.Repository<Invoice>().GetAllAsync(i => i.CreatedAt >= shift.StartTime && i.CreatedAt <= shift.EndTime);
             shift.TotalRevenue = invoices.Sum(i => i.TotalAmount);
 
             _unitOfWork.Repository<Shift>().Update(shift);

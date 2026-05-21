@@ -25,20 +25,22 @@ namespace BilliardManagement.Web.Pages.Auth
 
         public void OnGet()
         {
-            // If already logged in, redirect to Dashboard
+            // If already logged in, redirect based on role
             var token = HttpContext.Session.GetString("JWToken");
+            var role = HttpContext.Session.GetString("UserRole");
             if (!string.IsNullOrEmpty(token))
             {
-                Response.Redirect("/Dashboard");
+                if (role == "Admin")
+                    Response.Redirect("/Admin/Dashboard/Index");
+                else
+                    Response.Redirect("/Staff/Dashboard/Index");
             }
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
             if (!ModelState.IsValid)
-            {
                 return Page();
-            }
 
             try
             {
@@ -47,14 +49,21 @@ namespace BilliardManagement.Web.Pages.Auth
                 {
                     HttpContext.Session.SetString("JWToken", response.Token);
                     HttpContext.Session.SetString("Username", response.User.Username);
-                    HttpContext.Session.SetString("UserRole", response.User.Role.ToString());
+                    var roleName = response.User.Role == 1 ? "Admin" : "Staff";
+                    HttpContext.Session.SetString("UserRole", roleName);
                     HttpContext.Session.SetString("FullName", response.User.FullName);
-                    TempData["SuccessMessage"] = "Logged in successfully!";
-                    return RedirectToPage("/Dashboard/Index");
+                    HttpContext.Session.SetString("LastActivity", DateTime.UtcNow.ToString("o"));
+                    TempData["SuccessMessage"] = "Đăng nhập thành công!";
+
+                    // Redirect based on role
+                    if (roleName == "Admin")
+                        return RedirectToPage("/Admin/Dashboard/Index");
+                    else
+                        return RedirectToPage("/Staff/Dashboard/Index");
                 }
                 else
                 {
-                    ErrorMessage = "Invalid username or password.";
+                    ErrorMessage = "Tên đăng nhập hoặc mật khẩu không đúng.";
                     return Page();
                 }
             }

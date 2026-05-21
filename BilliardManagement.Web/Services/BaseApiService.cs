@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using BilliardManagement.Web.Json;
 using BilliardManagement.Web.Models;
 using Microsoft.AspNetCore.Http;
 
@@ -43,7 +44,7 @@ namespace BilliardManagement.Web.Services
                 var errMsg = $"API Error ({response.StatusCode})";
                 try
                 {
-                    var apiErr = JsonSerializer.Deserialize<ApiResponse<object>>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var apiErr = JsonSerializer.Deserialize<ApiResponse<object>>(content, ApiJson.Options);
                     if (apiErr != null && !string.IsNullOrEmpty(apiErr.Message))
                     {
                         errMsg = apiErr.Message;
@@ -52,7 +53,7 @@ namespace BilliardManagement.Web.Services
                 catch {}
                 throw new Exception(errMsg);
             }
-            var apiResponse = JsonSerializer.Deserialize<ApiResponse<T>>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var apiResponse = JsonSerializer.Deserialize<ApiResponse<T>>(content, ApiJson.Options);
             return apiResponse != null ? apiResponse.Data : default;
         }
 
@@ -67,7 +68,7 @@ namespace BilliardManagement.Web.Services
                 var errMsg = $"API Error ({response.StatusCode})";
                 try
                 {
-                    var apiErr = JsonSerializer.Deserialize<ApiResponse<object>>(responseContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var apiErr = JsonSerializer.Deserialize<ApiResponse<object>>(responseContent, ApiJson.Options);
                     if (apiErr != null && !string.IsNullOrEmpty(apiErr.Message))
                     {
                         errMsg = apiErr.Message;
@@ -76,7 +77,7 @@ namespace BilliardManagement.Web.Services
                 catch {}
                 throw new Exception(errMsg);
             }
-            var apiResponse = JsonSerializer.Deserialize<ApiResponse<TResponse>>(responseContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var apiResponse = JsonSerializer.Deserialize<ApiResponse<TResponse>>(responseContent, ApiJson.Options);
             return apiResponse != null ? apiResponse.Data : default;
         }
         
@@ -90,7 +91,7 @@ namespace BilliardManagement.Web.Services
                 var errMsg = $"API Error ({response.StatusCode})";
                 try
                 {
-                    var apiErr = JsonSerializer.Deserialize<ApiResponse<object>>(responseContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var apiErr = JsonSerializer.Deserialize<ApiResponse<object>>(responseContent, ApiJson.Options);
                     if (apiErr != null && !string.IsNullOrEmpty(apiErr.Message))
                     {
                         errMsg = apiErr.Message;
@@ -99,7 +100,7 @@ namespace BilliardManagement.Web.Services
                 catch {}
                 throw new Exception(errMsg);
             }
-            var apiResponse = JsonSerializer.Deserialize<ApiResponse<TResponse>>(responseContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var apiResponse = JsonSerializer.Deserialize<ApiResponse<TResponse>>(responseContent, ApiJson.Options);
             return apiResponse != null ? apiResponse.Data : default;
         }
 
@@ -114,7 +115,7 @@ namespace BilliardManagement.Web.Services
                 var errMsg = $"API Error ({response.StatusCode})";
                 try
                 {
-                    var apiErr = JsonSerializer.Deserialize<ApiResponse<object>>(responseContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var apiErr = JsonSerializer.Deserialize<ApiResponse<object>>(responseContent, ApiJson.Options);
                     if (apiErr != null && !string.IsNullOrEmpty(apiErr.Message))
                     {
                         errMsg = apiErr.Message;
@@ -137,7 +138,7 @@ namespace BilliardManagement.Web.Services
                 var errMsg = $"API Error ({response.StatusCode})";
                 try
                 {
-                    var apiErr = JsonSerializer.Deserialize<ApiResponse<object>>(responseContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var apiErr = JsonSerializer.Deserialize<ApiResponse<object>>(responseContent, ApiJson.Options);
                     if (apiErr != null && !string.IsNullOrEmpty(apiErr.Message))
                     {
                         errMsg = apiErr.Message;
@@ -146,7 +147,7 @@ namespace BilliardManagement.Web.Services
                 catch {}
                 throw new Exception(errMsg);
             }
-            var apiResponse = JsonSerializer.Deserialize<ApiResponse<TResponse>>(responseContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var apiResponse = JsonSerializer.Deserialize<ApiResponse<TResponse>>(responseContent, ApiJson.Options);
             return apiResponse != null ? apiResponse.Data : default;
         }
 
@@ -159,7 +160,7 @@ namespace BilliardManagement.Web.Services
                 var errMsg = $"API Error ({response.StatusCode})";
                 try
                 {
-                    var apiErr = JsonSerializer.Deserialize<ApiResponse<object>>(responseContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var apiErr = JsonSerializer.Deserialize<ApiResponse<object>>(responseContent, ApiJson.Options);
                     if (apiErr != null && !string.IsNullOrEmpty(apiErr.Message))
                     {
                         errMsg = apiErr.Message;

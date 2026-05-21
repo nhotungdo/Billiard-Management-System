@@ -32,7 +32,7 @@ namespace BilliardManagement.API.Controllers
         public async Task<IActionResult> Create([FromBody] CreateProductDto dto)
         {
             var product = await _productService.CreateProductAsync(dto);
-            return Ok(ApiResponse<ProductDto>.Ok(product, "Product created successfully"));
+            return Ok(ApiResponse<ProductDto>.Ok(product, "Sản phẩm đã được tạo thành công"));
         }
     }
 }

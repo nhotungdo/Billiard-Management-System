@@ -1,11 +1,24 @@
-using Microsoft.AspNetCore.Http;
-using System.Threading.Tasks;
-
 namespace BilliardManagement.Web.Middlewares
 {
     public class AuthMiddleware
     {
         private readonly RequestDelegate _next;
+
+        // Paths that do not require authentication
+        private static readonly string[] PublicPaths =
+        [
+            "/auth/login",
+            "/auth/register",
+            "/auth/forgotpassword",
+            "/accessdenied",
+            "/error",
+        ];
+
+        // Static resource prefixes that skip auth
+        private static readonly string[] StaticPrefixes =
+        [
+            "/lib", "/css", "/js", "/images", "/favicon"
+        ];
 
         public AuthMiddleware(RequestDelegate next)
         {
@@ -14,35 +27,94 @@ namespace BilliardManagement.Web.Middlewares
 
         public async Task InvokeAsync(HttpContext context)
         {
-            var path = context.Request.Path.Value?.ToLower();
+            var path = context.Request.Path.Value?.ToLower() ?? "/";
 
-            // Check if user is trying to access protected pages without a token
-            if (path != null && !path.StartsWith("/auth") && !path.StartsWith("/api") && !path.StartsWith("/lib") && !path.StartsWith("/css") && !path.StartsWith("/js"))
+            // Allow static files
+            if (StaticPrefixes.Any(p => path.StartsWith(p)))
             {
-                var token = context.Session.GetString("JWToken");
-                if (string.IsNullOrEmpty(token))
+                await _next(context);
+                return;
+            }
+
+            // Allow public pages
+            if (PublicPaths.Any(p => path.StartsWith(p)))
+            {
+                // If already logged-in user visits login page, redirect by role
+                if (path.StartsWith("/auth/login"))
+                {
+                    var existingToken = context.Session.GetString("JWToken");
+                    var existingRole = context.Session.GetString("UserRole");
+                    if (!string.IsNullOrEmpty(existingToken))
+                    {
+                        var dest = existingRole == "Admin" ? "/Admin/Dashboard/Index" : "/Staff/Dashboard/Index";
+                        context.Response.Redirect(dest);
+                        return;
+                    }
+                }
+                await _next(context);
+                return;
+            }
+
+            // Root → redirect by role
+            if (path == "/" || path == "/index")
+            {
+                var rootToken = context.Session.GetString("JWToken");
+                var rootRole = context.Session.GetString("UserRole");
+                if (!string.IsNullOrEmpty(rootToken))
+                {
+                    var dest = rootRole == "Admin" ? "/Admin/Dashboard/Index" : "/Staff/Dashboard/Index";
+                    context.Response.Redirect(dest);
+                }
+                else
                 {
                     context.Response.Redirect("/Auth/Login");
+                }
+                return;
+            }
+
+            // Check authentication
+            var token = context.Session.GetString("JWToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                context.Response.Redirect("/Auth/Login");
+                return;
+            }
+
+            // Session timeout
+            var lastActivity = context.Session.GetString("LastActivity");
+            if (!string.IsNullOrEmpty(lastActivity) && DateTime.TryParse(lastActivity, out var lastTime))
+            {
+                if ((DateTime.UtcNow - lastTime).TotalMinutes > 30)
+                {
+                    context.Session.Clear();
+                    context.Response.Redirect("/Auth/Login?reason=timeout");
                     return;
                 }
             }
+            context.Session.SetString("LastActivity", DateTime.UtcNow.ToString("o"));
 
-            // Redirect authenticated users away from Login page
-            if (path != null && path.StartsWith("/auth/login"))
+            // Role-based path enforcement
+            var role = context.Session.GetString("UserRole");
+
+            // Admin routes — only Admin can access /Admin/*
+            if (path.StartsWith("/admin") && role != "Admin")
             {
-                var token = context.Session.GetString("JWToken");
-                if (!string.IsNullOrEmpty(token))
-                {
-                    context.Response.Redirect("/Dashboard");
-                    return;
-                }
+                context.Response.Redirect("/AccessDenied");
+                return;
+            }
+
+            // Staff routes — only Staff can access /Staff/*
+            if (path.StartsWith("/staff") && role != "Staff")
+            {
+                context.Response.Redirect("/AccessDenied");
+                return;
             }
 
             await _next(context);
-            
+
             if (context.Response.StatusCode == 401 || context.Response.StatusCode == 403)
             {
-                context.Response.Redirect("/Auth/Login");
+                context.Response.Redirect("/AccessDenied");
             }
         }
     }

@@ -22,7 +22,7 @@ namespace BilliardManagement.Models.Models
         public decimal HourlyRate { get; set; }
 
         [Required]
-        public TableStatus Status { get; set; } = TableStatus.Empty;
+        public TableStatus Status { get; set; } = TableStatus.Available;
 
         public bool IsActive { get; set; } = true;
 

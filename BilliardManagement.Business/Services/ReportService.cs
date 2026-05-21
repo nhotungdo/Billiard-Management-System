@@ -21,7 +21,7 @@ namespace BilliardManagement.Business.Services
         public async Task<object> GetDashboardAnalyticsAsync()
         {
             var today = DateTime.UtcNow.Date;
-            var invoices = await _unitOfWork.Repository<Invoice>().GetAllAsync(i => i.CreatedAt >= today && i.IsPaid);
+            var invoices = await _unitOfWork.Repository<Invoice>().GetAllAsync(i => i.CreatedAt >= today);
             var activeSessions = await _unitOfWork.Repository<TableSession>().GetAllAsync(s => s.Status == Models.Enums.SessionStatus.Active);
             
             return new
@@ -35,7 +35,7 @@ namespace BilliardManagement.Business.Services
         public async Task<IEnumerable<DailyRevenueDto>> GetDailyRevenueAsync(int days)
         {
             var startDate = DateTime.UtcNow.Date.AddDays(-days);
-            var invoices = await _unitOfWork.Repository<Invoice>().GetAllAsync(i => i.CreatedAt >= startDate && i.IsPaid);
+            var invoices = await _unitOfWork.Repository<Invoice>().GetAllAsync(i => i.CreatedAt >= startDate);
 
             return invoices.GroupBy(i => i.CreatedAt.Date)
                            .Select(g => new DailyRevenueDto

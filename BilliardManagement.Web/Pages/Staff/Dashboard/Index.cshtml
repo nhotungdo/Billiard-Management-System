@@ -1,0 +1,354 @@
+@page
+@model BilliardManagement.Web.Pages.Staff.Dashboard.IndexModel
+@{
+    Layout = "_StaffLayout";
+    ViewData["Title"] = "Staff Dashboard";
+    ViewData["BreadcrumbTitle"] = "Bảng điều khiển";
+}
+
+<div class="dashboard-header mb-4">
+    <h1 class="page-title">
+        <i class="fa-solid fa-gauge-high me-2"></i>Bảng điều khiển nhân viên
+    </h1>
+    <p class="page-subtitle">Xin chào, <strong>@Model.CurrentFullName</strong>! Quản lý bàn và phiên chơi realtime.</p>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-warning">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>@Model.ErrorMessage
+    </div>
+}
+
+<div id="session-alert-container"></div>
+
+<!-- KPI Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-6 col-xl-3">
+        <div class="kpi-card kpi-staff-sessions">
+            <div class="kpi-icon"><i class="fa-solid fa-play-circle"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-label">Bàn đang chơi</div>
+                <div class="kpi-value" id="kpi-playing">@Model.CountPlaying</div>
+                <div class="kpi-sub">Phiên đang hoạt động</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="kpi-card kpi-staff-tables">
+            <div class="kpi-icon"><i class="fa-solid fa-table-cells-large"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-label">Tổng số bàn</div>
+                <div class="kpi-value" id="kpi-total">@Model.TableDashboard.Count</div>
+                <div class="kpi-sub"><span class="text-success" id="kpi-available">@Model.CountAvailable</span> trống</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="kpi-card kpi-staff-orders">
+            <div class="kpi-icon"><i class="fa-solid fa-cart-shopping"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-label">Đơn hàng</div>
+                <div class="kpi-value">@Model.TodayOrders.Count</div>
+                <div class="kpi-sub">Đơn trong hệ thống</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="kpi-card kpi-staff-revenue">
+            <div class="kpi-icon"><i class="fa-solid fa-coins"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-label">Hóa đơn đã thu</div>
+                <div class="kpi-value">@Model.TodayRevenue.ToString("N0") đ</div>
+                <div class="kpi-sub">@Model.TodayInvoices.Count(i => i.IsPaid) hóa đơn đã thanh toán</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table Cards Grid -->
+<div class="card-panel mb-4">
+    <div class="panel-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h5 class="panel-title"><i class="fa-solid fa-table-cells me-2"></i>Sơ đồ bàn — thao tác trực tiếp</h5>
+            <p class="panel-sub">Realtime timer · SignalR · Bootstrap 5</p>
+        </div>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="soundAlertToggle">
+            <label class="form-check-label small" for="soundAlertToggle">Âm thanh cảnh báo hết giờ</label>
+        </div>
+    </div>
+    <div class="panel-body">
+        <div class="row g-3" id="table-cards-grid">
+            @foreach (var t in Model.TableDashboard)
+            {
+                var statusClass = t.Status switch { 1 => "status-available", 2 => "status-playing", 3 => "status-reserved", 4 => "status-maintenance", _ => "" };
+                var statusText = t.Status switch { 1 => "Trống bàn", 2 => "Đang chơi", 3 => "Đặt trước", 4 => "Bảo trì", _ => "—" };
+                var session = t.ActiveSession;
+                var remainingSec = IndexModel.GetRemainingSeconds(session);
+                var endIso = session != null ? IndexModel.GetEndUtc(session).ToString("yyyy-MM-ddTHH:mm:ss.fffZ") : "";
+                var timerText = session != null ? IndexModel.FormatTimer(remainingSec) : "—";
+                var timerClass = remainingSec <= 0 && session != null ? "timer-expired" : remainingSec < 900 && session != null ? "timer-warning" : "timer-ok";
+                var durationText = session?.DurationHours > 0 ? $"{session.DurationHours} giờ" : "—";
+                <div class="col-6 col-md-4 col-xl-3">
+                    <div class="table-session-card @statusClass"
+                         id="table-card-@t.Id"
+                         data-table-id="@t.Id"
+                         data-status="@t.Status"
+                         data-hourly-rate="@t.HourlyRate"
+                         data-session-id="@(session?.Id)"
+                         data-end-time="@endIso"
+                         data-duration-hours="@(session?.DurationHours ?? 0)"
+                         data-remaining-seconds="@remainingSec">
+                        <div class="tsc-header">
+                            <div>
+                                <div class="tsc-name">@t.TableName</div>
+                                <div class="tsc-type text-muted small">@t.TableType</div>
+                            </div>
+                            <span class="tsc-status-badge badge bg-@(t.Status == 2 ? "danger" : t.Status == 1 ? "success" : t.Status == 3 ? "warning" : "secondary")" id="status-badge-@t.Id">@statusText</span>
+                        </div>
+                        <div class="tsc-body">
+                            @if (session != null)
+                            {
+                                <div class="tsc-row">
+                                    <span class="tsc-label">Giờ chơi</span>
+                                    <span class="tsc-duration fw-600" id="duration-@t.Id">@durationText</span>
+                                </div>
+                            }
+                            <div class="tsc-row">
+                                <span class="tsc-label">Còn lại</span>
+                                <span class="session-timer @timerClass" id="timer-@t.Id" data-end="@endIso" data-remaining="@remainingSec">@timerText</span>
+                            </div>
+                            <div class="tsc-totals">
+                                <div class="tsc-row">
+                                    <span class="tsc-label">Tiền bàn</span>
+                                    <span id="table-price-@t.Id">@((session?.TotalPrice ?? 0).ToString("N0")) đ</span>
+                                </div>
+                                <div class="tsc-row">
+                                    <span class="tsc-label">Tiền nước</span>
+                                    <span id="orders-price-@t.Id">@((session?.OrdersTotal ?? 0).ToString("N0")) đ</span>
+                                </div>
+                                <div class="tsc-row tsc-row-total">
+                                    <span class="tsc-label">Tổng</span>
+                                    <span class="tsc-price" id="price-@t.Id">@((session?.CurrentTotal ?? 0).ToString("N0")) đ</span>
+                                </div>
+                            </div>
+                            @if (session != null && session.OrderLines.Any())
+                            {
+                                <div class="tsc-orders mt-2" id="orders-list-@t.Id">
+                                    <div class="tsc-label mb-1">Đồ uống / snack</div>
+                                    <ul class="tsc-order-items list-unstyled mb-0 small">
+                                        @foreach (var line in session.OrderLines)
+                                        {
+                                            <li>@line.ProductName <span class="text-muted">x@line.Quantity</span></li>
+                                        }
+                                    </ul>
+                                </div>
+                            }
+                            else if (session != null)
+                            {
+                                <div class="tsc-orders mt-2 text-muted small" id="orders-list-@t.Id">Chưa có order</div>
+                            }
+                        </div>
+                        <div class="tsc-actions">
+                            @if (session == null && t.Status != 4)
+                            {
+                                <button type="button" class="btn btn-sm btn-success btn-start-session" data-table-id="@t.Id" data-table-name="@t.TableName">
+                                    <i class="fa-solid fa-play me-1"></i>Bắt đầu
+                                </button>
+                            }
+                            @if (session != null)
+                            {
+                                <button type="button" class="btn btn-sm btn-info text-white btn-order-drinks" data-session-id="@session.Id" data-table-id="@t.Id" data-table-name="@t.TableName">
+                                    <i class="fa-solid fa-mug-hot me-1"></i>Order nước
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary btn-extend-session" data-session-id="@session.Id" data-table-name="@t.TableName">
+                                    <i class="fa-solid fa-clock me-1"></i>Gia hạn
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-end-session" data-session-id="@session.Id" data-table-name="@t.TableName">
+                                    <i class="fa-solid fa-stop me-1"></i>Kết thúc
+                                </button>
+                            }
+                            @if (t.Status != 4 && session == null)
+                            {
+                                <div class="dropdown d-inline-block">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Trạng thái</button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item btn-set-status" href="#" data-table-id="@t.Id" data-status="Available">Trống bàn</a></li>
+                                        <li><a class="dropdown-item btn-set-status" href="#" data-table-id="@t.Id" data-status="Reserved">Đặt trước</a></li>
+                                    </ul>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        @if (!Model.TableDashboard.Any())
+        {
+            <p class="text-muted text-center py-4">Không có bàn nào</p>
+        }
+    </div>
+</div>
+
+<!-- Today Invoices -->
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card-panel">
+            <div class="panel-header d-flex justify-content-between align-items-center">
+                <h5 class="panel-title"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Hóa đơn hôm nay</h5>
+                <a href="/Staff/Invoices/Index" class="btn btn-staff-primary btn-sm">Xem tất cả</a>
+            </div>
+            <div class="panel-body p-0">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>#</th><th>Session ID</th><th>Tổng tiền</th><th>Thanh toán</th><th>Trạng thái</th></tr>
+                        </thead>
+                        <tbody>
+                            @{int idx = 1;}
+                            @foreach (var inv in Model.TodayInvoices.Take(5))
+                            {
+                                <tr>
+                                    <td>@(idx++)</td>
+                                    <td><code>@inv.SessionId.ToString().Substring(0,8)...</code></td>
+                                    <td class="fw-600">@inv.Total.ToString("N0") đ</td>
+                                    <td>@(inv.PaymentMethod == 0 ? "Tiền mặt" : inv.PaymentMethod == 1 ? "Thẻ" : "Chuyển khoản")</td>
+                                    <td>
+                                        @if (inv.IsPaid) { <span class="badge bg-success">Đã thanh toán</span> }
+                                        else { <span class="badge bg-warning text-dark">Chờ thanh toán</span> }
+                                    </td>
+                                </tr>
+                            }
+                            @if (!Model.TodayInvoices.Any())
+                            {
+                                <tr><td colspan="5" class="text-center py-4 text-muted">Chưa có hóa đơn</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Start Session Modal -->
+<div class="modal fade" id="startSessionModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-play me-2 text-success"></i>Bắt đầu chơi — <span id="startModalTableName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">Chọn số giờ khách muốn chơi:</p>
+                <div class="d-grid gap-2 hour-options">
+                    @for (int h = 1; h <= 4; h++)
+                    {
+                        <button type="button" class="btn btn-outline-success btn-hour-option" data-hours="@h">@h giờ</button>
+                    }
+                </div>
+                <hr />
+                <label class="form-label small">Custom giờ (1–24)</label>
+                <div class="input-group">
+                    <input type="number" class="form-control" id="customHoursInput" min="1" max="24" value="1" />
+                    <button type="button" class="btn btn-success" id="btnCustomStart">Bắt đầu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Extend Session Modal -->
+<div class="modal fade" id="extendSessionModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-clock me-2"></i>Gia hạn — <span id="extendModalTableName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body d-grid gap-2">
+                <button type="button" class="btn btn-outline-primary btn-extend-option" data-minutes="30">+ 30 phút</button>
+                <button type="button" class="btn btn-outline-primary btn-extend-option" data-minutes="60">+ 1 giờ</button>
+                <button type="button" class="btn btn-outline-primary btn-extend-option" data-minutes="120">+ 2 giờ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Drinks Modal -->
+<div class="modal fade" id="orderModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-mug-hot me-2 text-info"></i>Order nước — <span id="orderModalTableName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2" id="orderProductList">
+                    @foreach (var p in Model.Products)
+                    {
+                        <div class="col-6 col-md-4">
+                            <div class="order-product-item border rounded p-2 h-100" data-product-id="@p.Id" data-price="@p.Price" data-name="@p.Name">
+                                <div class="fw-600 small">@p.Name</div>
+                                <div class="text-muted small mb-2">@p.Category · @p.Price.ToString("N0") đ</div>
+                                <div class="input-group input-group-sm">
+                                    <button type="button" class="btn btn-outline-secondary btn-qty-minus">−</button>
+                                    <input type="number" class="form-control text-center order-qty" value="0" min="0" max="@p.Stock" />
+                                    <button type="button" class="btn btn-outline-secondary btn-qty-plus">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-info text-white" id="btnSubmitOrder">
+                    <i class="fa-solid fa-check me-1"></i>Xác nhận order
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- End Session Modal -->
+<div class="modal fade" id="endSessionModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger"><i class="fa-solid fa-stop me-2"></i>Kết thúc bàn — <span id="endModalTableName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Hệ thống sẽ kết thúc phiên, trả bàn về trống và tạo hóa đơn (giờ chơi + đồ uống).</p>
+                <div class="mb-3">
+                    <label class="form-label">Giảm giá (đ)</label>
+                    <input type="number" class="form-control" id="endDiscountInput" min="0" value="0" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Thanh toán</label>
+                    <select class="form-select" id="endPaymentSelect">
+                        <option value="0">Tiền mặt</option>
+                        <option value="1">Thẻ</option>
+                        <option value="2">Chuyển khoản</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-danger w-100" id="btnConfirmEnd">Xác nhận kết thúc</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script src="~/js/table-status.js" asp-append-version="true"></script>
+    <script>
+        window.STAFF_DASHBOARD = {
+            apiBase: 'https://localhost:5001/api/',
+            token: '@(HttpContext.Session.GetString("JWToken") ?? "")',
+            hubBase: document.querySelector('meta[name="hub-base-url"]')?.content || 'https://localhost:5001'
+        };
+    </script>
+    <script src="~/js/staff-dashboard.js" asp-append-version="true"></script>
+}

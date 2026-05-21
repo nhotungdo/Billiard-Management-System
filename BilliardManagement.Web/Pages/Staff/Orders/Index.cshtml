@@ -1,0 +1,48 @@
+@page
+@model BilliardManagement.Web.Pages.Staff.Orders.IndexModel
+@{
+    Layout = "_StaffLayout";
+    ViewData["Title"] = "Đơn hàng";
+}
+
+<div class="dashboard-header mb-4">
+    <h1 class="page-title"><i class="fa-solid fa-cart-shopping me-2"></i>Danh sách Đơn hàng</h1>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-warning">@Model.ErrorMessage</div>
+}
+
+<div class="card-panel">
+    <div class="panel-body p-0">
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr><th>#</th><th>Đơn hàng ID</th><th>Session</th><th>Tổng tiền</th><th>Trạng thái</th></tr>
+                </thead>
+                <tbody>
+                    @{int i = 1;}
+                    @foreach (var o in Model.Orders)
+                    {
+                        <tr>
+                            <td>@(i++)</td>
+                            <td><code>@o.Id.ToString().Substring(0,8)...</code></td>
+                            <td><code>@o.SessionId.ToString().Substring(0,8)...</code></td>
+                            <td class="fw-600">@o.TotalAmount.ToString("N0") đ</td>
+                            <td>
+                                @{var statusText = o.Status == 0 ? "Chờ" : o.Status == 1 ? "Hoàn thành" : "Hủy";}
+                                @{var statusClass = o.Status == 0 ? "warning" : o.Status == 1 ? "success" : "danger";}
+                                <span class="badge bg-@statusClass text-@(o.Status == 0 ? "dark" : "white")">@statusText</span>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Orders.Any())
+                    {
+                        <tr><td colspan="5" class="text-center py-4 text-muted">Không có đơn hàng</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

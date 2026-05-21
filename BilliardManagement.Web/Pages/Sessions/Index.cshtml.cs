@@ -10,12 +10,15 @@ namespace BilliardManagement.Web.Pages.Sessions
         private readonly TableService _tableService;
         private readonly SessionService _sessionService;
         private readonly InvoiceService _invoiceService;
+        private readonly ILogger<IndexModel> _logger;
 
-        public IndexModel(TableService tableService, SessionService sessionService, InvoiceService invoiceService)
+        public IndexModel(TableService tableService, SessionService sessionService,
+            InvoiceService invoiceService, ILogger<IndexModel> logger)
         {
             _tableService = tableService;
             _sessionService = sessionService;
             _invoiceService = invoiceService;
+            _logger = logger;
         }
 
         public List<TableDto> Tables { get; set; } = new();
@@ -45,27 +48,32 @@ namespace BilliardManagement.Web.Pages.Sessions
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Could not load session/table data: {ex.Message}";
+                _logger.LogError(ex, "LoadDataAsync failed: {Message}", ex.Message);
+                ErrorMessage = $"Không thể tải dữ liệu bàn/session: {ex.Message}";
             }
         }
 
         public async Task<IActionResult> OnPostStartAsync(Guid tableId)
         {
+            _logger.LogInformation("OnPostStart called: tableId={TableId}", tableId);
             try
             {
-                var session = await _sessionService.StartSessionAsync(tableId);
+                var session = await _sessionService.StartSessionAsync(tableId, 1);
                 if (session != null)
                 {
-                    TempData["SuccessMessage"] = "Session started successfully.";
+                    _logger.LogInformation("Session started successfully: sessionId={SessionId}", session.Id);
+                    TempData["SuccessMessage"] = "Bắt đầu phiên chơi thành công!";
                 }
                 else
                 {
-                    TempData["ErrorMessage"] = "Failed to start session.";
+                    _logger.LogWarning("StartSession returned null for tableId={TableId}", tableId);
+                    TempData["ErrorMessage"] = "Không thể bắt đầu phiên chơi.";
                 }
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = $"Error starting session: {ex.Message}";
+                _logger.LogError(ex, "OnPostStart failed for tableId={TableId}: {Message}", tableId, ex.Message);
+                TempData["ErrorMessage"] = $"Lỗi khi bắt đầu phiên chơi: {ex.Message}";
             }
 
             return RedirectToPage();
@@ -73,12 +81,24 @@ namespace BilliardManagement.Web.Pages.Sessions
 
         public async Task<IActionResult> OnPostEndAsync(Guid sessionId)
         {
+            _logger.LogInformation("OnPostEnd called: sessionId={SessionId}", sessionId);
             try
             {
+                // Step 1: End the session
                 var session = await _sessionService.EndSessionAsync(sessionId);
-                if (session != null)
+                if (session == null)
                 {
-                    // Auto-generate invoice with 0 discount and Cash (0)
+                    _logger.LogWarning("EndSession returned null for sessionId={SessionId}", sessionId);
+                    TempData["ErrorMessage"] = "Không thể kết thúc phiên chơi.";
+                    return RedirectToPage();
+                }
+
+                _logger.LogInformation("Session ended successfully: sessionId={SessionId}, totalPrice={TotalPrice}",
+                    session.Id, session.TotalPrice);
+
+                // Step 2: Auto-generate invoice with 0 discount and Cash payment
+                try
+                {
                     var createInvoiceDto = new CreateInvoiceDto
                     {
                         Discount = 0,
@@ -87,22 +107,29 @@ namespace BilliardManagement.Web.Pages.Sessions
                     var invoice = await _invoiceService.GenerateInvoiceAsync(sessionId, createInvoiceDto);
                     if (invoice != null)
                     {
-                        TempData["SuccessMessage"] = $"Session ended and Invoice #{invoice.Id.ToString().Substring(0, 8)} generated successfully!";
+                        _logger.LogInformation("Invoice generated successfully: invoiceId={InvoiceId}", invoice.Id);
+                        TempData["SuccessMessage"] = $"✅ Kết thúc bàn thành công! Hóa đơn #{invoice.Id.ToString()[..8].ToUpper()} đã được tạo.";
                         return RedirectToPage("/Invoices/Index");
                     }
                     else
                     {
-                        TempData["SuccessMessage"] = "Session ended successfully, but invoice generation failed.";
+                        _logger.LogWarning("GenerateInvoice returned null for sessionId={SessionId}", sessionId);
+                        TempData["SuccessMessage"] = "Kết thúc phiên chơi thành công, nhưng không thể tạo hóa đơn tự động.";
                     }
                 }
-                else
+                catch (Exception invoiceEx)
                 {
-                    TempData["ErrorMessage"] = "Failed to end session.";
+                    _logger.LogError(invoiceEx, "GenerateInvoice failed for sessionId={SessionId}: {Message}",
+                        sessionId, invoiceEx.Message);
+                    // Session đã ended thành công, chỉ báo lỗi tạo invoice
+                    TempData["SuccessMessage"] = "Kết thúc phiên chơi thành công.";
+                    TempData["ErrorMessage"] = $"Lưu ý: Không thể tạo hóa đơn tự động ({invoiceEx.Message}). Vui lòng tạo thủ công.";
                 }
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = $"Error ending session: {ex.Message}";
+                _logger.LogError(ex, "OnPostEnd failed for sessionId={SessionId}: {Message}", sessionId, ex.Message);
+                TempData["ErrorMessage"] = $"❌ Không thể kết thúc bàn: {ex.Message}";
             }
 
             return RedirectToPage();

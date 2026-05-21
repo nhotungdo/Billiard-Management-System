@@ -1,0 +1,277 @@
+@page
+@model BilliardManagement.Web.Pages.Admin.Tables.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Quản lý Bàn";
+}
+
+<div id="table-toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100;"></div>
+
+<div class="dashboard-header mb-4">
+    <h1 class="page-title"><i class="fa-solid fa-table-cells me-2"></i>Quản lý Bàn Bida</h1>
+    <p class="page-subtitle">Danh sách tất cả bàn và trạng thái hiện tại — cập nhật realtime</p>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-warning alert-dismissible fade show">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>@Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Stats Row -->
+<div class="row g-3 mb-4" id="table-stats-row">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm" style="border-left: 4px solid #1cc88a !important;">
+            <div class="card-body d-flex align-items-center gap-3 py-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;background:rgba(28,200,138,.15)">
+                    <i class="fa-solid fa-circle-check text-success fs-5"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Trống bàn</div>
+                    <div class="fw-bold fs-4 text-success" id="stat-available">@Model.CountAvailable</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm" style="border-left: 4px solid #e74a3b !important;">
+            <div class="card-body d-flex align-items-center gap-3 py-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;background:rgba(231,74,59,.15)">
+                    <i class="fa-solid fa-circle-play text-danger fs-5"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Đang chơi</div>
+                    <div class="fw-bold fs-4 text-danger" id="stat-playing">@Model.CountPlaying</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm" style="border-left: 4px solid #f6c23e !important;">
+            <div class="card-body d-flex align-items-center gap-3 py-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;background:rgba(246,194,62,.15)">
+                    <i class="fa-solid fa-clock text-warning fs-5"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Đặt trước</div>
+                    <div class="fw-bold fs-4 text-warning" id="stat-reserved">@Model.CountReserved</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm" style="border-left: 4px solid #858796 !important;">
+            <div class="card-body d-flex align-items-center gap-3 py-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;background:rgba(133,135,150,.15)">
+                    <i class="fa-solid fa-wrench text-secondary fs-5"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Bảo trì</div>
+                    <div class="fw-bold fs-4 text-secondary" id="stat-maintenance">@Model.CountMaintenance</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Table Card -->
+<div class="card-panel">
+    <div class="panel-header d-flex justify-content-between align-items-center">
+        <h5 class="panel-title mb-0">Danh sách bàn (<span id="table-count">@Model.Tables.Count</span> bàn)</h5>
+        <button class="btn btn-sm btn-outline-secondary" type="button" onclick="window.location.reload()">
+            <i class="fas fa-rotate me-1"></i>Làm mới
+        </button>
+    </div>
+    <div class="panel-body p-0">
+        <div class="table-responsive">
+            <table class="data-table" id="tables-list">
+                <thead>
+                    <tr>
+                        <th style="width:50px">#</th>
+                        <th>Tên bàn</th>
+                        <th>Loại</th>
+                        <th>Giá/giờ</th>
+                        <th>Trạng thái</th>
+                        <th style="width:220px" class="text-center">Cập nhật trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody id="tables-tbody">
+                    @if (!Model.Tables.Any())
+                    {
+                        <tr id="empty-row">
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="fa-solid fa-inbox fa-2x mb-2 d-block"></i>
+                                Không có dữ liệu bàn
+                            </td>
+                        </tr>
+                    }
+                    @{ int i = 1; }
+                    @foreach (var t in Model.Tables)
+                    {
+                        var cfg = t.Status switch
+                        {
+                            1 => ("success", "Trống bàn", "circle-check"),
+                            2 => ("danger", "Đang chơi", "circle-play"),
+                            3 => ("warning", "Đặt trước", "clock"),
+                            4 => ("secondary", "Bảo trì", "wrench"),
+                            _ => ("dark", "Không xác định", "question")
+                        };
+                        var tableType = t.Type == 0 ? "Bàn thường" : t.Type == 1 ? "Bàn VIP" : "Loại khác";
+
+                        <tr id="row-@t.Id" data-table-id="@t.Id" data-status="@t.Status">
+                            <td class="text-muted row-index">@(i++)</td>
+                            <td><strong class="table-name">@t.TableName</strong></td>
+                            <td>
+                                <span class="badge bg-secondary bg-opacity-75">@tableType</span>
+                            </td>
+                            <td class="fw-500">@t.HourlyRate.ToString("N0") đ/giờ</td>
+                            <td>
+                                <span class="badge bg-@cfg.Item1" id="status-badge-@t.Id">
+                                    <i class="fa-solid fa-@cfg.Item3 me-1"></i>@cfg.Item2
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                    <select class="form-select form-select-sm status-select"
+                                            data-table-id="@t.Id"
+                                            data-original="@t.Status"
+                                            style="max-width: 160px;">
+                                        @if (t.Status == 1) { <option value="Available" selected>Trống bàn</option> } else { <option value="Available">Trống bàn</option> }
+                                        @if (t.Status == 2) { <option value="Playing" selected>Đang chơi</option> } else { <option value="Playing">Đang chơi</option> }
+                                        @if (t.Status == 3) { <option value="Reserved" selected>Đặt trước</option> } else { <option value="Reserved">Đặt trước</option> }
+                                        @if (t.Status == 4) { <option value="Maintenance" selected>Bảo trì</option> } else { <option value="Maintenance">Bảo trì</option> }
+                                    </select>
+                                    <span class="status-spinner d-none" id="spinner-@t.Id">
+                                        <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                                    </span>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+<script src="~/js/table-status.js" asp-append-version="true"></script>
+<style>
+    .fw-500 { font-weight: 500; }
+    .status-select:disabled { opacity: 0.7; }
+</style>
+<script>
+    const API_BASE = document.querySelector('meta[name="api-base-url"]')?.content || 'https://localhost:5001/api/';
+    const API_TOKEN = document.querySelector('meta[name="api-token"]')?.content || '';
+
+    const STATUS_ENUM = {
+        Available: 1,
+        Playing: 2,
+        Reserved: 3,
+        Maintenance: 4
+    };
+
+    let tablesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Tables.Select(t => new {
+        id = t.Id,
+        tableName = t.TableName,
+        type = t.Type,
+        status = t.Status,
+        hourlyRate = t.HourlyRate
+    })));
+
+    function showToast(message, type) {
+        const container = document.getElementById('table-toast-container');
+        const id = 'toast-' + Date.now();
+        const bg = type === 'success' ? 'text-bg-success' : 'text-bg-danger';
+        const html = `<div id="${id}" class="toast align-items-center ${bg} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div></div>`;
+        container.insertAdjacentHTML('beforeend', html);
+        const el = document.getElementById(id);
+        const toast = new bootstrap.Toast(el, { delay: 3500 });
+        toast.show();
+        el.addEventListener('hidden.bs.toast', () => el.remove());
+    }
+
+    function recalcStats() {
+        updateTableStatusStats(tablesData);
+    }
+
+    function applyStatusToRow(tableId, status) {
+        const row = document.getElementById('row-' + tableId);
+        if (row) row.dataset.status = status;
+        renderTableStatusBadge(status, 'status-badge-' + tableId);
+        const sel = document.querySelector(`.status-select[data-table-id="${tableId}"]`);
+        if (sel) {
+            const cfg = getTableStatusConfig(status);
+            sel.value = cfg.key;
+            sel.dataset.original = status;
+        }
+        const item = tablesData.find(t => t.id === tableId);
+        if (item) item.status = status;
+        recalcStats();
+    }
+
+    async function updateTableStatus(tableId, statusKey) {
+        const spinner = document.getElementById('spinner-' + tableId);
+        const select = document.querySelector(`.status-select[data-table-id="${tableId}"]`);
+        if (select) select.disabled = true;
+        if (spinner) spinner.classList.remove('d-none');
+
+        try {
+            const res = await fetch(API_BASE + 'tables/update-status/' + tableId, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + API_TOKEN
+                },
+                body: JSON.stringify({ status: statusKey })
+            });
+
+            const json = await res.json();
+            if (!res.ok || !(json.success ?? json.Success)) {
+                throw new Error(json.message || 'Không thể cập nhật trạng thái bàn');
+            }
+
+            const data = json.data || json.Data;
+            const newStatus = STATUS_ENUM[statusKey] || data?.status || data?.Status;
+            applyStatusToRow(tableId, newStatus);
+            showToast('Cập nhật trạng thái bàn thành công', 'success');
+        } catch (err) {
+            if (select) select.value = getTableStatusConfig(parseInt(select.dataset.original)).key;
+            showToast(err.message || 'Không thể cập nhật trạng thái bàn', 'error');
+        } finally {
+            if (select) select.disabled = false;
+            if (spinner) spinner.classList.add('d-none');
+        }
+    }
+
+    document.querySelectorAll('.status-select').forEach(function (sel) {
+        sel.addEventListener('change', function () {
+            const tableId = this.dataset.tableId;
+            const newKey = this.value;
+            const original = parseInt(this.dataset.original);
+            const newStatus = STATUS_ENUM[newKey];
+            if (newStatus === original) return;
+            updateTableStatus(tableId, newKey);
+        });
+    });
+
+    connectTableStatusHub({
+        onStatusChanged: function (payload) {
+            const status = payload.status !== undefined ? payload.status : payload.Status;
+            const tableId = payload.tableId || payload.TableId;
+            applyStatusToRow(tableId, status);
+        }
+    });
+</script>
+}
