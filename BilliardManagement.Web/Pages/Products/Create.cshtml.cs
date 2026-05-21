@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace BilliardManagement.Web.Pages.Tables
+namespace BilliardManagement.Web.Pages.Products
 {
     public class CreateModel : PageModel
     {

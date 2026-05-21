@@ -18,11 +18,16 @@ namespace BilliardManagement.Models.Models
         [Required]
         public decimal Price { get; set; }
 
+        [MaxLength(500)]
+        public string? Description { get; set; }
+
         public int StockQuantity { get; set; } = 0;
 
         public string? ImageUrl { get; set; }
 
         public bool IsAvailable { get; set; } = true;
+
+        public bool IsDeleted { get; set; } = false;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

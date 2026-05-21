@@ -8,8 +8,34 @@ namespace BilliardManagement.Business.DTOs
     public class RegisterDto { public string FullName { get; set; } = string.Empty; public string Username { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; public string? PhoneNumber { get; set; } }
     public class AuthResponseDto { public string Token { get; set; } = string.Empty; public UserDto User { get; set; } = default!; }
 
-    public class TableDto { public Guid Id { get; set; } public string TableName { get; set; } = string.Empty; public TableType Type { get; set; } public TableStatus Status { get; set; } public decimal HourlyRate { get; set; } }
-    public class CreateTableDto { public string TableName { get; set; } = string.Empty; public TableType Type { get; set; } public decimal HourlyRate { get; set; } }
+    public class TableDto
+    {
+        public Guid Id { get; set; }
+        public string TableName { get; set; } = string.Empty;
+        public string TableType { get; set; } = string.Empty;
+        public TableStatus Status { get; set; }
+        public decimal PricePerHour { get; set; }
+        public string? Description { get; set; }
+    }
+
+    public class CreateTableDto
+    {
+        public string TableName { get; set; } = string.Empty;
+        public string TableType { get; set; } = string.Empty;
+        public decimal PricePerHour { get; set; }
+        public string Status { get; set; } = "Available";
+        public string? Description { get; set; }
+    }
+
+    public class TableCreatedDto
+    {
+        public Guid Id { get; set; }
+        public string TableName { get; set; } = string.Empty;
+        public string TableType { get; set; } = string.Empty;
+        public int Status { get; set; }
+        public decimal PricePerHour { get; set; }
+        public string? Description { get; set; }
+    }
 
     public class UpdateTableStatusRequest
     {
@@ -103,8 +129,38 @@ namespace BilliardManagement.Business.DTOs
         public List<SessionOrderLineDto> OrderLines { get; set; } = new();
     }
 
-    public class ProductDto { public Guid Id { get; set; } public string Name { get; set; } = string.Empty; public decimal Price { get; set; } public string Category { get; set; } = string.Empty; public int Stock { get; set; } public string? ImageUrl { get; set; } }
-    public class CreateProductDto { public string Name { get; set; } = string.Empty; public decimal Price { get; set; } public string Category { get; set; } = string.Empty; public int Stock { get; set; } public string? ImageUrl { get; set; } }
+    public class ProductDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public int Stock { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? Description { get; set; }
+        public bool IsAvailable { get; set; }
+    }
+
+    public class CreateProductDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public int Stock { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? Description { get; set; }
+        public bool IsAvailable { get; set; } = true;
+    }
+
+    public class ProductCreatedDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
+        public bool IsAvailable { get; set; }
+    }
 
     public class OrderDto { public Guid Id { get; set; } public Guid SessionId { get; set; } public Guid UserId { get; set; } public decimal TotalAmount { get; set; } public OrderStatus Status { get; set; } }
     public class OrderItemDto { public Guid Id { get; set; } public Guid ProductId { get; set; } public int Quantity { get; set; } public decimal UnitPrice { get; set; } }

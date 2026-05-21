@@ -10,6 +10,14 @@ namespace BilliardManagement.API.Hubs
         }
     }
 
+    public class ProductHub : Hub
+    {
+        public async Task SendProductUpdate(string message)
+        {
+            await Clients.All.SendAsync("ReceiveProductUpdate", message);
+        }
+    }
+
     public class OrderHub : Hub
     {
         public async Task SendOrderUpdate(string message)

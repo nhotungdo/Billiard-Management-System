@@ -22,6 +22,7 @@ builder.Services.AddSession(options =>
 builder.Services.AddHttpClient("Api", client =>
 {
     client.BaseAddress = new Uri("https://localhost:5001/api/");
+    client.Timeout = TimeSpan.FromSeconds(10);
 });
 
 // Register API Services

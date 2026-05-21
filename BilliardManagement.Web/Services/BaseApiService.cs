@@ -57,6 +57,45 @@ namespace BilliardManagement.Web.Services
             return apiResponse != null ? apiResponse.Data : default;
         }
 
+        protected async Task<TResponse?> PostMultipartAsync<TResponse>(string url, MultipartFormDataContent form)
+        {
+            var response = await _httpClient.PostAsync(url, form);
+            var responseContent = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errMsg = $"API Error ({response.StatusCode})";
+                try
+                {
+                    var apiErr = JsonSerializer.Deserialize<ApiResponse<object>>(responseContent, ApiJson.Options);
+                    if (apiErr != null && !string.IsNullOrEmpty(apiErr.Message))
+                        errMsg = apiErr.Message;
+                }
+                catch { }
+                throw new Exception(errMsg);
+            }
+            var apiResponse = JsonSerializer.Deserialize<ApiResponse<TResponse>>(responseContent, ApiJson.Options);
+            return apiResponse != null ? apiResponse.Data : default;
+        }
+
+        protected async Task<bool> PutMultipartAsync(string url, MultipartFormDataContent form)
+        {
+            var response = await _httpClient.PutAsync(url, form);
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var errMsg = $"API Error ({response.StatusCode})";
+                try
+                {
+                    var apiErr = JsonSerializer.Deserialize<ApiResponse<object>>(responseContent, ApiJson.Options);
+                    if (apiErr != null && !string.IsNullOrEmpty(apiErr.Message))
+                        errMsg = apiErr.Message;
+                }
+                catch { }
+                throw new Exception(errMsg);
+            }
+            return true;
+        }
+
         protected async Task<TResponse?> PostAsync<TRequest, TResponse>(string url, TRequest data)
         {
             var json = JsonSerializer.Serialize(data);

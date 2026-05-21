@@ -1,0 +1,58 @@
+<div class="modal fade" id="createTableModal" tabindex="-1" aria-labelledby="createTableModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="createTableForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createTableModalLabel">
+                        <i class="fa-solid fa-circle-plus me-2 text-primary"></i>Tạo bàn mới
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên bàn</label>
+                        <input type="text" name="tableName" class="form-control" placeholder="VD: Bàn 11" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Loại bàn</label>
+                        <select name="tableType" class="form-select" required>
+                            <option value="Pool 8 Ball">Pool 8 Ball</option>
+                            <option value="Pool 9 Ball">Pool 9 Ball</option>
+                            <option value="Snooker">Snooker</option>
+                            <option value="Carom">Carom</option>
+                            <option value="Libre">Libre</option>
+                            <option value="English Billiards">English Billiards</option>
+                            <option value="Russian Pyramid">Russian Pyramid</option>
+                            <option value="VIP">VIP</option>
+                            <option value="Phòng đôi">Phòng đôi</option>
+                            <option value="Bàn thi đấu">Bàn thi đấu</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Giá theo giờ (VNĐ)</label>
+                        <input type="number" name="pricePerHour" class="form-control" min="1000" step="1000" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Trạng thái mặc định</label>
+                        <select name="status" class="form-select" required>
+                            <option value="Available" selected>Trống bàn</option>
+                            <option value="Reserved">Đặt trước</option>
+                            <option value="Maintenance">Bảo trì</option>
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold">Mô tả</label>
+                        <textarea name="description" class="form-control" rows="2" placeholder="Mô tả bàn (tùy chọn)"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span id="createTableSpinner" class="spinner-border spinner-border-sm me-1 d-none"></span>
+                        Lưu bàn
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -86,12 +86,46 @@ namespace BilliardManagement.Business.Services
             _logger = logger;
         }
 
-        public async Task<TableDto> CreateTableAsync(CreateTableDto dto)
+        public async Task<TableDto> CreateTableAsync(CreateTableDto dto, Guid? createdBy = null)
         {
+            if (string.IsNullOrWhiteSpace(dto.TableName))
+                throw new CustomException("Tên bàn không được để trống", 400);
+
+            if (dto.PricePerHour <= 0)
+                throw new CustomException("Giá theo giờ phải lớn hơn 0", 400);
+
+            var allowedTypes = new[] { 
+                "Pool 8 Ball", "Pool 9 Ball", "Snooker", "Carom", 
+                "Libre", "English Billiards", "Russian Pyramid", 
+                "VIP", "Phòng đôi", "Bàn thi đấu" 
+            };
+            if (!allowedTypes.Contains(dto.TableType?.Trim(), StringComparer.OrdinalIgnoreCase))
+                throw new CustomException("Loại bàn không hợp lệ", 400);
+
+            if (!Enum.TryParse<TableStatus>(dto.Status, true, out var status) || !Enum.IsDefined(typeof(TableStatus), status))
+                throw new CustomException("Trạng thái bàn không hợp lệ", 400);
+
+            if (status == TableStatus.Playing)
+                throw new CustomException("Không thể tạo bàn mới với trạng thái Đang chơi", 400);
+
+            var existing = await _unitOfWork.Repository<BilliardTable>()
+                .AnyAsync(t => t.TableName.ToLower() == dto.TableName.Trim().ToLower());
+            if (existing)
+                throw new CustomException("Tên bàn đã tồn tại", 400);
+
             var table = _mapper.Map<BilliardTable>(dto);
-            table.Status = TableStatus.Available;
+            table.TableName = dto.TableName.Trim();
+            table.TableType = dto.TableType.Trim();
+            table.Status = status;
+            table.Description = dto.Description?.Trim();
+
             await _unitOfWork.Repository<BilliardTable>().AddAsync(table);
             await _unitOfWork.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Table created: tableId={TableId}, name={TableName}, type={TableType}, createdBy={CreatedBy}",
+                table.Id, table.TableName, table.TableType, createdBy);
+
             return _mapper.Map<TableDto>(table);
         }
 
@@ -140,6 +174,70 @@ namespace BilliardManagement.Business.Services
                 id, oldStatus, status, updatedBy);
 
             return _mapper.Map<TableDto>(table);
+        }
+
+        public async Task<TableDto> UpdateTableAsync(Guid id, CreateTableDto dto, Guid? updatedBy = null)
+        {
+            if (string.IsNullOrWhiteSpace(dto.TableName))
+                throw new CustomException("Tên bàn không được để trống", 400);
+
+            if (dto.PricePerHour <= 0)
+                throw new CustomException("Giá tiền mỗi giờ phải lớn hơn 0", 400);
+
+            var allowedTypes = new[] { 
+                "Pool 8 Ball", "Pool 9 Ball", "Snooker", "Carom", 
+                "Libre", "English Billiards", "Russian Pyramid", 
+                "VIP", "Phòng đôi", "Bàn thi đấu" 
+            };
+            if (!allowedTypes.Contains(dto.TableType?.Trim(), StringComparer.OrdinalIgnoreCase))
+                throw new CustomException("Loại bàn không hợp lệ", 400);
+
+            var table = await _unitOfWork.Repository<BilliardTable>().GetByIdAsync(id);
+            if (table == null) throw new CustomException("Table not found", 404);
+
+            if (!string.Equals(table.TableName.Trim(), dto.TableName.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                var nameExists = await _unitOfWork.Repository<BilliardTable>()
+                    .AnyAsync(t => t.Id != id && t.TableName.ToLower() == dto.TableName.Trim().ToLower());
+                if (nameExists)
+                    throw new CustomException("Tên bàn đã tồn tại", 400);
+            }
+
+            table.TableName = dto.TableName.Trim();
+            table.TableType = dto.TableType.Trim();
+            table.HourlyRate = dto.PricePerHour;
+            table.Description = dto.Description?.Trim();
+
+            if (Enum.TryParse<TableStatus>(dto.Status, true, out var newStatus))
+            {
+                table.Status = newStatus;
+            }
+
+            _unitOfWork.Repository<BilliardTable>().Update(table);
+            await _unitOfWork.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Table updated: tableId={TableId}, name={TableName}, updatedBy={UpdatedBy}",
+                id, table.TableName, updatedBy);
+
+            return _mapper.Map<TableDto>(table);
+        }
+
+        public async Task<bool> DeleteTableAsync(Guid id)
+        {
+            var table = await _unitOfWork.Repository<BilliardTable>().GetByIdAsync(id);
+            if (table == null) return false;
+
+            var activeSessions = await _unitOfWork.Repository<TableSession>().GetAllAsync(
+                s => s.TableId == id && !s.IsFinished);
+            if (activeSessions.Any())
+                throw new CustomException("Không thể xóa bàn đang có phiên chơi hoạt động", 400);
+
+            _unitOfWork.Repository<BilliardTable>().Remove(table);
+            var result = await _unitOfWork.SaveChangesAsync();
+
+            _logger.LogInformation("Table deleted: tableId={TableId}", id);
+            return result > 0;
         }
     }
 }

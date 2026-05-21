@@ -111,6 +111,10 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 
 app.UseHttpsRedirection();
 
+var webRoot = app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+Directory.CreateDirectory(Path.Combine(webRoot, "uploads", "products"));
+app.UseStaticFiles();
+
 app.UseCors("AllowAll");
 
 app.UseAuthentication();
@@ -123,6 +127,7 @@ app.MapGet("/", () => Results.Redirect("/swagger"));
 
 // Map Hubs
 app.MapHub<TableHub>("/hubs/table");
+app.MapHub<ProductHub>("/hubs/product");
 app.MapHub<OrderHub>("/hubs/order");
 app.MapHub<NotificationHub>("/hubs/notification");
 

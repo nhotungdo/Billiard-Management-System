@@ -1,0 +1,61 @@
+<div class="modal fade" id="createProductModal" tabindex="-1" aria-labelledby="createProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <form id="createProductForm" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createProductModalLabel">
+                        <i class="fa-solid fa-box me-2 text-primary"></i>Tạo sản phẩm mới
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Tên sản phẩm</label>
+                            <input type="text" name="name" class="form-control" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Danh mục</label>
+                            <select name="category" class="form-select" required>
+                                <option value="Nước ngọt">Nước ngọt</option>
+                                <option value="Cafe">Cafe</option>
+                                <option value="Bia">Bia</option>
+                                <option value="Snack">Snack</option>
+                                <option value="Trà sữa">Trà sữa</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Giá bán (VNĐ)</label>
+                            <input type="number" name="price" class="form-control" min="1000" step="1000" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Tồn kho</label>
+                            <input type="number" name="stock" class="form-control" min="0" value="50" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Mô tả</label>
+                            <textarea name="description" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Hình ảnh (jpg, png, jpeg)</label>
+                            <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png" />
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="isAvailable" id="productIsAvailable" value="true" checked />
+                                <label class="form-check-label" for="productIsAvailable">Trạng thái bán (đang bán)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span id="createProductSpinner" class="spinner-border spinner-border-sm me-1 d-none"></span>
+                        Lưu sản phẩm
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -191,6 +191,56 @@
     </div>
 </div>
 
+<!-- Recent tables & products (realtime) -->
+<div class="row g-4 mb-4">
+    <div class="col-12 col-lg-6">
+        <div class="card-panel">
+            <div class="panel-header d-flex justify-content-between align-items-center">
+                <h5 class="panel-title mb-0"><i class="fa-solid fa-table-cells me-2"></i>Bàn mới</h5>
+                <a href="/Staff/Tables/Index" class="btn btn-sm btn-outline-primary">Quản lý bàn</a>
+            </div>
+            <div class="panel-body">
+                <ul class="list-group list-group-flush" id="recent-tables-list">
+                    @foreach (var t in Model.TableDashboard.Take(5))
+                    {
+                        <li class="list-group-item px-0 d-flex justify-content-between" data-table-id="@t.Id">
+                            <span><strong>@t.TableName</strong> <span class="text-muted small">@t.TableType</span></span>
+                            <span class="badge bg-secondary">@t.HourlyRate.ToString("N0") đ/h</span>
+                        </li>
+                    }
+                    @if (!Model.TableDashboard.Any())
+                    {
+                        <li class="list-group-item text-muted">Chưa có bàn</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-6">
+        <div class="card-panel">
+            <div class="panel-header d-flex justify-content-between align-items-center">
+                <h5 class="panel-title mb-0"><i class="fa-solid fa-box-open me-2"></i>Sản phẩm mới</h5>
+                <a href="/Staff/Products/Index" class="btn btn-sm btn-outline-primary">Tất cả SP</a>
+            </div>
+            <div class="panel-body">
+                <ul class="list-group list-group-flush" id="recent-products-list">
+                    @foreach (var p in Model.Products.Take(5))
+                    {
+                        <li class="list-group-item px-0 d-flex justify-content-between" data-product-id="@p.Id">
+                            <span>@p.Name <span class="text-muted small">@p.Category</span></span>
+                            <span class="text-primary fw-600">@p.Price.ToString("N0") đ</span>
+                        </li>
+                    }
+                    @if (!Model.Products.Any())
+                    {
+                        <li class="list-group-item text-muted">Chưa có sản phẩm</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Today Invoices -->
 <div class="row g-4">
     <div class="col-12">
@@ -350,5 +400,40 @@
             hubBase: document.querySelector('meta[name="hub-base-url"]')?.content || 'https://localhost:5001'
         };
     </script>
+    <script src="~/js/create-entity.js" asp-append-version="true"></script>
     <script src="~/js/staff-dashboard.js" asp-append-version="true"></script>
+    <script>
+        if (window.signalR) {
+            const hubBase = document.querySelector('meta[name="hub-base-url"]')?.content || 'https://localhost:5001';
+            const tableConn = new signalR.HubConnectionBuilder().withUrl(hubBase + '/hubs/table').withAutomaticReconnect().build();
+            tableConn.on('TableCreated', function (p) {
+                const list = document.getElementById('recent-tables-list');
+                if (!list) return;
+                const id = p.id || p.Id;
+                if (list.querySelector('[data-table-id="' + id + '"]')) return;
+                const li = document.createElement('li');
+                li.className = 'list-group-item px-0 d-flex justify-content-between';
+                li.dataset.tableId = id;
+                li.innerHTML = '<span><strong>' + (p.tableName || p.TableName) + '</strong> <span class="text-muted small">' + (p.tableType || p.TableType) + '</span></span><span class="badge bg-success">Mới</span>';
+                list.prepend(li);
+                const kpi = document.getElementById('kpi-total');
+                if (kpi) kpi.textContent = (parseInt(kpi.textContent, 10) || 0) + 1;
+            });
+            tableConn.start().catch(console.warn);
+
+            connectProductHub({
+                onProductCreated: function (p) {
+                    const list = document.getElementById('recent-products-list');
+                    if (!list) return;
+                    const id = p.id || p.Id;
+                    if (list.querySelector('[data-product-id="' + id + '"]')) return;
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item px-0 d-flex justify-content-between';
+                    li.dataset.productId = id;
+                    li.innerHTML = '<span>' + (p.name || p.Name) + '</span><span class="text-primary fw-600">' + (p.price || p.Price || 0).toLocaleString('vi-VN') + ' đ</span>';
+                    list.prepend(li);
+                }
+            });
+        }
+    </script>
 }

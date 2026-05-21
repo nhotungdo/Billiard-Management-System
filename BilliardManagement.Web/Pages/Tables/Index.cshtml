@@ -49,35 +49,22 @@
                         {
                             <tr>
                                 <td class="ps-4 font-weight-bold">@table.TableName</td>
-                                <td>
-                                    @switch (table.Type)
-                                    {
-                                        case 0:
-                                            <span class="badge bg-primary">Pool</span>
-                                            break;
-                                        case 1:
-                                            <span class="badge bg-info text-dark">Carom</span>
-                                            break;
-                                        case 2:
-                                            <span class="badge bg-secondary">Snooker</span>
-                                            break;
-                                        default:
-                                            <span class="badge bg-dark">Unknown</span>
-                                            break;
-                                    }
-                                </td>
-                                <td>@string.Format("{0:C0}/hr", table.HourlyRate)</td>
+                                <td><span class="badge bg-secondary">@table.TableType</span></td>
+                                <td>@string.Format("{0:N0} đ/giờ", table.PricePerHour)</td>
                                 <td>
                                     @switch (table.Status)
                                     {
-                                        case 0:
-                                            <span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i>Available</span>
-                                            break;
                                         case 1:
-                                            <span class="badge bg-danger"><i class="fa-solid fa-circle-play me-1"></i>In Use</span>
+                                            <span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i>Còn trống</span>
                                             break;
                                         case 2:
-                                            <span class="badge bg-warning text-dark"><i class="fa-solid fa-screwdriver-wrench me-1"></i>Maintenance</span>
+                                            <span class="badge bg-danger"><i class="fa-solid fa-circle-play me-1"></i>Đang chơi</span>
+                                            break;
+                                        case 3:
+                                            <span class="badge bg-info text-white"><i class="fa-solid fa-circle-info me-1"></i>Đã đặt trước</span>
+                                            break;
+                                        case 4:
+                                            <span class="badge bg-warning text-dark"><i class="fa-solid fa-screwdriver-wrench me-1"></i>Đang bảo trì</span>
                                             break;
                                         default:
                                             <span class="badge bg-dark">Unknown</span>
@@ -86,11 +73,18 @@
                                 </td>
                                 <td class="text-end pe-4">
                                     <div class="btn-group" role="group">
-                                        <a href="/Tables/Edit?id=@table.Id" class="btn btn-sm btn-outline-primary" title="Edit Table">
-                                            <i class="fa-solid fa-pen-to-square"></i> Edit
-                                        </a>
-                                        <form method="post" asp-page-handler="Delete" asp-route-id="@table.Id" onsubmit="return confirm('Are you sure you want to delete this table?');" style="display:inline;">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Table">
+                                        <button type="button" class="btn btn-sm btn-outline-primary edit-table-btn"
+                                                data-id="@table.Id"
+                                                data-tablename="@table.TableName"
+                                                data-tabletype="@table.TableType"
+                                                data-priceperhour="@table.PricePerHour"
+                                                data-status="@(table.Status switch { 1 => "Available", 2 => "Playing", 3 => "Reserved", 4 => "Maintenance", _ => "Available" })"
+                                                data-description="@table.Description"
+                                                title="Cập nhật">
+                                            <i class="fa-solid fa-pen-to-square"></i> Update
+                                        </button>
+                                        <form method="post" asp-page-handler="Delete" asp-route-id="@table.Id" onsubmit="return confirm('Bạn có chắc muốn xóa bàn này?');" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa bàn">
                                                 <i class="fa-solid fa-trash"></i> Delete
                                             </button>
                                         </form>
@@ -104,3 +98,81 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Table Modal -->
+<div class="modal fade" id="editTableModal" tabindex="-1" aria-labelledby="editTableModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Update">
+                <input type="hidden" asp-for="EditId" id="editId" />
+                <div class="modal-header">
+                    <h5 class="modal-title font-weight-bold" id="editTableModalLabel"><i class="fa-solid fa-pen-to-square me-2 text-primary"></i>Edit Table</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label asp-for="EditTable.TableName" class="form-label font-weight-bold">Tên bàn</label>
+                        <input asp-for="EditTable.TableName" id="editTableName" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditTable.TableType" class="form-label font-weight-bold">Loại bàn</label>
+                        <select asp-for="EditTable.TableType" id="editTableType" class="form-select" required>
+                            <option value="Pool 8 Ball">Pool 8 Ball</option>
+                            <option value="Pool 9 Ball">Pool 9 Ball</option>
+                            <option value="VIP">VIP</option>
+                            <option value="Phòng đôi">Phòng đôi</option>
+                            <option value="Bàn thi đấu">Bàn thi đấu</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditTable.PricePerHour" class="form-label font-weight-bold">Giá theo giờ(VND)</label>
+                        <input asp-for="EditTable.PricePerHour" id="editPricePerHour" type="number" step="1000" min="0" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditTable.Status" class="form-label font-weight-bold">Status</label>
+                        <select asp-for="EditTable.Status" id="editStatus" class="form-select">
+                            <option value="Available">Còn trống</option>
+                            <option value="Playing">Đang chơi</option>
+                            <option value="Reserved">Đã đặt trước</option>
+                            <option value="Maintenance">Bảo trì</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditTable.Description" class="form-label font-weight-bold">Mô tả (Optional)</label>
+                        <textarea asp-for="EditTable.Description" id="editDescription" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i>Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            $(".edit-table-btn").on("click", function() {
+                var id = $(this).data("id");
+                var name = $(this).data("tablename");
+                var type = $(this).data("tabletype");
+                var price = $(this).data("priceperhour");
+                var status = $(this).data("status");
+                var description = $(this).data("description");
+
+                $("#editId").val(id);
+                $("#editTableName").val(name);
+                $("#editTableType").val(type);
+                $("#editPricePerHour").val(price);
+                $("#editStatus").val(status);
+                $("#editDescription").val(description);
+
+                var editModal = new bootstrap.Modal(document.getElementById('editTableModal'));
+                editModal.show();
+            });
+        });
+    </script>
+}

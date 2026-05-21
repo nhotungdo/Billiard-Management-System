@@ -26,6 +26,10 @@ namespace BilliardManagement.Data
             
             // Precision for decimal properties
             modelBuilder.Entity<BilliardTable>()
+                .HasIndex(t => t.TableName)
+                .IsUnique();
+
+            modelBuilder.Entity<BilliardTable>()
                 .Property(t => t.HourlyRate)
                 .HasPrecision(18, 2);
 

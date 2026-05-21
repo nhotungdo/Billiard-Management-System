@@ -100,7 +100,29 @@ namespace BilliardManagement.Data
                     new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 09 (Pool 8)", TableType = "Pool 8 Ball", HourlyRate = 60000, Status = TableStatus.Reserved, IsActive = true },
                     new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 10 (VIP)", TableType = "VIP", HourlyRate = 120000, Status = TableStatus.Available, IsActive = true }
                 };
+                tables.AddRange(new[]
+                {
+                    new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 11", TableType = "VIP", HourlyRate = 120000, Status = TableStatus.Available, Description = "Bàn VIP tầng 2", IsActive = true },
+                    new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 12", TableType = "Pool 8 Ball", HourlyRate = 65000, Status = TableStatus.Available, Description = "Góc sảnh chính", IsActive = true }
+                });
                 context.BilliardTables.AddRange(tables);
+                context.SaveChanges();
+            }
+            else if (!context.BilliardTables.Any(t => t.TableName == "Bàn 11"))
+            {
+                context.BilliardTables.AddRange(
+                    new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 11", TableType = "VIP", HourlyRate = 120000, Status = TableStatus.Available, Description = "Bàn VIP tầng 2", IsActive = true },
+                    new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 12", TableType = "Pool 8 Ball", HourlyRate = 65000, Status = TableStatus.Available, Description = "Góc sảnh chính", IsActive = true });
+                context.SaveChanges();
+            }
+            
+            if (!context.BilliardTables.Any(t => t.TableName == "Bàn VIP 01"))
+            {
+                context.BilliardTables.AddRange(
+                    new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn VIP 01", TableType = "VIP", HourlyRate = 150000, Status = TableStatus.Available, Description = "Bàn VIP cách âm", IsActive = true },
+                    new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn Tournament 01", TableType = "Bàn thi đấu", HourlyRate = 200000, Status = TableStatus.Available, Description = "Bàn chuẩn thi đấu", IsActive = true },
+                    new BilliardTable { Id = Guid.NewGuid(), TableName = "Phòng Couple 01", TableType = "Phòng đôi", HourlyRate = 180000, Status = TableStatus.Available, Description = "Phòng riêng cho 2 người", IsActive = true },
+                    new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn Carom 01", TableType = "Carom", HourlyRate = 80000, Status = TableStatus.Available, Description = "Bàn Carom tiêu chuẩn", IsActive = true });
                 context.SaveChanges();
             }
 
@@ -159,7 +181,27 @@ namespace BilliardManagement.Data
                     new Product { Id = Guid.NewGuid(), CategoryId = catTraSua.Id, ProductName = "Trà Sữa", Price = 30000, StockQuantity = 60, IsAvailable = true },
                     new Product { Id = Guid.NewGuid(), CategoryId = catTraSua.Id, ProductName = "Trà Đào", Price = 28000, StockQuantity = 60, IsAvailable = true }
                 };
+                products.AddRange(new[]
+                {
+                    new Product { Id = Guid.NewGuid(), CategoryId = catNuocNgot.Id, ProductName = "7 Up", Price = 15000, StockQuantity = 80, IsAvailable = true, Description = "Nước ngọt có gas" },
+                    new Product { Id = Guid.NewGuid(), CategoryId = catBia.Id, ProductName = "Saigon Special", Price = 22000, StockQuantity = 100, IsAvailable = true },
+                    new Product { Id = Guid.NewGuid(), CategoryId = catTraSua.Id, ProductName = "Trà Sữa Trân Châu", Price = 35000, StockQuantity = 50, IsAvailable = true, Description = "Size M" },
+                    new Product { Id = Guid.NewGuid(), CategoryId = catSnack.Id, ProductName = "Bánh Gạo", Price = 12000, StockQuantity = 60, IsAvailable = true }
+                });
                 context.Products.AddRange(products);
+                context.SaveChanges();
+            }
+            else if (!context.Products.Any(p => p.ProductName == "7 Up"))
+            {
+                var catNn = context.Categories.First(c => c.CategoryName == "Nước ngọt");
+                var catBi = context.Categories.First(c => c.CategoryName == "Bia");
+                var catTs = context.Categories.First(c => c.CategoryName == "Trà sữa");
+                var catSn = context.Categories.First(c => c.CategoryName == "Snack");
+                context.Products.AddRange(
+                    new Product { Id = Guid.NewGuid(), CategoryId = catNn.Id, ProductName = "7 Up", Price = 15000, StockQuantity = 80, IsAvailable = true },
+                    new Product { Id = Guid.NewGuid(), CategoryId = catBi.Id, ProductName = "Saigon Special", Price = 22000, StockQuantity = 100, IsAvailable = true },
+                    new Product { Id = Guid.NewGuid(), CategoryId = catTs.Id, ProductName = "Trà Sữa Trân Châu", Price = 35000, StockQuantity = 50, IsAvailable = true },
+                    new Product { Id = Guid.NewGuid(), CategoryId = catSn.Id, ProductName = "Bánh Gạo", Price = 12000, StockQuantity = 60, IsAvailable = true });
                 context.SaveChanges();
             }
 

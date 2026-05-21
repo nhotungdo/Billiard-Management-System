@@ -73,6 +73,12 @@ window.connectTableStatusHub = function (options) {
         }
     });
 
+    connection.on('TableCreated', function (payload) {
+        if (options && typeof options.onTableCreated === 'function') {
+            options.onTableCreated(payload);
+        }
+    });
+
     connection.start()
         .then(function () { console.log('TableHub connected'); })
         .catch(function (err) { console.error('TableHub connection failed', err); });

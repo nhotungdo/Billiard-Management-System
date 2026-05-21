@@ -5,7 +5,7 @@
     ViewData["Title"] = "Quản lý Bàn";
 }
 
-<div id="table-toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100;"></div>
+<div id="app-toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100;"></div>
 
 <div class="dashboard-header mb-4">
     <h1 class="page-title"><i class="fa-solid fa-table-cells me-2"></i>Quản lý Bàn Bida</h1>
@@ -84,9 +84,14 @@
 <div class="card-panel">
     <div class="panel-header d-flex justify-content-between align-items-center">
         <h5 class="panel-title mb-0">Danh sách bàn (<span id="table-count">@Model.Tables.Count</span> bàn)</h5>
-        <button class="btn btn-sm btn-outline-secondary" type="button" onclick="window.location.reload()">
-            <i class="fas fa-rotate me-1"></i>Làm mới
-        </button>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#createTableModal">
+                <i class="fas fa-plus me-1"></i>Tạo bàn mới
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" type="button" onclick="window.location.reload()">
+                <i class="fas fa-rotate me-1"></i>Làm mới
+            </button>
+        </div>
     </div>
     <div class="panel-body p-0">
         <div class="table-responsive">
@@ -98,7 +103,7 @@
                         <th>Loại</th>
                         <th>Giá/giờ</th>
                         <th>Trạng thái</th>
-                        <th style="width:220px" class="text-center">Cập nhật trạng thái</th>
+                        <th style="width:300px" class="text-center">Hành động</th>
                     </tr>
                 </thead>
                 <tbody id="tables-tbody">
@@ -122,15 +127,13 @@
                             4 => ("secondary", "Bảo trì", "wrench"),
                             _ => ("dark", "Không xác định", "question")
                         };
-                        var tableType = t.Type == 0 ? "Bàn thường" : t.Type == 1 ? "Bàn VIP" : "Loại khác";
-
                         <tr id="row-@t.Id" data-table-id="@t.Id" data-status="@t.Status">
                             <td class="text-muted row-index">@(i++)</td>
                             <td><strong class="table-name">@t.TableName</strong></td>
                             <td>
-                                <span class="badge bg-secondary bg-opacity-75">@tableType</span>
+                                <span class="badge bg-secondary bg-opacity-75">@t.TableType</span>
                             </td>
-                            <td class="fw-500">@t.HourlyRate.ToString("N0") đ/giờ</td>
+                            <td class="fw-500">@t.PricePerHour.ToString("N0") đ/giờ</td>
                             <td>
                                 <span class="badge bg-@cfg.Item1" id="status-badge-@t.Id">
                                     <i class="fa-solid fa-@cfg.Item3 me-1"></i>@cfg.Item2
@@ -141,7 +144,7 @@
                                     <select class="form-select form-select-sm status-select"
                                             data-table-id="@t.Id"
                                             data-original="@t.Status"
-                                            style="max-width: 160px;">
+                                            style="max-width: 130px;">
                                         @if (t.Status == 1) { <option value="Available" selected>Trống bàn</option> } else { <option value="Available">Trống bàn</option> }
                                         @if (t.Status == 2) { <option value="Playing" selected>Đang chơi</option> } else { <option value="Playing">Đang chơi</option> }
                                         @if (t.Status == 3) { <option value="Reserved" selected>Đặt trước</option> } else { <option value="Reserved">Đặt trước</option> }
@@ -150,6 +153,23 @@
                                     <span class="status-spinner d-none" id="spinner-@t.Id">
                                         <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
                                     </span>
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary edit-table-btn"
+                                                data-id="@t.Id"
+                                                data-tablename="@t.TableName"
+                                                data-tabletype="@t.TableType"
+                                                data-priceperhour="@t.PricePerHour"
+                                                data-status="@(t.Status switch { 1 => "Available", 2 => "Playing", 3 => "Reserved", 4 => "Maintenance", _ => "Available" })"
+                                                data-description="@t.Description"
+                                                title="Sửa Bàn">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <form method="post" asp-page-handler="Delete" asp-route-id="@t.Id" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bàn này?');" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa Bàn">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
@@ -160,9 +180,69 @@
     </div>
 </div>
 
+<partial name="_CreateTableModal" />
+
+<!-- Edit Table Modal -->
+<div class="modal fade" id="editTableModal" tabindex="-1" aria-labelledby="editTableModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Update">
+                <input type="hidden" asp-for="EditId" id="editId" />
+                <div class="modal-header">
+                    <h5 class="modal-title font-weight-bold" id="editTableModalLabel"><i class="fa-solid fa-pen-to-square me-2 text-primary"></i>Sửa thông tin bàn</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label asp-for="EditTable.TableName" class="form-label font-weight-bold">Tên bàn</label>
+                        <input asp-for="EditTable.TableName" id="editTableName" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditTable.TableType" class="form-label font-weight-bold">Loại bàn</label>
+                        <select asp-for="EditTable.TableType" id="editTableType" class="form-select" required>
+                            <option value="Pool 8 Ball">Pool 8 Ball</option>
+                            <option value="Pool 9 Ball">Pool 9 Ball</option>
+                            <option value="Snooker">Snooker</option>
+                            <option value="Carom">Carom</option>
+                            <option value="Libre">Libre</option>
+                            <option value="English Billiards">English Billiards</option>
+                            <option value="Russian Pyramid">Russian Pyramid</option>
+                            <option value="VIP">VIP</option>
+                            <option value="Phòng đôi">Phòng đôi</option>
+                            <option value="Bàn thi đấu">Bàn thi đấu</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditTable.PricePerHour" class="form-label font-weight-bold">Giá mỗi giờ (VNĐ)</label>
+                        <input asp-for="EditTable.PricePerHour" id="editPricePerHour" type="number" step="1000" min="0" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditTable.Status" class="form-label font-weight-bold">Trạng thái</label>
+                        <select asp-for="EditTable.Status" id="editStatus" class="form-select">
+                            <option value="Available">Trống bàn</option>
+                            <option value="Playing">Đang chơi</option>
+                            <option value="Reserved">Đặt trước</option>
+                            <option value="Maintenance">Bảo trì</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditTable.Description" class="form-label font-weight-bold">Mô tả (Tùy chọn)</label>
+                        <textarea asp-for="EditTable.Description" id="editDescription" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i>Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
 <script src="~/js/table-status.js" asp-append-version="true"></script>
+<script src="~/js/create-entity.js" asp-append-version="true"></script>
 <style>
     .fw-500 { font-weight: 500; }
     .status-select:disabled { opacity: 0.7; }
@@ -181,13 +261,13 @@
     let tablesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Tables.Select(t => new {
         id = t.Id,
         tableName = t.TableName,
-        type = t.Type,
+        tableType = t.TableType,
         status = t.Status,
-        hourlyRate = t.HourlyRate
+        pricePerHour = t.PricePerHour
     })));
 
     function showToast(message, type) {
-        const container = document.getElementById('table-toast-container');
+        const container = document.getElementById('app-toast-container');
         const id = 'toast-' + Date.now();
         const bg = type === 'success' ? 'text-bg-success' : 'text-bg-danger';
         const html = `<div id="${id}" class="toast align-items-center ${bg} border-0" role="alert">
@@ -271,7 +351,57 @@
             const status = payload.status !== undefined ? payload.status : payload.Status;
             const tableId = payload.tableId || payload.TableId;
             applyStatusToRow(tableId, status);
+        },
+        onTableCreated: function (payload) {
+            const id = payload.id || payload.Id;
+            if (!document.getElementById('row-' + id)) {
+                tablesData.unshift({
+                    id: id,
+                    tableName: payload.tableName || payload.TableName,
+                    tableType: payload.tableType || payload.TableType,
+                    status: payload.status ?? payload.Status,
+                    pricePerHour: payload.pricePerHour || payload.PricePerHour
+                });
+                window.appendTableRow(payload);
+                recalcStats();
+            }
         }
+    });
+
+    bindCreateTableForm({
+        onCreated: function (table) {
+            const id = table.id || table.Id;
+            tablesData.unshift({
+                id: id,
+                tableName: table.tableName || table.TableName,
+                tableType: table.tableType || table.TableType,
+                status: table.status ?? table.Status,
+                pricePerHour: table.pricePerHour || table.PricePerHour
+            });
+            window.appendTableRow(table);
+            recalcStats();
+        }
+    });
+
+    $(document).ready(function() {
+        $(".edit-table-btn").on("click", function() {
+            var id = $(this).data("id");
+            var name = $(this).data("tablename");
+            var type = $(this).data("tabletype");
+            var price = $(this).data("priceperhour");
+            var status = $(this).data("status");
+            var description = $(this).data("description");
+
+            $("#editId").val(id);
+            $("#editTableName").val(name);
+            $("#editTableType").val(type);
+            $("#editPricePerHour").val(price);
+            $("#editStatus").val(status);
+            $("#editDescription").val(description);
+
+            var editModal = new bootstrap.Modal(document.getElementById('editTableModal'));
+            editModal.show();
+        });
     });
 </script>
 }

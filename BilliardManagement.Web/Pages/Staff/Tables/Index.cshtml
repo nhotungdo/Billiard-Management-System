@@ -1,0 +1,209 @@
+@page
+@model BilliardManagement.Web.Pages.Staff.Tables.IndexModel
+@{
+    Layout = "_StaffLayout";
+    ViewData["Title"] = "Quản lý Bàn";
+    ViewData["BreadcrumbTitle"] = "Quản lý bàn";
+}
+
+<div id="app-toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100;"></div>
+
+<div class="dashboard-header mb-4">
+    <h1 class="page-title"><i class="fa-solid fa-table-cells me-2"></i>Quản lý Bàn Bida</h1>
+    <p class="page-subtitle">Tạo bàn mới và theo dõi trạng thái realtime</p>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-warning">@Model.ErrorMessage</div>
+}
+
+<div class="row g-3 mb-4" id="table-stats-row">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body py-3">
+                <div class="text-muted small">Trống bàn</div>
+                <div class="fw-bold fs-4 text-success" id="stat-available">@Model.CountAvailable</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body py-3">
+                <div class="text-muted small">Tổng bàn</div>
+                <div class="fw-bold fs-4" id="table-count">@Model.Tables.Count</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card-panel">
+    <div class="panel-header d-flex justify-content-between align-items-center">
+        <h5 class="panel-title mb-0">Danh sách bàn</h5>
+        <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#createTableModal">
+            <i class="fas fa-plus me-1"></i>Tạo bàn mới
+        </button>
+    </div>
+    <div class="panel-body p-0">
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr><th>#</th><th>Tên</th><th>Loại</th><th>Giá/giờ</th><th>Trạng thái</th><th class="text-end pe-3">Hành động</th></tr>
+                </thead>
+                <tbody id="tables-tbody">
+                    @if (!Model.Tables.Any())
+                    {
+                        <tr id="empty-row"><td colspan="6" class="text-center py-4 text-muted">Không có bàn</td></tr>
+                    }
+                    @{ int i = 1; }
+                    @foreach (var t in Model.Tables)
+                    {
+                        var cfg = t.Status switch { 1 => "success", 2 => "danger", 3 => "warning", _ => "secondary" };
+                        var txt = t.Status switch { 1 => "Trống bàn", 2 => "Đang chơi", 3 => "Đặt trước", 4 => "Bảo trì", _ => "—" };
+                        <tr id="row-@t.Id" data-status="@t.Status">
+                            <td>@(i++)</td>
+                            <td><strong>@t.TableName</strong></td>
+                            <td>@t.TableType</td>
+                            <td>@t.PricePerHour.ToString("N0") đ</td>
+                            <td><span class="badge bg-@cfg">@txt</span></td>
+                            <td class="text-end pe-3">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary edit-table-btn"
+                                            data-id="@t.Id"
+                                            data-tablename="@t.TableName"
+                                            data-tabletype="@t.TableType"
+                                            data-priceperhour="@t.PricePerHour"
+                                            data-status="@(t.Status switch { 1 => "Available", 2 => "Playing", 3 => "Reserved", 4 => "Maintenance", _ => "Available" })"
+                                            data-description="@t.Description"
+                                            title="Sửa Bàn">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <form method="post" asp-page-handler="Delete" asp-route-id="@t.Id" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bàn này?');" style="display:inline;">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa Bàn">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<partial name="_CreateTableModal" />
+
+<!-- Edit Table Modal -->
+<div class="modal fade" id="editTableModal" tabindex="-1" aria-labelledby="editTableModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Update">
+                <input type="hidden" asp-for="EditId" id="editId" />
+                <div class="modal-header">
+                    <h5 class="modal-title font-weight-bold" id="editTableModalLabel"><i class="fa-solid fa-pen-to-square me-2 text-primary"></i>Sửa thông tin bàn</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label asp-for="EditTable.TableName" class="form-label font-weight-bold">Tên bàn</label>
+                        <input asp-for="EditTable.TableName" id="editTableName" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditTable.TableType" class="form-label font-weight-bold">Loại bàn</label>
+                        <select asp-for="EditTable.TableType" id="editTableType" class="form-select" required>
+                            <option value="Pool 8 Ball">Pool 8 Ball</option>
+                            <option value="Pool 9 Ball">Pool 9 Ball</option>
+                            <option value="Snooker">Snooker</option>
+                            <option value="Carom">Carom</option>
+                            <option value="Libre">Libre</option>
+                            <option value="English Billiards">English Billiards</option>
+                            <option value="Russian Pyramid">Russian Pyramid</option>
+                            <option value="VIP">VIP</option>
+                            <option value="Phòng đôi">Phòng đôi</option>
+                            <option value="Bàn thi đấu">Bàn thi đấu</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditTable.PricePerHour" class="form-label font-weight-bold">Giá mỗi giờ (VNĐ)</label>
+                        <input asp-for="EditTable.PricePerHour" id="editPricePerHour" type="number" step="1000" min="0" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditTable.Status" class="form-label font-weight-bold">Trạng thái</label>
+                        <select asp-for="EditTable.Status" id="editStatus" class="form-select">
+                            <option value="Available">Trống bàn</option>
+                            <option value="Playing">Đang chơi</option>
+                            <option value="Reserved">Đặt trước</option>
+                            <option value="Maintenance">Bảo trì</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditTable.Description" class="form-label font-weight-bold">Mô tả (Tùy chọn)</label>
+                        <textarea asp-for="EditTable.Description" id="editDescription" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i>Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script src="~/js/table-status.js" asp-append-version="true"></script>
+    <script src="~/js/create-entity.js" asp-append-version="true"></script>
+    <script>
+        let tablesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Tables.Select(t => new {
+            id = t.Id, tableName = t.TableName, tableType = t.TableType, status = t.Status, pricePerHour = t.PricePerHour
+        })));
+
+        function recalcStats() { updateTableStatusStats(tablesData); }
+
+        connectTableStatusHub({
+            onStatusChanged: function (p) {
+                const row = document.getElementById('row-' + (p.tableId || p.TableId));
+                if (row) row.dataset.status = p.status ?? p.Status;
+            },
+            onTableCreated: function (payload) {
+                const id = payload.id || payload.Id;
+                if (!document.getElementById('row-' + id)) {
+                    tablesData.unshift({ id, tableName: payload.tableName || payload.TableName, tableType: payload.tableType || payload.TableType, status: payload.status ?? payload.Status, pricePerHour: payload.pricePerHour || payload.PricePerHour });
+                    window.appendTableRow(payload, 'tables-tbody');
+                    recalcStats();
+                }
+            }
+        });
+
+        bindCreateTableForm({
+            onCreated: function (table) {
+                tablesData.unshift({ id: table.id || table.Id, tableName: table.tableName || table.TableName, tableType: table.tableType || table.TableType, status: table.status ?? table.Status, pricePerHour: table.pricePerHour || table.PricePerHour });
+                window.appendTableRow(table, 'tables-tbody');
+                recalcStats();
+            }
+        });
+
+        $(document).ready(function() {
+            $(".edit-table-btn").on("click", function() {
+                var id = $(this).data("id");
+                var name = $(this).data("tablename");
+                var type = $(this).data("tabletype");
+                var price = $(this).data("priceperhour");
+                var status = $(this).data("status");
+                var description = $(this).data("description");
+
+                $("#editId").val(id);
+                $("#editTableName").val(name);
+                $("#editTableType").val(type);
+                $("#editPricePerHour").val(price);
+                $("#editStatus").val(status);
+                $("#editDescription").val(description);
+
+                var editModal = new bootstrap.Modal(document.getElementById('editTableModal'));
+                editModal.show();
+            });
+        });
+    </script>
+}
