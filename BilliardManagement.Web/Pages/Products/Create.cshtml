@@ -1,32 +1,32 @@
 @page
-@model BilliardManagement.Web.Pages.Tables.CreateModel
+@model BilliardManagement.Web.Pages.Products.CreateModel
 @{
     var role = HttpContext.Session.GetString("UserRole");
     Layout = role == "Admin" ? "_AdminLayout" : role == "Staff" ? "_StaffLayout" : "_Layout";
-    ViewData["Title"] = "Tạo bàn mới";
+    ViewData["Title"] = "Tạo sản phẩm mới";
 }
 
 <div class="dashboard-header mb-4">
-    <h1 class="page-title"><i class="fa-solid fa-circle-plus me-2"></i>Tạo bàn mới</h1>
-    <a href="@(role == "Admin" ? "/Admin/Tables/Index" : role == "Staff" ? "/Staff/Tables/Index" : "/Tables")" class="btn btn-sm btn-outline-secondary mt-2">
-        <i class="fa-solid fa-arrow-left me-1"></i>Quay lại danh sách
+    <h1 class="page-title"><i class="fa-solid fa-box me-2"></i>Tạo sản phẩm mới</h1>
+    <a href="@(role == "Admin" ? "/Admin/Products/Index" : role == "Staff" ? "/Staff/Products/Index" : "/Products")" class="btn btn-sm btn-outline-secondary mt-2">
+        <i class="fa-solid fa-arrow-left me-1"></i>Quay lại
     </a>
 </div>
 
 <div id="app-toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100;"></div>
 
-<partial name="_CreateTableModal" />
+<partial name="_CreateProductModal" />
 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
     <script src="~/js/create-entity.js" asp-append-version="true"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const modal = new bootstrap.Modal(document.getElementById('createTableModal'));
+            const modal = new bootstrap.Modal(document.getElementById('createProductModal'));
             modal.show();
-            bindCreateTableForm({
+            bindCreateProductForm({
                 onCreated: function () {
-                    const back = '@(role == "Admin" ? "/Admin/Tables/Index" : role == "Staff" ? "/Staff/Tables/Index" : "/Tables")';
+                    const back = '@(role == "Admin" ? "/Admin/Products/Index" : role == "Staff" ? "/Staff/Products/Index" : "/Products")';
                     window.location.href = back;
                 }
             });

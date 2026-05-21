@@ -54,8 +54,18 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     document.querySelectorAll('form').forEach(function (form) {
-        form.addEventListener('submit', function () {
-            if (loadingOverlay) loadingOverlay.style.display = 'flex';
+        form.addEventListener('submit', function (e) {
+            if (e.defaultPrevented) {
+                return;
+            }
+            if (form.closest('.modal') || form.getAttribute('data-ajax') === 'true' || form.id === 'createTableForm' || form.id === 'createProductForm') {
+                return;
+            }
+            setTimeout(function () {
+                if (!e.defaultPrevented) {
+                    if (loadingOverlay) loadingOverlay.style.display = 'flex';
+                }
+            }, 50);
         });
     });
 

@@ -37,18 +37,18 @@
             <div class="kpi-icon"><i class="fa-solid fa-table-cells"></i></div>
             <div class="kpi-body">
                 <div class="kpi-label">Tổng số bàn</div>
-                <div class="kpi-value">@Model.TotalTables</div>
+                <div class="kpi-value" id="kpi-total-tables">@Model.TotalTables</div>
                 <div class="kpi-sub"><span class="text-success fw-600">@Model.ActiveTables</span> đang hoạt động</div>
             </div>
         </div>
     </div>
     <div class="col-12 col-sm-6 col-xl-3">
         <div class="kpi-card kpi-orders">
-            <div class="kpi-icon"><i class="fa-solid fa-receipt"></i></div>
+            <div class="kpi-icon"><i class="fa-solid fa-box-open"></i></div>
             <div class="kpi-body">
-                <div class="kpi-label">Đơn hàng hôm nay</div>
-                <div class="kpi-value">@(Model.DashboardData?.OrdersToday ?? 0)</div>
-                <div class="kpi-sub">Cập nhật theo thời gian thực</div>
+                <div class="kpi-label">Tổng số sản phẩm</div>
+                <div class="kpi-value" id="kpi-total-products">@Model.TotalProducts</div>
+                <div class="kpi-sub">Đồ uống & snack</div>
             </div>
         </div>
     </div>
@@ -237,13 +237,23 @@
             }
         });
 
-        // Realtime table status chart refresh
+        // Realtime KPI refresh
         if (window.signalR) {
-            const hubUrl = (document.querySelector('meta[name="hub-base-url"]')?.content || 'https://localhost:5001') + '/hubs/table';
-            const conn = new signalR.HubConnectionBuilder().withUrl(hubUrl).withAutomaticReconnect().build();
-            conn.on('TableStatusChanged', function () { window.location.reload(); });
-            conn.on('ReceiveTableUpdate', function () { window.location.reload(); });
-            conn.start().catch(function (e) { console.warn('Admin dashboard hub:', e); });
+            const hubBase = document.querySelector('meta[name="hub-base-url"]')?.content || 'https://localhost:5001';
+            const tableConn = new signalR.HubConnectionBuilder().withUrl(hubBase + '/hubs/table').withAutomaticReconnect().build();
+            tableConn.on('TableCreated', function () {
+                const el = document.getElementById('kpi-total-tables');
+                if (el) el.textContent = (parseInt(el.textContent, 10) || 0) + 1;
+            });
+            tableConn.on('TableStatusChanged', function () { /* chart optional reload */ });
+            tableConn.start().catch(function (e) { console.warn('TableHub:', e); });
+
+            const productConn = new signalR.HubConnectionBuilder().withUrl(hubBase + '/hubs/product').withAutomaticReconnect().build();
+            productConn.on('ProductCreated', function () {
+                const el = document.getElementById('kpi-total-products');
+                if (el) el.textContent = (parseInt(el.textContent, 10) || 0) + 1;
+            });
+            productConn.start().catch(function (e) { console.warn('ProductHub:', e); });
         }
     </script>
 }

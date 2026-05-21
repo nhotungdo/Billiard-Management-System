@@ -34,19 +34,24 @@
             </div>
 
             <div class="mb-3">
-                <label asp-for="TableData.Type" class="form-label font-weight-bold">Table Type</label>
-                <select asp-for="TableData.Type" class="form-select">
-                    <option value="0">Pool</option>
-                    <option value="1">Carom</option>
-                    <option value="2">Snooker</option>
+                <label asp-for="TableData.TableType" class="form-label font-weight-bold">Loại bàn</label>
+                <select asp-for="TableData.TableType" class="form-select">
+                    <option value="Pool 8 Ball">Pool 8 Ball</option>
+                    <option value="Pool 9 Ball">Pool 9 Ball</option>
+                    <option value="Snooker">Snooker</option>
+                    <option value="Carom">Carom</option>
+                    <option value="Libre">Libre</option>
+                    <option value="English Billiards">English Billiards</option>
+                    <option value="Russian Pyramid">Russian Pyramid</option>
+                    <option value="VIP">VIP</option>
+                    <option value="Phòng đôi">Phòng đôi</option>
+                    <option value="Bàn thi đấu">Bàn thi đấu</option>
                 </select>
-                <span asp-validation-for="TableData.Type" class="text-danger small"></span>
             </div>
 
             <div class="mb-4">
-                <label asp-for="TableData.HourlyRate" class="form-label font-weight-bold">Hourly Rate (VND)</label>
-                <input asp-for="TableData.HourlyRate" type="number" step="1000" min="0" class="form-control" required />
-                <span asp-validation-for="TableData.HourlyRate" class="text-danger small"></span>
+                <label asp-for="TableData.PricePerHour" class="form-label font-weight-bold">Giá theo giờ (VNĐ)</label>
+                <input asp-for="TableData.PricePerHour" type="number" step="1000" min="0" class="form-control" required />
             </div>
 
             <button type="submit" class="btn btn-primary px-4 py-2"><i class="fa-solid fa-save me-2"></i>Save Changes</button>

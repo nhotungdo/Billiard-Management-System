@@ -8,12 +8,14 @@ namespace BilliardManagement.Web.Pages.Admin.Dashboard
     {
         private readonly RevenueService _revenueService;
         private readonly TableService _tableService;
+        private readonly ProductService _productService;
         private readonly StaffService _staffService;
 
-        public IndexModel(RevenueService revenueService, TableService tableService, StaffService staffService)
+        public IndexModel(RevenueService revenueService, TableService tableService, ProductService productService, StaffService staffService)
         {
             _revenueService = revenueService;
             _tableService = tableService;
+            _productService = productService;
             _staffService = staffService;
         }
 
@@ -30,6 +32,7 @@ namespace BilliardManagement.Web.Pages.Admin.Dashboard
         public int CountMaintenance => Tables.Count(t => t.Status == 4);
         public int ActiveTables => CountPlaying;
         public int StaffCount => StaffList.Count(s => s.IsActive);
+        public int TotalProducts { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -40,6 +43,9 @@ namespace BilliardManagement.Web.Pages.Admin.Dashboard
 
                 var tables = await _tableService.GetAllTablesAsync();
                 Tables = tables?.ToList() ?? new();
+
+                var products = await _productService.GetAllProductsAsync();
+                TotalProducts = products?.Count ?? 0;
 
                 var staff = await _staffService.GetAllStaffAsync();
                 StaffList = staff?.ToList() ?? new();

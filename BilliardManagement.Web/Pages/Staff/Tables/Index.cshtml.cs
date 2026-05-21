@@ -2,39 +2,25 @@ using BilliardManagement.Web.Services;
 using BilliardManagement.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 
-namespace BilliardManagement.Web.Pages.Admin.Tables
+namespace BilliardManagement.Web.Pages.Staff.Tables
 {
-    public class IndexModel : AdminPageModel
+    public class IndexModel : AdminOrStaffPageModel
     {
         private readonly TableService _tableService;
-        private readonly ILogger<IndexModel> _logger;
 
-        public IndexModel(TableService tableService, ILogger<IndexModel> logger)
-        {
-            _tableService = tableService;
-            _logger = logger;
-        }
+        public IndexModel(TableService tableService) => _tableService = tableService;
 
         public List<TableDto> Tables { get; set; } = new();
         public string? ErrorMessage { get; set; }
-
         public int CountAvailable => Tables.Count(t => t.Status == 1);
-        public int CountPlaying => Tables.Count(t => t.Status == 2);
-        public int CountReserved => Tables.Count(t => t.Status == 3);
-        public int CountMaintenance => Tables.Count(t => t.Status == 4);
 
         public async Task<IActionResult> OnGetAsync()
         {
             try
             {
-                var result = await _tableService.GetAllTablesAsync();
-                Tables = result?.ToList() ?? new();
+                Tables = (await _tableService.GetAllTablesAsync())?.ToList() ?? new();
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Lỗi khi tải danh sách bàn: {Message}", ex.Message);
-                ErrorMessage = ex.Message;
-            }
+            catch (Exception ex) { ErrorMessage = ex.Message; }
             return Page();
         }
 

@@ -9,7 +9,16 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
     <link rel="stylesheet" href="~/css/staff.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/BilliardManagement.Web.styles.css" asp-append-version="true" />
-    <meta name="hub-base-url" content="https://localhost:5001" />
+    @{
+        var apiToken = Context.Session.GetString("JWToken");
+    }
+    @if (!string.IsNullOrEmpty(apiToken))
+    {
+        <meta name="api-token" content="@apiToken" />
+        <meta name="api-base-url" content="https://localhost:5001/api/" />
+        <meta name="api-origin" content="https://localhost:5001" />
+        <meta name="hub-base-url" content="https://localhost:5001" />
+    }
 </head>
 <body class="staff-body">
 

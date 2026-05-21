@@ -68,15 +68,8 @@
                         </div>
                         
                         <div class="text-xs text-muted mb-2">
-                            Loại: 
-                            @switch (table.Type)
-                            {
-                                case 0: <span>Pool</span>; break;
-                                case 1: <span>Carom</span>; break;
-                                case 2: <span>Snooker</span>; break;
-                                default: <span>Unknown</span>; break;
-                            }
-                            | Giá/giờ: @string.Format("{0:N0} ₫", table.HourlyRate)
+                            Loại: @table.TableType
+                            | Giá/giờ: @string.Format("{0:N0} ₫", table.PricePerHour)
                         </div>
 
                         @if (isPlaying && activeSession != null)
@@ -92,7 +85,7 @@
                                 </div>
                                 <div class="d-flex justify-content-between">
                                     <span class="text-muted small">Tạm tính:</span>
-                                    <span class="font-weight-bold text-success est-price" data-rate="@table.HourlyRate">0 ₫</span>
+                                    <span class="font-weight-bold text-success est-price" data-rate="@table.PricePerHour">0 ₫</span>
                                 </div>
                             </div>
                         }

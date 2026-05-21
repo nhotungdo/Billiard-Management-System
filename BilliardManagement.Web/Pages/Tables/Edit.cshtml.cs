@@ -41,8 +41,9 @@ namespace BilliardManagement.Web.Pages.Tables
                 TableData = new CreateTableDto
                 {
                     TableName = table.TableName,
-                    Type = table.Type,
-                    HourlyRate = table.HourlyRate
+                    TableType = table.TableType,
+                    PricePerHour = table.PricePerHour,
+                    Status = table.Status switch { 1 => "Available", 2 => "Playing", 3 => "Reserved", 4 => "Maintenance", _ => "Available" }
                 };
             }
             catch (Exception ex)

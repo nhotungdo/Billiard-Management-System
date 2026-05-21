@@ -1,0 +1,79 @@
+@page
+@model BilliardManagement.Web.Pages.Staff.Products.IndexModel
+@{
+    Layout = "_StaffLayout";
+    ViewData["Title"] = "Sản phẩm";
+    ViewData["BreadcrumbTitle"] = "Sản phẩm";
+    var apiOrigin = "https://localhost:5001";
+}
+
+<div id="app-toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100;"></div>
+
+<div class="dashboard-header mb-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+        <h1 class="page-title"><i class="fa-solid fa-box-open me-2"></i>Sản phẩm & đồ uống</h1>
+        <p class="page-subtitle"><span id="product-count">@Model.Products.Count</span> sản phẩm</p>
+    </div>
+    <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#createProductModal">
+        <i class="fa-solid fa-plus me-1"></i>Tạo sản phẩm mới
+    </button>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-warning">@Model.ErrorMessage</div>
+}
+
+<div class="row g-3" id="products-grid">
+    @if (!Model.Products.Any())
+    {
+        <div class="col-12 text-center py-5 text-muted" id="products-empty">
+            <i class="fa-solid fa-inbox fa-2x mb-2 d-block"></i>Chưa có sản phẩm
+        </div>
+    }
+    @foreach (var p in Model.Products)
+    {
+        var img = string.IsNullOrEmpty(p.ImageUrl) ? "" : (p.ImageUrl.StartsWith("http") ? p.ImageUrl : apiOrigin + p.ImageUrl);
+        <div class="col-6 col-md-4 col-lg-3" id="product-card-@p.Id">
+            <div class="card h-100 shadow-sm product-card">
+                <div class="product-img-wrap">
+                    @if (!string.IsNullOrEmpty(img))
+                    {
+                        <img src="@img" class="card-img-top product-img" alt="@p.Name" />
+                    }
+                    else
+                    {
+                        <div class="product-img-placeholder"><i class="fa-solid fa-box-open"></i></div>
+                    }
+                </div>
+                <div class="card-body">
+                    <h6 class="card-title mb-1">@p.Name</h6>
+                    <p class="text-primary fw-bold mb-1">@p.Price.ToString("N0") đ</p>
+                    <span class="badge @(p.IsAvailable ? "bg-success" : "bg-secondary")">@(p.IsAvailable ? "Đang bán" : "Ngừng bán")</span>
+                    <div class="small text-muted mt-1">@p.Category</div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<partial name="_CreateProductModal" />
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script src="~/js/create-entity.js" asp-append-version="true"></script>
+    <style>
+        .product-img-wrap { height: 120px; background: #f8f9fc; overflow: hidden; }
+        .product-img { width: 100%; height: 120px; object-fit: cover; }
+        .product-img-placeholder { height: 120px; display: flex; align-items: center; justify-content: center; color: #adb5bd; font-size: 2rem; }
+    </style>
+    <script>
+        bindCreateProductForm({ onCreated: function (p) { window.appendProductCard(p); } });
+        connectProductHub({
+            onProductCreated: function (payload) {
+                const id = payload.id || payload.Id;
+                if (!document.getElementById('product-card-' + id)) window.appendProductCard(payload);
+            }
+        });
+    </script>
+}

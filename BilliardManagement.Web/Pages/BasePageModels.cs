@@ -50,6 +50,48 @@ namespace BilliardManagement.Web.Pages
     }
 
     /// <summary>
+    /// Base page model for Admin or Staff operational pages (tables, products).
+    /// </summary>
+    public abstract class AdminOrStaffPageModel : PageModel
+    {
+        public string CurrentUsername => HttpContext.Session.GetString("Username") ?? "";
+        public string CurrentFullName => HttpContext.Session.GetString("FullName") ?? "";
+        public string CurrentRole => HttpContext.Session.GetString("UserRole") ?? "";
+
+        public override void OnPageHandlerExecuting(Microsoft.AspNetCore.Mvc.Filters.PageHandlerExecutingContext context)
+        {
+            var token = HttpContext.Session.GetString("JWToken");
+            var role = HttpContext.Session.GetString("UserRole");
+
+            if (string.IsNullOrEmpty(token))
+            {
+                context.Result = new RedirectToPageResult("/Auth/Login");
+                return;
+            }
+
+            if (role != "Admin" && role != "Staff")
+            {
+                context.Result = new RedirectToPageResult("/AccessDenied");
+                return;
+            }
+
+            var lastActivity = HttpContext.Session.GetString("LastActivity");
+            if (!string.IsNullOrEmpty(lastActivity) && DateTime.TryParse(lastActivity, out var lastTime))
+            {
+                if ((DateTime.UtcNow - lastTime).TotalMinutes > 30)
+                {
+                    HttpContext.Session.Clear();
+                    context.Result = new RedirectToPageResult("/Auth/Login");
+                    return;
+                }
+            }
+
+            HttpContext.Session.SetString("LastActivity", DateTime.UtcNow.ToString("o"));
+            base.OnPageHandlerExecuting(context);
+        }
+    }
+
+    /// <summary>
     /// Base page model for Staff-only pages.
     /// Redirects to Login if not authenticated or not Staff.
     /// </summary>

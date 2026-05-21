@@ -15,6 +15,11 @@ namespace BilliardManagement.Data.Repositories
             this.dbSet = _context.Set<T>();
         }
 
+        public async Task<bool> AnyAsync(Expression<Func<T, bool>> filter)
+        {
+            return await dbSet.AnyAsync(filter);
+        }
+
         public async Task AddAsync(T entity)
         {
             await dbSet.AddAsync(entity);
