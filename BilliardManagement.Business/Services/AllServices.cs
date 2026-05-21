@@ -10,6 +10,7 @@ using BilliardManagement.Models.Enums;
 using BilliardManagement.Models.Models;
 using BilliardManagement.Common.Exceptions;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
@@ -32,8 +33,8 @@ namespace BilliardManagement.Business.Services
 
         public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
         {
-            var user = await _unitOfWork.Repository<User>().GetFirstOrDefaultAsync(u => u.Username == dto.Username && u.PasswordHash == dto.Password);
-            if (user == null) throw new CustomException("Invalid credentials", 401);
+            var user = await _unitOfWork.Repository<User>().GetFirstOrDefaultAsync(u => u.Username == dto.Username);
+            if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash)) throw new CustomException("Invalid credentials", 401);
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_config["JwtSettings:Secret"] ?? "SuperSecretKeyForBilliardManagementSystem12345");
@@ -61,7 +62,7 @@ namespace BilliardManagement.Business.Services
             {
                 FullName = dto.FullName,
                 Username = dto.Username,
-                PasswordHash = dto.Password, // Should be hashed in real prod
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 PhoneNumber = dto.PhoneNumber,
                 Role = UserRole.Staff
             };
@@ -76,17 +77,19 @@ namespace BilliardManagement.Business.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ILogger<TableService> _logger;
 
-        public TableService(IUnitOfWork unitOfWork, IMapper mapper)
+        public TableService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<TableService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<TableDto> CreateTableAsync(CreateTableDto dto)
         {
             var table = _mapper.Map<BilliardTable>(dto);
-            table.Status = TableStatus.Empty;
+            table.Status = TableStatus.Available;
             await _unitOfWork.Repository<BilliardTable>().AddAsync(table);
             await _unitOfWork.SaveChangesAsync();
             return _mapper.Map<TableDto>(table);
@@ -105,14 +108,37 @@ namespace BilliardManagement.Business.Services
             return _mapper.Map<TableDto>(table);
         }
 
-        public async Task<TableDto> UpdateTableStatusAsync(Guid id, TableStatus status)
+        public async Task<TableDto> UpdateTableStatusAsync(Guid id, TableStatus status, Guid? updatedBy = null)
         {
             var table = await _unitOfWork.Repository<BilliardTable>().GetByIdAsync(id);
             if (table == null) throw new CustomException("Table not found", 404);
 
+            if (!Enum.IsDefined(typeof(TableStatus), status))
+                throw new CustomException("Invalid table status", 400);
+
+            var activeSessions = await _unitOfWork.Repository<TableSession>().GetAllAsync(
+                s => s.TableId == id && s.Status == SessionStatus.Active && !s.IsFinished);
+            var hasActiveSession = activeSessions.Any();
+            var oldStatus = table.Status;
+
+            if (status == TableStatus.Playing && !hasActiveSession)
+                throw new CustomException("Cannot set Playing without an active session. Start a session first", 400);
+
+            if (status == TableStatus.Available && hasActiveSession)
+                throw new CustomException("Cannot set Available while session is active. Please end the session first", 400);
+
+            if (status == TableStatus.Maintenance &&
+                (table.Status == TableStatus.Playing || hasActiveSession))
+                throw new CustomException("Cannot set Maintenance while table is playing", 400);
+
             table.Status = status;
             _unitOfWork.Repository<BilliardTable>().Update(table);
             await _unitOfWork.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Table status updated: tableId={TableId}, oldStatus={OldStatus}, newStatus={NewStatus}, updatedBy={UpdatedBy}",
+                id, oldStatus, status, updatedBy);
+
             return _mapper.Map<TableDto>(table);
         }
     }

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Billiard Management</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/BilliardManagement.Web.styles.css" asp-append-version="true" />
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fc; }
+        #wrapper { display: flex; width: 100%; height: 100vh; overflow: hidden; }
+        #sidebar { width: 250px; background-color: #4e73df; color: white; transition: all 0.3s; flex-shrink: 0; }
+        #sidebar .sidebar-brand { height: 70px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        #sidebar .nav-link { color: rgba(255,255,255,0.8); padding: 15px 20px; font-weight: 500; }
+        #sidebar .nav-link:hover, #sidebar .nav-link.active { color: white; background: rgba(255,255,255,0.1); }
+        #sidebar .nav-link i { margin-right: 10px; width: 20px; text-align: center; }
+        #content-wrapper { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        #topbar { height: 70px; background-color: white; box-shadow: 0 .15rem 1.75rem 0 rgba(58,59,69,.15); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+        #content { padding: 20px; flex-grow: 1; }
+        /* Loading Spinner */
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: none; align-items: center; justify-content: center; }
+        .spinner-border { width: 3rem; height: 3rem; color: #4e73df; }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    @if (Context.Request.Path.Value?.ToLower().Contains("/auth/") == true)
+    {
+        @RenderBody()
+    }
+    else
+    {
+        <div id="wrapper">
+            <nav id="sidebar">
+                <div class="sidebar-brand">
+                    <i class="fa-solid fa-bowling-ball"></i> Billiard Admin
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a class="nav-link" href="/Dashboard"><i class="fa-solid fa-tachometer-alt"></i> Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/Tables"><i class="fa-solid fa-table"></i> Tables</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/Sessions"><i class="fa-solid fa-clock"></i> Sessions</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/Orders"><i class="fa-solid fa-receipt"></i> Orders</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/Products"><i class="fa-solid fa-box"></i> Products</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/Invoices"><i class="fa-solid fa-file-invoice-dollar"></i> Invoices</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/Revenue"><i class="fa-solid fa-chart-line"></i> Revenue</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/Staff"><i class="fa-solid fa-users"></i> Staff</a></li>
+                </ul>
+            </nav>
+
+            <div id="content-wrapper">
+                <nav id="topbar">
+                    <button class="btn btn-link d-md-none rounded-circle mr-3" id="sidebarToggleTop">
+                        <i class="fa fa-bars"></i>
+                    </button>
+                    <div class="ms-auto">
+                        <span class="mr-2 d-none d-lg-inline text-gray-600 small">Admin</span>
+                        <a href="/Auth/Logout" class="btn btn-sm btn-outline-danger ms-3"><i class="fa-solid fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </nav>
+
+                <div id="content">
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @TempData["ErrorMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    @RenderBody()
+                </div>
+
+                <footer class="bg-white text-center py-3 mt-auto">
+                    <div class="text-muted small">&copy; 2026 - Billiard Management System</div>
+                </footer>
+            </div>
+        </div>
+    }
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        // Show loading spinner on link click and form submit
+        $(document).ready(function() {
+            $('form').on('submit', function() {
+                // Only block if jQuery Validation is present AND form is invalid
+                if(typeof $(this).valid === 'function' && !$(this).valid()) return;
+                $('#loading-overlay').css('display', 'flex');
+            });
+            
+            $('.nav-link').on('click', function(e) {
+                if(!$(this).attr('href').startsWith('#') && !$(this).attr('target')) {
+                    $('#loading-overlay').css('display', 'flex');
+                }
+            });
+        });
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

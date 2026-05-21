@@ -11,7 +11,12 @@ using BilliardManagement.API.Hubs;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        // Enums serialize as numeric values (1, 2) for Web client compatibility
+    });
 builder.Services.AddEndpointsApiExplorer();
 
 // Configure DbContext
@@ -86,6 +91,13 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Seed sample data if not exists
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<BilliardManagementDbContext>();
+    DbSeeder.Seed(dbContext);
+}
 
 // Use Custom Exception Middleware
 app.UseMiddleware<ExceptionMiddleware>();

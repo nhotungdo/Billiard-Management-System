@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -16,18 +16,21 @@ namespace BilliardManagement.Business.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
 
+        // Constructor
         public UserService(IUnitOfWork unitOfWork, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
 
+        // Methods
         public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
         {
             var users = await _unitOfWork.Repository<User>().GetAllAsync();
             return _mapper.Map<IEnumerable<UserDto>>(users);
         }
 
+        // Lấy thông tin người dùng theo ID
         public async Task<UserDto> GetUserByIdAsync(Guid id)
         {
             var user = await _unitOfWork.Repository<User>().GetByIdAsync(id);
@@ -35,6 +38,7 @@ namespace BilliardManagement.Business.Services
             return _mapper.Map<UserDto>(user);
         }
 
+        // Cập nhật vai trò người dùng
         public async Task<UserDto> UpdateUserRoleAsync(Guid id, UserRole role)
         {
             var user = await _unitOfWork.Repository<User>().GetByIdAsync(id);

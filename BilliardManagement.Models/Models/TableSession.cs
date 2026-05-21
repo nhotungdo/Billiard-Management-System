@@ -19,16 +19,22 @@ namespace BilliardManagement.Models.Models
 
         public DateTime? EndTime { get; set; }
 
+        public int DurationHours { get; set; }
+
         public int? DurationMinutes { get; set; }
 
-        public decimal? TotalPrice { get; set; }
+        public int RemainingMinutes { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalPrice { get; set; }
+
+        public bool IsFinished { get; set; }
 
         [Required]
         public SessionStatus Status { get; set; } = SessionStatus.Active;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation properties
         [ForeignKey("TableId")]
         public virtual BilliardTable? BilliardTable { get; set; }
 

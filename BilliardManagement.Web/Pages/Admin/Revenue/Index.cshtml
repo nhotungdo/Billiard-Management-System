@@ -1,0 +1,66 @@
+@page
+@model BilliardManagement.Web.Pages.Admin.Revenue.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Doanh thu";
+}
+
+<div class="dashboard-header mb-4">
+    <h1 class="page-title"><i class="fa-solid fa-chart-line me-2"></i>Thống kê Doanh thu</h1>
+    <p class="page-subtitle">Tổng doanh thu 30 ngày: <strong class="text-success">@Model.TotalRevenue.ToString("N0") đ</strong></p>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-warning">@Model.ErrorMessage</div>
+}
+
+<div class="row g-4">
+    <div class="col-12 col-xl-8">
+        <div class="card-panel">
+            <div class="panel-header"><h5 class="panel-title">Biểu đồ doanh thu theo ngày</h5></div>
+            <div class="panel-body">
+                <canvas id="revenueBarChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-xl-4">
+        <div class="card-panel">
+            <div class="panel-header"><h5 class="panel-title">Chi tiết</h5></div>
+            <div class="panel-body p-0" style="max-height:400px;overflow-y:auto">
+                <table class="data-table">
+                    <thead><tr><th>Ngày</th><th>Doanh thu</th></tr></thead>
+                    <tbody>
+                        @foreach (var r in Model.DailyRevenue.OrderByDescending(x => x.Date))
+                        {
+                            <tr>
+                                <td>@r.Date.ToString("dd/MM/yyyy")</td>
+                                <td class="text-end fw-600">@r.TotalRevenue.ToString("N0") đ</td>
+                            </tr>
+                        }
+                        @if (!Model.DailyRevenue.Any())
+                        {
+                            <tr><td colspan="2" class="text-center py-3 text-muted">Không có dữ liệu</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const labels = [@Html.Raw(string.Join(",", Model.DailyRevenue.Select(r => $"'{r.Date:dd/MM}'")))];
+        const data = [@Html.Raw(string.Join(",", Model.DailyRevenue.Select(r => r.TotalRevenue)))];
+        new Chart(document.getElementById('revenueBarChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: labels.length ? labels : ['Không có dữ liệu'],
+                datasets: [{ label: 'Doanh thu', data: data.length ? data : [0], backgroundColor: 'rgba(99,102,241,0.7)', borderRadius: 6 }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+    </script>
+}

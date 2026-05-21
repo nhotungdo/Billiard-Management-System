@@ -15,19 +15,20 @@ namespace BilliardManagement.API.Controllers
         {
             _authService = authService;
         }
-
+        // POST: api/auth/login
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
             var result = await _authService.LoginAsync(dto);
-            return Ok(ApiResponse<AuthResponseDto>.Ok(result, "Login successful"));
+            return Ok(ApiResponse<AuthResponseDto>.Ok(result, "Đăng nhập thành công"));
         }
 
+        // POST: api/auth/register
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
             var result = await _authService.RegisterAsync(dto);
-            return Ok(ApiResponse<AuthResponseDto>.Ok(result, "Register successful"));
+            return Ok(ApiResponse<AuthResponseDto>.Ok(result, "Đăng ký thành công"));
         }
     }
 }

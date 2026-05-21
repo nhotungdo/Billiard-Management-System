@@ -2,9 +2,9 @@ namespace BilliardManagement.Models.Enums
 {
     public enum TableStatus
     {
-        Empty = 1,
-        Playing = 2,
-        Reserved = 3,
-        Maintenance = 4
+        Available = 1,     // Trống bàn
+        Playing = 2,       // Đang chơi
+        Reserved = 3,      // Đặt trước
+        Maintenance = 4    // Bảo trì
     }
 }

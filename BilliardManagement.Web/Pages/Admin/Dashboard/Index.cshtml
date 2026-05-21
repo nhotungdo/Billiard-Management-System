@@ -1,0 +1,249 @@
+@page
+@model BilliardManagement.Web.Pages.Admin.Dashboard.IndexModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Admin Dashboard";
+    ViewData["BreadcrumbTitle"] = "Tổng quan hệ thống";
+}
+
+<div class="dashboard-header mb-4">
+    <h1 class="page-title">
+        <i class="fa-solid fa-chart-pie me-2"></i>Tổng quan hệ thống
+    </h1>
+    <p class="page-subtitle">Chào mừng trở lại, <strong>@Model.CurrentFullName</strong>! Đây là tổng quan hoạt động hôm nay.</p>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-warning">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>@Model.ErrorMessage
+    </div>
+}
+
+<!-- KPI Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card kpi-revenue">
+            <div class="kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-label">Tổng doanh thu</div>
+                <div class="kpi-value">@Model.DashboardData?.TotalRevenue.ToString("N0") đ</div>
+                <div class="kpi-sub"><i class="fa-solid fa-arrow-trend-up me-1"></i>30 ngày gần nhất</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card kpi-tables">
+            <div class="kpi-icon"><i class="fa-solid fa-table-cells"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-label">Tổng số bàn</div>
+                <div class="kpi-value">@Model.TotalTables</div>
+                <div class="kpi-sub"><span class="text-success fw-600">@Model.ActiveTables</span> đang hoạt động</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card kpi-orders">
+            <div class="kpi-icon"><i class="fa-solid fa-receipt"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-label">Đơn hàng hôm nay</div>
+                <div class="kpi-value">@(Model.DashboardData?.OrdersToday ?? 0)</div>
+                <div class="kpi-sub">Cập nhật theo thời gian thực</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="kpi-card kpi-staff">
+            <div class="kpi-icon"><i class="fa-solid fa-users"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-label">Nhân viên</div>
+                <div class="kpi-value">@Model.StaffCount</div>
+                <div class="kpi-sub">Đang hoạt động</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts & Tables Row -->
+<div class="row g-4 mb-4">
+    <!-- Revenue Chart -->
+    <div class="col-12 col-xl-8">
+        <div class="card-panel">
+            <div class="panel-header">
+                <div>
+                    <h5 class="panel-title"><i class="fa-solid fa-chart-area me-2"></i>Doanh thu 30 ngày</h5>
+                    <p class="panel-sub">Thống kê doanh thu theo ngày</p>
+                </div>
+            </div>
+            <div class="panel-body">
+                <canvas id="revenueChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Status -->
+    <div class="col-12 col-xl-4">
+        <div class="card-panel">
+            <div class="panel-header">
+                <div>
+                    <h5 class="panel-title"><i class="fa-solid fa-circle-dot me-2"></i>Trạng thái bàn</h5>
+                    <p class="panel-sub">Tình trạng hiện tại</p>
+                </div>
+            </div>
+            <div class="panel-body">
+                <canvas id="tableStatusChart" height="180"></canvas>
+                <div class="chart-legend mt-3">
+                    <span class="legend-item"><span class="legend-dot" style="background:#10b981"></span>Trống bàn</span>
+                    <span class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>Đang chơi</span>
+                    <span class="legend-item"><span class="legend-dot" style="background:#f6c23e"></span>Đặt trước</span>
+                    <span class="legend-item"><span class="legend-dot" style="background:#858796"></span>Bảo trì</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Staff Management Table -->
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card-panel">
+            <div class="panel-header d-flex align-items-center justify-content-between">
+                <div>
+                    <h5 class="panel-title"><i class="fa-solid fa-users-gear me-2"></i>Danh sách nhân viên</h5>
+                    <p class="panel-sub">Quản lý nhân sự hệ thống</p>
+                </div>
+                <a href="/Admin/Staff/Index" class="btn btn-admin-primary btn-sm">
+                    <i class="fa-solid fa-arrow-right me-1"></i>Xem tất cả
+                </a>
+            </div>
+            <div class="panel-body p-0">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Họ tên</th>
+                                <th>Tên đăng nhập</th>
+                                <th>Vai trò</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.StaffList.Any())
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        <i class="fa-solid fa-inbox fa-2x mb-2 d-block"></i>Không có dữ liệu
+                                    </td>
+                                </tr>
+                            }
+                            @{int idx = 1;}
+                            @foreach (var s in Model.StaffList.Take(5))
+                            {
+                                <tr>
+                                    <td>@(idx++)</td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="avatar-xs">@s.FullName.Substring(0,1).ToUpper()</div>
+                                            <span>@s.FullName</span>
+                                        </div>
+                                    </td>
+                                    <td><code>@s.Username</code></td>
+                                    <td>
+                                        @if (s.Role == 1)
+                                        {
+                                            <span class="badge-role admin-badge">Admin</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge-role staff-badge">Staff</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (s.IsActive)
+                                        {
+                                            <span class="status-dot active"><i class="fa-solid fa-circle"></i> Hoạt động</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="status-dot inactive"><i class="fa-solid fa-circle"></i> Ngừng</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script>
+        // Revenue Chart
+        const revenueLabels = [@Html.Raw(string.Join(",", Model.RevenueChart.Select(r => $"'{r.Date:dd/MM}'")))];
+        const revenueData = [@Html.Raw(string.Join(",", Model.RevenueChart.Select(r => r.TotalRevenue)))];
+
+        const ctxRevenue = document.getElementById('revenueChart').getContext('2d');
+        new Chart(ctxRevenue, {
+            type: 'line',
+            data: {
+                labels: revenueLabels.length ? revenueLabels : ['Không có dữ liệu'],
+                datasets: [{
+                    label: 'Doanh thu (VNĐ)',
+                    data: revenueData.length ? revenueData : [0],
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99,102,241,0.08)',
+                    borderWidth: 2.5,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#6366f1',
+                    pointRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // Table Status Doughnut (1=Available, 2=Playing, 3=Reserved, 4=Maintenance)
+        const available = @(Model.CountAvailable);
+        const playing = @(Model.CountPlaying);
+        const reserved = @(Model.CountReserved);
+        const maintenance = @(Model.CountMaintenance);
+
+        const ctxTable = document.getElementById('tableStatusChart').getContext('2d');
+        new Chart(ctxTable, {
+            type: 'doughnut',
+            data: {
+                labels: ['Trống bàn', 'Đang chơi', 'Đặt trước', 'Bảo trì'],
+                datasets: [{
+                    data: [available || 0, playing || 0, reserved || 0, maintenance || 0],
+                    backgroundColor: ['#10b981', '#ef4444', '#f6c23e', '#858796'],
+                    borderWidth: 0,
+                }]
+            },
+            options: {
+                cutout: '65%',
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // Realtime table status chart refresh
+        if (window.signalR) {
+            const hubUrl = (document.querySelector('meta[name="hub-base-url"]')?.content || 'https://localhost:5001') + '/hubs/table';
+            const conn = new signalR.HubConnectionBuilder().withUrl(hubUrl).withAutomaticReconnect().build();
+            conn.on('TableStatusChanged', function () { window.location.reload(); });
+            conn.on('ReceiveTableUpdate', function () { window.location.reload(); });
+            conn.start().catch(function (e) { console.warn('Admin dashboard hub:', e); });
+        }
+    </script>
+}

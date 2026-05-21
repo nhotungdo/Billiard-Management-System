@@ -1,0 +1,106 @@
+@page
+@model BilliardManagement.Web.Pages.Tables.IndexModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Tables Management";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800"><i class="fa-solid fa-table me-2 text-primary"></i>Tables Management</h1>
+    <a href="/Tables/Create" class="btn btn-primary btn-icon-split shadow-sm">
+        <span class="icon text-white-50"><i class="fas fa-plus"></i></span>
+        <span class="text">Create New Table</span>
+    </a>
+</div>
+
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger" role="alert">
+        <i class="fa-solid fa-circle-exclamation me-2"></i>@Model.ErrorMessage
+    </div>
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3" style="background-color: #f8f9fc;">
+        <h6 class="m-0 font-weight-bold text-primary">List of Tables</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Table Name</th>
+                        <th>Type</th>
+                        <th>Hourly Rate</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Tables.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">No tables found. Add a table to get started.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var table in Model.Tables)
+                        {
+                            <tr>
+                                <td class="ps-4 font-weight-bold">@table.TableName</td>
+                                <td>
+                                    @switch (table.Type)
+                                    {
+                                        case 0:
+                                            <span class="badge bg-primary">Pool</span>
+                                            break;
+                                        case 1:
+                                            <span class="badge bg-info text-dark">Carom</span>
+                                            break;
+                                        case 2:
+                                            <span class="badge bg-secondary">Snooker</span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-dark">Unknown</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>@string.Format("{0:C0}/hr", table.HourlyRate)</td>
+                                <td>
+                                    @switch (table.Status)
+                                    {
+                                        case 0:
+                                            <span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i>Available</span>
+                                            break;
+                                        case 1:
+                                            <span class="badge bg-danger"><i class="fa-solid fa-circle-play me-1"></i>In Use</span>
+                                            break;
+                                        case 2:
+                                            <span class="badge bg-warning text-dark"><i class="fa-solid fa-screwdriver-wrench me-1"></i>Maintenance</span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-dark">Unknown</span>
+                                            break;
+                                    }
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="btn-group" role="group">
+                                        <a href="/Tables/Edit?id=@table.Id" class="btn btn-sm btn-outline-primary" title="Edit Table">
+                                            <i class="fa-solid fa-pen-to-square"></i> Edit
+                                        </a>
+                                        <form method="post" asp-page-handler="Delete" asp-route-id="@table.Id" onsubmit="return confirm('Are you sure you want to delete this table?');" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Table">
+                                                <i class="fa-solid fa-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

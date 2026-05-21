@@ -1,0 +1,105 @@
+@page
+@model BilliardManagement.Web.Pages.Invoices.IndexModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Invoices";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800"><i class="fa-solid fa-file-invoice-dollar me-2 text-primary"></i>Invoices & Billing</h1>
+</div>
+
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger" role="alert">
+        <i class="fa-solid fa-circle-exclamation me-2"></i>@Model.ErrorMessage
+    </div>
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3" style="background-color: #f8f9fc;">
+        <h6 class="m-0 font-weight-bold text-primary">Billing Records</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Invoice ID</th>
+                        <th>Session ID</th>
+                        <th>Subtotal</th>
+                        <th>Discount</th>
+                        <th>Total Amount</th>
+                        <th>Payment Method</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Invoices.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">No invoices found.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var invoice in Model.Invoices)
+                        {
+                            <tr>
+                                <td class="ps-4 font-weight-bold text-gray-800">#@invoice.Id.ToString().Substring(0, 8)</td>
+                                <td><span class="text-muted">@invoice.SessionId.ToString().Substring(0, 8)</span></td>
+                                <td>@string.Format("{0:C0}", invoice.Subtotal)</td>
+                                <td class="text-danger">-@string.Format("{0:C0}", invoice.Discount)</td>
+                                <td class="font-weight-bold text-success">@string.Format("{0:C0}", invoice.Total)</td>
+                                <td>
+                                    @switch (invoice.PaymentMethod)
+                                    {
+                                        case 0:
+                                            <span class="badge bg-light text-dark"><i class="fa-solid fa-money-bill me-1"></i>Cash</span>
+                                            break;
+                                        case 1:
+                                            <span class="badge bg-light text-dark"><i class="fa-solid fa-credit-card me-1"></i>Credit Card</span>
+                                            break;
+                                        case 2:
+                                            <span class="badge bg-light text-dark"><i class="fa-solid fa-building-columns me-1"></i>Bank Transfer</span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-light text-dark">Other</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @if (invoice.IsPaid)
+                                    {
+                                        <span class="badge bg-success"><i class="fa-solid fa-check-double me-1"></i>Paid</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger"><i class="fa-solid fa-circle-exclamation me-1"></i>Unpaid</span>
+                                    }
+                                </td>
+                                <td class="text-end pe-4">
+                                    @if (!invoice.IsPaid)
+                                    {
+                                        <form method="post" asp-page-handler="Pay" asp-route-id="@invoice.Id" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-success font-weight-bold shadow-sm">
+                                                <i class="fa-solid fa-cash-register me-1"></i>Pay Now
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-outline-secondary" disabled>
+                                            <i class="fa-solid fa-check"></i> Settled
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

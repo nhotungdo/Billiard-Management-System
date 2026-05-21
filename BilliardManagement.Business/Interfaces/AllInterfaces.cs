@@ -24,14 +24,16 @@ namespace BilliardManagement.Business.Interfaces
         Task<IEnumerable<TableDto>> GetAllTablesAsync();
         Task<TableDto> GetTableByIdAsync(Guid id);
         Task<TableDto> CreateTableAsync(CreateTableDto dto);
-        Task<TableDto> UpdateTableStatusAsync(Guid id, TableStatus status);
+        Task<TableDto> UpdateTableStatusAsync(Guid id, TableStatus status, Guid? updatedBy = null);
     }
 
     public interface ISessionService
     {
-        Task<SessionDto> StartSessionAsync(Guid tableId, Guid userId);
-        Task<SessionDto> EndSessionAsync(Guid sessionId);
+        Task<SessionDto> StartSessionAsync(Guid tableId, Guid userId, int durationHours);
+        Task<SessionDto> ExtendSessionAsync(Guid sessionId, int additionalMinutes, Guid? staffUserId = null);
+        Task<SessionDto> EndSessionAsync(Guid sessionId, GenerateBillDto? billDto = null, Guid? staffUserId = null);
         Task<IEnumerable<SessionDto>> GetActiveSessionsAsync();
+        Task<IEnumerable<TableDashboardDto>> GetTableDashboardAsync();
     }
 
     public interface IProductService
@@ -43,5 +45,7 @@ namespace BilliardManagement.Business.Interfaces
     public interface IOrderService
     {
         Task<OrderDto> CreateOrderAsync(CreateOrderDto dto, Guid userId);
+        Task<IEnumerable<OrderDto>> GetAllOrdersAsync();
+        Task<OrderDto> GetOrderByIdAsync(Guid id);
     }
 }

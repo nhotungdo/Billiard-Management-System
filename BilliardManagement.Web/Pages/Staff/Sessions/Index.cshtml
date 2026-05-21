@@ -1,0 +1,68 @@
+@page
+@model BilliardManagement.Web.Pages.Staff.Sessions.IndexModel
+@{
+    Layout = "_StaffLayout";
+    ViewData["Title"] = "Phiên chơi";
+}
+
+<div class="dashboard-header mb-4">
+    <h1 class="page-title"><i class="fa-solid fa-clock-rotate-left me-2"></i>Phiên chơi đang hoạt động</h1>
+    <p class="page-subtitle"><span id="liveCount" class="text-success fw-600">@Model.ActiveSessions.Count</span> phiên đang diễn ra</p>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-warning">@Model.ErrorMessage</div>
+}
+
+<div class="card-panel">
+    <div class="panel-body p-0">
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr><th>#</th><th>Session ID</th><th>Bàn</th><th>Bắt đầu</th><th>Thời gian</th><th>Trạng thái</th></tr>
+                </thead>
+                <tbody>
+                    @{int i = 1;}
+                    @foreach (var s in Model.ActiveSessions)
+                    {
+                        var elapsed = DateTime.UtcNow - s.StartTime;
+                        <tr>
+                            <td>@(i++)</td>
+                            <td><code>@s.Id.ToString().Substring(0,8)...</code></td>
+                            <td>@s.TableId.ToString().Substring(0,8)...</td>
+                            <td>@s.StartTime.ToLocalTime().ToString("HH:mm dd/MM")</td>
+                            <td>
+                                <span class="timer-badge" data-start="@s.StartTime.ToString("o")">
+                                    @elapsed.Hours.ToString("D2"):@elapsed.Minutes.ToString("D2"):@elapsed.Seconds.ToString("D2")
+                                </span>
+                            </td>
+                            <td><span class="badge bg-success">Đang chơi</span></td>
+                        </tr>
+                    }
+                    @if (!Model.ActiveSessions.Any())
+                    {
+                        <tr><td colspan="6" class="text-center py-4 text-muted"><i class="fa-solid fa-couch fa-2x mb-2 d-block"></i>Không có phiên nào đang hoạt động</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function updateTimers() {
+            document.querySelectorAll('.timer-badge').forEach(function(el) {
+                var start = new Date(el.getAttribute('data-start'));
+                var diff = Math.floor((new Date() - start) / 1000);
+                var h = Math.floor(diff / 3600);
+                var m = Math.floor((diff % 3600) / 60);
+                var s = diff % 60;
+                el.textContent = [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
+            });
+        }
+        updateTimers();
+        setInterval(updateTimers, 1000);
+    </script>
+}

@@ -1,0 +1,50 @@
+@page
+@model BilliardManagement.Web.Pages.Staff.Invoices.IndexModel
+@{
+    Layout = "_StaffLayout";
+    ViewData["Title"] = "Hóa đơn";
+}
+
+<div class="dashboard-header mb-4">
+    <h1 class="page-title"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Danh sách Hóa đơn</h1>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-warning">@Model.ErrorMessage</div>
+}
+
+<div class="card-panel">
+    <div class="panel-body p-0">
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr><th>#</th><th>Hóa đơn ID</th><th>Tổng</th><th>Chiết khấu</th><th>Thanh toán</th><th>Trạng thái</th></tr>
+                </thead>
+                <tbody>
+                    @{int i = 1;}
+                    @foreach (var inv in Model.Invoices)
+                    {
+                        <tr>
+                            <td>@(i++)</td>
+                            <td><code>@inv.Id.ToString().Substring(0,8)...</code></td>
+                            <td class="fw-600">@inv.Total.ToString("N0") đ</td>
+                            <td>@inv.Discount.ToString("N0") đ</td>
+                            <td>@(inv.PaymentMethod == 0 ? "Tiền mặt" : inv.PaymentMethod == 1 ? "Thẻ" : "Chuyển khoản")</td>
+                            <td>
+                                @if (inv.IsPaid)
+                                { <span class="badge bg-success">Đã thanh toán</span> }
+                                else
+                                { <span class="badge bg-warning text-dark">Chờ thanh toán</span> }
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Invoices.Any())
+                    {
+                        <tr><td colspan="6" class="text-center py-4 text-muted">Không có hóa đơn</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
