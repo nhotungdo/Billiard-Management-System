@@ -4,8 +4,6 @@ using BilliardManagement.Business.Interfaces;
 using BilliardManagement.Common.Responses;
 using BilliardManagement.Business.DTOs;
 using System.Security.Claims;
-using Microsoft.AspNetCore.SignalR;
-using BilliardManagement.API.Hubs;
 
 namespace BilliardManagement.API.Controllers
 {
@@ -15,60 +13,60 @@ namespace BilliardManagement.API.Controllers
     public class SessionsController : ControllerBase
     {
         private readonly ISessionService _sessionService;
-        private readonly ITableService _tableService;
-        private readonly IHubContext<TableHub> _hubContext;
         private readonly ILogger<SessionsController> _logger;
 
-        public SessionsController(
-            ISessionService sessionService,
-            ITableService tableService,
-            IHubContext<TableHub> hubContext,
-            ILogger<SessionsController> logger)
+        public SessionsController(ISessionService sessionService, ILogger<SessionsController> logger)
         {
             _sessionService = sessionService;
-            _tableService = tableService;
-            _hubContext = hubContext;
             _logger = logger;
         }
 
+        // Bắt đầu phiên chơi cho một bàn
         [HttpPost("start/{tableId}")]
-        [Authorize(Roles = "Admin,Staff")]
-        public async Task<IActionResult> StartSession(Guid tableId, [FromQuery] int durationHours = 1)
+        public async Task<IActionResult> StartSession(Guid tableId)
         {
             try
             {
-                var userId = GetUserId();
-                if (userId == null)
-                    return Unauthorized(ApiResponse<object>.Fail("Unauthorized"));
+                var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                _logger.LogInformation("bắt đầu phiên chơi: tableId={TableId}, userId={UserId}", tableId, userIdStr);
 
-                var session = await _sessionService.StartSessionAsync(tableId, userId.Value, durationHours);
-                await BroadcastAsync(session, "Session started");
-                return Ok(ApiResponse<SessionDto>.Ok(session, "Session started successfully"));
+                if (!Guid.TryParse(userIdStr, out var userId))
+                {
+                    _logger.LogWarning("bắt đầu phiên chơi lỗi: không tìm thấy user id");
+                    return Unauthorized(ApiResponse<object>.Fail("Unauthorized: invalid user token"));
+                }
+
+                var session = await _sessionService.StartSessionAsync(tableId, userId);
+                _logger.LogInformation("bắt đầu phiên chơi thành công: sessionId={SessionId}", session.Id);
+                return Ok(ApiResponse<SessionDto>.Ok(session, "bắt đầu phiên chơi thành công"));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "StartSession failed for tableId={TableId}", tableId);
+                _logger.LogError(ex, "bắt đầu phiên chơi lỗi: tableId={TableId}: {Message}", tableId, ex.Message);
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
         }
 
+        // Kết thúc phiên chơi
         [HttpPost("end/{sessionId}")]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> EndSession(Guid sessionId)
         {
             try
             {
-                var session = await _sessionService.EndSessionAsync(sessionId, null, GetUserId());
-                await BroadcastAsync(session, "Session ended");
-                return Ok(ApiResponse<SessionDto>.Ok(session, "Session ended successfully"));
+                _logger.LogInformation("kết thúc phiên chơi: sessionId={SessionId}", sessionId);
+
+                var session = await _sessionService.EndSessionAsync(sessionId);
+                _logger.LogInformation("kết thúc phiên chơi thành công: sessionId={SessionId}, totalPrice={TotalPrice}", session.Id, session.TotalPrice);
+                return Ok(ApiResponse<SessionDto>.Ok(session, "kết thúc phiên chơi thành công"));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "EndSession failed for sessionId={SessionId}", sessionId);
+                _logger.LogError(ex, "kết thúc phiên chơi lỗi: sessionId={SessionId}: {Message}", sessionId, ex.Message);
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
         }
 
+        // Lấy danh sách các phiên chơi đang hoạt động
         [HttpGet("active")]
         public async Task<IActionResult> GetActiveSessions()
         {
@@ -79,48 +77,9 @@ namespace BilliardManagement.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "GetActiveSessions failed");
+                _logger.LogError(ex, "lấy danh sách các phiên chơi đang hoạt động lỗi: {Message}", ex.Message);
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
-        }
-
-        private Guid? GetUserId()
-        {
-            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            return Guid.TryParse(userIdStr, out var userId) ? userId : null;
-        }
-
-        private async Task BroadcastAsync(SessionDto session, string message)
-        {
-            var table = await _tableService.GetTableByIdAsync(session.TableId);
-            var payload = new TableStatusChangedDto
-            {
-                TableId = table.Id,
-                TableName = table.TableName,
-                Status = (int)table.Status,
-                StatusName = table.Status.ToString()
-            };
-            await _hubContext.Clients.All.SendAsync("TableStatusChanged", payload);
-            await _hubContext.Clients.All.SendAsync("SessionUpdated", new SessionRealtimeDto
-            {
-                SessionId = session.Id,
-                TableId = session.TableId,
-                TableName = session.TableName ?? table.TableName,
-                TableStatus = (int)table.Status,
-                StartTime = session.StartTime,
-                EndTime = session.EndTime,
-                DurationHours = session.DurationHours,
-                RemainingMinutes = session.RemainingMinutes,
-                RemainingSeconds = session.RemainingSeconds,
-                TotalPrice = session.TotalPrice,
-                OrdersTotal = session.OrdersTotal,
-                CurrentTotal = session.CurrentTotal,
-                IsExpired = session.IsExpired,
-                IsFinished = session.IsFinished,
-                TimerLevel = session.IsExpired ? "expired" : session.RemainingMinutes < 15 ? "warning" : "ok",
-                OrderLines = session.OrderLines
-            });
-            await _hubContext.Clients.All.SendAsync("ReceiveTableUpdate", message);
         }
     }
 }

@@ -41,6 +41,10 @@ namespace BilliardManagement.Data
                 .Property(p => p.Price)
                 .HasPrecision(18, 2);
 
+            modelBuilder.Entity<Product>()
+                .HasIndex(p => p.ProductName)
+                .IsUnique();
+
             modelBuilder.Entity<Order>()
                 .Property(o => o.TotalAmount)
                 .HasPrecision(18, 2);

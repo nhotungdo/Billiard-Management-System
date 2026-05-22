@@ -10,6 +10,29 @@ using System.Security.Claims;
 
 namespace BilliardManagement.API.Controllers
 {
+    public class CreateProductRequest
+    {
+        public IFormFile? Image { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public string? Description { get; set; }
+        public bool IsAvailable { get; set; } = true;
+        public int Stock { get; set; } = 0;
+    }
+
+    public class UpdateProductRequest
+    {
+        public IFormFile? Image { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public string? Description { get; set; }
+        public bool IsAvailable { get; set; } = true;
+        public int Stock { get; set; } = 0;
+        public string? ExistingImageUrl { get; set; }
+    }
+
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
@@ -39,36 +62,37 @@ namespace BilliardManagement.API.Controllers
             return Ok(ApiResponse<IEnumerable<ProductDto>>.Ok(products));
         }
 
+        [HttpGet("check-name")]
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<IActionResult> CheckName([FromQuery] string name, [FromQuery] Guid? excludeId = null)
+        {
+            var isDuplicate = await _productService.CheckDuplicateNameAsync(name, excludeId);
+            return Ok(new { isDuplicate });
+        }
+
         [HttpPost]
         [Authorize(Roles = "Admin,Staff")]
         [RequestSizeLimit(5 * 1024 * 1024)]
-        public async Task<IActionResult> Create(
-            [FromForm] IFormFile? image,
-            [FromForm] string name,
-            [FromForm] string category,
-            [FromForm] decimal price,
-            [FromForm] string? description,
-            [FromForm] bool isAvailable = true,
-            [FromForm] int stock = 0)
+        public async Task<IActionResult> Create([FromForm] CreateProductRequest request)
         {
             try
             {
                 string? imageUrl = null;
-                if (image != null && image.Length > 0)
+                if (request.Image != null && request.Image.Length > 0)
                 {
-                    if (!ProductService.IsValidImageExtension(image.FileName))
+                    if (!ProductService.IsValidImageExtension(request.Image.FileName))
                         return BadRequest(ApiResponse<object>.Fail("Chỉ chấp nhận ảnh jpg, jpeg, png"));
 
                     var uploadsDir = Path.Combine(_env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot"), "uploads", "products");
                     Directory.CreateDirectory(uploadsDir);
 
-                    var ext = Path.GetExtension(image.FileName).ToLowerInvariant();
+                    var ext = Path.GetExtension(request.Image.FileName).ToLowerInvariant();
                     var fileName = $"{Guid.NewGuid()}{ext}";
                     var filePath = Path.Combine(uploadsDir, fileName);
 
                     await using (var stream = new FileStream(filePath, FileMode.Create))
                     {
-                        await image.CopyToAsync(stream);
+                        await request.Image.CopyToAsync(stream);
                     }
 
                     imageUrl = $"/uploads/products/{fileName}";
@@ -76,12 +100,12 @@ namespace BilliardManagement.API.Controllers
 
                 var dto = new CreateProductDto
                 {
-                    Name = name,
-                    Category = category,
-                    Price = price,
-                    Description = description,
-                    IsAvailable = isAvailable,
-                    Stock = stock,
+                    Name = request.Name,
+                    Category = request.Category,
+                    Price = request.Price,
+                    Description = request.Description,
+                    IsAvailable = request.IsAvailable,
+                    Stock = request.Stock,
                     ImageUrl = imageUrl
                 };
 
@@ -117,35 +141,26 @@ namespace BilliardManagement.API.Controllers
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin,Staff")]
         [RequestSizeLimit(5 * 1024 * 1024)]
-        public async Task<IActionResult> Update(
-            Guid id,
-            [FromForm] IFormFile? image,
-            [FromForm] string name,
-            [FromForm] string category,
-            [FromForm] decimal price,
-            [FromForm] string? description,
-            [FromForm] bool isAvailable = true,
-            [FromForm] int stock = 0,
-            [FromForm] string? existingImageUrl = null)
+        public async Task<IActionResult> Update(Guid id, [FromForm] UpdateProductRequest request)
         {
             try
             {
-                string? imageUrl = existingImageUrl;
-                if (image != null && image.Length > 0)
+                string? imageUrl = request.ExistingImageUrl;
+                if (request.Image != null && request.Image.Length > 0)
                 {
-                    if (!ProductService.IsValidImageExtension(image.FileName))
+                    if (!ProductService.IsValidImageExtension(request.Image.FileName))
                         return BadRequest(ApiResponse<object>.Fail("Chỉ chấp nhận ảnh jpg, jpeg, png"));
 
                     var uploadsDir = Path.Combine(_env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot"), "uploads", "products");
                     Directory.CreateDirectory(uploadsDir);
 
-                    var ext = Path.GetExtension(image.FileName).ToLowerInvariant();
+                    var ext = Path.GetExtension(request.Image.FileName).ToLowerInvariant();
                     var fileName = $"{Guid.NewGuid()}{ext}";
                     var filePath = Path.Combine(uploadsDir, fileName);
 
                     await using (var stream = new FileStream(filePath, FileMode.Create))
                     {
-                        await image.CopyToAsync(stream);
+                        await request.Image.CopyToAsync(stream);
                     }
 
                     imageUrl = $"/uploads/products/{fileName}";
@@ -153,12 +168,12 @@ namespace BilliardManagement.API.Controllers
 
                 var dto = new CreateProductDto
                 {
-                    Name = name,
-                    Category = category,
-                    Price = price,
-                    Description = description,
-                    IsAvailable = isAvailable,
-                    Stock = stock,
+                    Name = request.Name,
+                    Category = request.Category,
+                    Price = request.Price,
+                    Description = request.Description,
+                    IsAvailable = request.IsAvailable,
+                    Stock = request.Stock,
                     ImageUrl = imageUrl
                 };
 

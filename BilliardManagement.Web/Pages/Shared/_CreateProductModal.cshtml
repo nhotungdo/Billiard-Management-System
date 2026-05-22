@@ -12,7 +12,8 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Tên sản phẩm</label>
-                            <input type="text" name="name" class="form-control" required />
+                            <input type="text" name="name" id="createProductNameInput" class="form-control" required />
+                            <div id="productNameError" class="invalid-feedback fw-semibold d-none"><i class="fa-solid fa-triangle-exclamation me-1"></i>Tên sản phẩm đã tồn tại</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Danh mục</label>
@@ -20,7 +21,7 @@
                                 <option value="Nước ngọt">Nước ngọt</option>
                                 <option value="Cafe">Cafe</option>
                                 <option value="Bia">Bia</option>
-                                <option value="Snack">Snack</option>
+                                <option value="Đồ ăn vặt">Đồ ăn vặt</option>
                                 <option value="Trà sữa">Trà sữa</option>
                             </select>
                         </div>

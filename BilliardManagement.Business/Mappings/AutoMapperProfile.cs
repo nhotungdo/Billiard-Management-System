@@ -28,11 +28,13 @@ namespace BilliardManagement.Business.Mappings
                     src.Category != null ? src.Category.CategoryName : string.Empty));
             CreateMap<ProductDto, Product>()
                 .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Name))
-                .ForMember(dest => dest.StockQuantity, opt => opt.MapFrom(src => src.Stock));
+                .ForMember(dest => dest.StockQuantity, opt => opt.MapFrom(src => src.Stock))
+                .ForMember(dest => dest.Category, opt => opt.Ignore());
             CreateMap<CreateProductDto, Product>()
                 .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Name))
                 .ForMember(dest => dest.StockQuantity, opt => opt.MapFrom(src => src.Stock))
-                .ForMember(dest => dest.CategoryId, opt => opt.Ignore());
+                .ForMember(dest => dest.CategoryId, opt => opt.Ignore())
+                .ForMember(dest => dest.Category, opt => opt.Ignore());
 
             CreateMap<Order, OrderDto>()
                 .ForMember(dest => dest.SessionId, opt => opt.MapFrom(src => src.TableSessionId))

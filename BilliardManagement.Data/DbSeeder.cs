@@ -139,7 +139,7 @@ namespace BilliardManagement.Data
                     new Category { Id = Guid.NewGuid(), CategoryName = "Nước ngọt", Description = "Các loại nước ngọt đóng lon" },
                     new Category { Id = Guid.NewGuid(), CategoryName = "Cafe", Description = "Cafe pha máy và pha phin" },
                     new Category { Id = Guid.NewGuid(), CategoryName = "Bia", Description = "Bia lon và chai phục vụ khách" },
-                    new Category { Id = Guid.NewGuid(), CategoryName = "Snack", Description = "Đồ ăn vặt, thức ăn nhanh" },
+                    new Category { Id = Guid.NewGuid(), CategoryName = "Đồ ăn vặt", Description = "Đồ ăn vặt, thức ăn nhanh" },
                     new Category { Id = Guid.NewGuid(), CategoryName = "Trà sữa", Description = "Các loại trà sữa và trà hoa quả" }
                 };
                 context.Categories.AddRange(categories);
@@ -149,7 +149,7 @@ namespace BilliardManagement.Data
             var catNuocNgot = context.Categories.First(c => c.CategoryName == "Nước ngọt");
             var catCafe = context.Categories.First(c => c.CategoryName == "Cafe");
             var catBia = context.Categories.First(c => c.CategoryName == "Bia");
-            var catSnack = context.Categories.First(c => c.CategoryName == "Snack");
+            var catSnack = context.Categories.First(c => c.CategoryName == "Đồ ăn vặt");
             var catTraSua = context.Categories.First(c => c.CategoryName == "Trà sữa");
 
             // 4. Seed Products
@@ -196,7 +196,7 @@ namespace BilliardManagement.Data
                 var catNn = context.Categories.First(c => c.CategoryName == "Nước ngọt");
                 var catBi = context.Categories.First(c => c.CategoryName == "Bia");
                 var catTs = context.Categories.First(c => c.CategoryName == "Trà sữa");
-                var catSn = context.Categories.First(c => c.CategoryName == "Snack");
+                var catSn = context.Categories.First(c => c.CategoryName == "Đồ ăn vặt");
                 context.Products.AddRange(
                     new Product { Id = Guid.NewGuid(), CategoryId = catNn.Id, ProductName = "7 Up", Price = 15000, StockQuantity = 80, IsAvailable = true },
                     new Product { Id = Guid.NewGuid(), CategoryId = catBi.Id, ProductName = "Saigon Special", Price = 22000, StockQuantity = 100, IsAvailable = true },

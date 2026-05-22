@@ -15,7 +15,7 @@ namespace BilliardManagement.Business.Services
     public class ProductService : IProductService
     {
         private static readonly string[] AllowedCategories =
-            { "Nước ngọt", "Cafe", "Bia", "Snack", "Trà sữa" };
+            { "Nước ngọt","Đồ ăn nhanh", "Cafe", "Bia", "Đồ ăn vặt", "Trà sữa" };
 
         private static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png" };
 
@@ -46,6 +46,14 @@ namespace BilliardManagement.Business.Services
 
             if (!AllowedCategories.Contains(dto.Category?.Trim() ?? "", StringComparer.OrdinalIgnoreCase))
                 throw new CustomException("Danh mục sản phẩm không hợp lệ", 400);
+
+            var isExists = await _unitOfWork.Repository<Product>()
+                .AnyAsync(x => x.ProductName.Trim().ToLower() == dto.Name.Trim().ToLower() && !x.IsDeleted);
+            if (isExists)
+            {
+                _logger.LogWarning("Duplicate product name creation attempt: {ProductName} by {CreatedBy} at {Time}", dto.Name, createdBy, DateTime.UtcNow);
+                throw new CustomException("Tên sản phẩm đã tồn tại", 400);
+            }
 
             var category = await _unitOfWork.Repository<Category>()
                 .GetFirstOrDefaultAsync(c => c.CategoryName == dto.Category.Trim());
@@ -87,6 +95,14 @@ namespace BilliardManagement.Business.Services
 
             var product = await _unitOfWork.Repository<Product>().GetByIdAsync(id);
             if (product == null) throw new CustomException("Product not found", 404);
+
+            var isExists = await _unitOfWork.Repository<Product>()
+                .AnyAsync(x => x.Id != id && x.ProductName.Trim().ToLower() == dto.Name.Trim().ToLower() && !x.IsDeleted);
+            if (isExists)
+            {
+                _logger.LogWarning("Duplicate product name update attempt: {ProductName} (ID: {ProductId}) by {UpdatedBy} at {Time}", dto.Name, id, updatedBy, DateTime.UtcNow);
+                throw new CustomException("Tên sản phẩm đã tồn tại", 400);
+            }
 
             var category = await _unitOfWork.Repository<Category>()
                 .GetFirstOrDefaultAsync(c => c.CategoryName == dto.Category.Trim());
@@ -136,6 +152,17 @@ namespace BilliardManagement.Business.Services
 
             _logger.LogInformation("Product deleted: productId={ProductId}, softDelete={IsSoftDelete}", id, hasOrders);
             return result > 0;
+        }
+
+        public async Task<bool> CheckDuplicateNameAsync(string name, Guid? excludeId = null)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return false;
+            
+            if (excludeId.HasValue)
+            {
+                return await _unitOfWork.Repository<Product>().AnyAsync(x => x.Id != excludeId.Value && x.ProductName.Trim().ToLower() == name.Trim().ToLower() && !x.IsDeleted);
+            }
+            return await _unitOfWork.Repository<Product>().AnyAsync(x => x.ProductName.Trim().ToLower() == name.Trim().ToLower() && !x.IsDeleted);
         }
     }
 }
