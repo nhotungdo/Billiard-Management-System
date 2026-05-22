@@ -46,12 +46,12 @@ namespace BilliardManagement.API.Controllers
 
         // Xóa 1 nhân viên (id) - trả về số khách hàng đã phục vụ và số mặt hàng đã bán 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _userService.DeleteUserAsync(id);
             return Ok(ApiResponse<UserDeletionResultDto>.Ok(result, "User deleted successfully"));
 
         }
+        
         }
 }
