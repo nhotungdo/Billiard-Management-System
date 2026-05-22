@@ -43,5 +43,10 @@ namespace BilliardManagement.API.Controllers
             var shifts = await _shiftService.GetTodayShiftsAsync();
             return Ok(ApiResponse<IEnumerable<ShiftDto>>.Ok(shifts));
         }
+
+
+     
+
+
     }
 }

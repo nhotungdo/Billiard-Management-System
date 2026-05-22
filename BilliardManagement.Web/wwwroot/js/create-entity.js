@@ -95,8 +95,48 @@
     window.bindCreateProductForm = function (options) {
         const form = document.getElementById(options.formId || 'createProductForm');
         if (!form) return;
+        
+        const nameInput = form.querySelector('[name="name"]');
+        const submitBtn = form.querySelector('[type="submit"]');
+        const nameError = document.getElementById('productNameError');
+
+        if (nameInput) {
+            nameInput.addEventListener('blur', async () => {
+                const name = nameInput.value.trim();
+                if (!name) return;
+                try {
+                    const res = await fetch(API_BASE + 'products/check-name?name=' + encodeURIComponent(name), {
+                        headers: { 'Authorization': 'Bearer ' + API_TOKEN }
+                    });
+                    const json = await res.json();
+                    if (json.isDuplicate) {
+                        nameInput.classList.add('is-invalid');
+                        if (nameError) nameError.classList.remove('d-none');
+                        submitBtn.disabled = true;
+                        window.showAppToast('Tên sản phẩm đã tồn tại', 'error');
+                    } else {
+                        nameInput.classList.remove('is-invalid');
+                        if (nameError) nameError.classList.add('d-none');
+                        submitBtn.disabled = false;
+                    }
+                } catch (e) {
+                    console.warn(e);
+                }
+            });
+
+            nameInput.addEventListener('input', () => {
+                nameInput.classList.remove('is-invalid');
+                if (nameError) nameError.classList.add('d-none');
+                submitBtn.disabled = false;
+            });
+        }
+
         form.addEventListener('submit', async function (e) {
             e.preventDefault();
+            if (nameInput && nameInput.classList.contains('is-invalid')) {
+                window.showAppToast('Vui lòng sửa các lỗi trước khi lưu', 'error');
+                return;
+            }
             const btn = form.querySelector('[type="submit"]');
             const spinner = document.getElementById(options.spinnerId || 'createProductSpinner');
             btn.disabled = true;

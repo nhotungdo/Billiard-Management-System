@@ -17,6 +17,7 @@ namespace BilliardManagement.Business.Interfaces
         Task<IEnumerable<UserDto>> GetAllUsersAsync();
         Task<UserDto> GetUserByIdAsync(Guid id);
         Task<UserDto> UpdateUserRoleAsync(Guid id, UserRole role);
+        Task<UserDeletionResultDto> DeleteUserAsync(Guid id);
     }
 
     public interface ITableService
@@ -44,6 +45,7 @@ namespace BilliardManagement.Business.Interfaces
         Task<ProductDto> CreateProductAsync(CreateProductDto dto, Guid? createdBy = null);
         Task<ProductDto> UpdateProductAsync(Guid id, CreateProductDto dto, Guid? updatedBy = null);
         Task<bool> DeleteProductAsync(Guid id);
+        Task<bool> CheckDuplicateNameAsync(string name, Guid? excludeId = null);
     }
 
     public interface IOrderService

@@ -131,6 +131,12 @@ namespace BilliardManagement.Web.Models
         public bool IsActive { get; set; }
     }
 
+    public class UserDeletionResultDto
+    {
+        public int CustomersServed { get; set; }
+        public int ItemsSold { get; set; }
+    }
+
     public class RevenueDto { public DateTime Date { get; set; } public decimal TotalRevenue { get; set; } }
 
     public class DashboardDto { public decimal TotalRevenue { get; set; } public int ActiveTables { get; set; } public int OrdersToday { get; set; } public string TopCustomer { get; set; } = string.Empty; }

@@ -1,7 +1,8 @@
 @page "{id:guid}"
-@model BilliardManagement.Web.Pages.Admin.Products.EditModel
+@model BilliardManagement.Web.Pages.Staff.Products.EditModel
 @{
-    Layout = "_AdminLayout";
+    Layout = "_StaffLayout";
+    ViewData["BreadcrumbTitle"] = "Chỉnh sửa sản phẩm";
     ViewData["Title"] = "Sửa sản phẩm";
     var apiOrigin = "https://localhost:5001";
 }

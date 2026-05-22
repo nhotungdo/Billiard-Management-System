@@ -24,5 +24,10 @@ namespace BilliardManagement.Web.Services
         {
             return await PutAsync<int, StaffDto>($"users/{id}/role", role);
         }
+
+        public async Task<UserDeletionResultDto?> DeleteStaffAsync(Guid id)
+        {
+            return await DeleteAsync<UserDeletionResultDto>($"users/{id}");
+        }
     }
 }

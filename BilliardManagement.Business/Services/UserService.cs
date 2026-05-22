@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -49,6 +49,38 @@ namespace BilliardManagement.Business.Services
             await _unitOfWork.SaveChangesAsync();
 
             return _mapper.Map<UserDto>(user);
+        }
+
+        // Xóa 1 nhân viên
+        public async Task<UserDeletionResultDto> DeleteUserAsync(Guid id)
+        {
+            var user = await _unitOfWork.Repository<User>().GetByIdAsync(id);
+            if (user == null) throw new CustomException("User not found", 404);
+
+            var sessions = await _unitOfWork.Repository<TableSession>().GetAllAsync(s => s.UserId == id);
+            int customersServed = sessions.Count();
+
+            var orders = await _unitOfWork.Repository<Order>().GetAllAsync(o => o.OrderedBy == id, includeProperties: "OrderItems");
+            int itemsSold = orders.SelectMany(o => o.OrderItems).Sum(oi => oi.Quantity);
+
+            var hasDependencies = sessions.Any() || orders.Any();
+            if (hasDependencies)
+            {
+                user.IsActive = false;
+                _unitOfWork.Repository<User>().Update(user);
+            }
+            else
+            {
+                _unitOfWork.Repository<User>().Remove(user);
+            }
+            
+            await _unitOfWork.SaveChangesAsync();
+
+            return new UserDeletionResultDto
+            {
+                CustomersServed = customersServed,
+                ItemsSold = itemsSold
+            };
         }
     }
 }

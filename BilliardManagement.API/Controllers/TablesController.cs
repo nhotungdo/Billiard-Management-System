@@ -75,6 +75,7 @@ namespace BilliardManagement.API.Controllers
             }
         }
 
+        // Cập nhật trạng thái bàn
         [HttpPut("update-status/{id}")]
         [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateTableStatusRequest request)
@@ -107,7 +108,7 @@ namespace BilliardManagement.API.Controllers
             }
         }
 
-        [HttpPut("{id}")]
+        // Cập nhật thông tin bàn (không bao gồm trạng thái)        [HttpPut("{id}")]
         [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Update(Guid id, [FromBody] CreateTableDto dto)
         {
