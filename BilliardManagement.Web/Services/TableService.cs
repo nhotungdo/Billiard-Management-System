@@ -12,7 +12,18 @@ namespace BilliardManagement.Web.Services
 
         public async Task<List<TableDto>?> GetAllTablesAsync()
         {
-            return await GetAsync<List<TableDto>>("tables");
+            var result = await GetAsync<PagedResult<TableDto>>("tables?pageSize=1000");
+            return result?.Items;
+        }
+
+        public async Task<PagedResult<TableDto>?> GetPagedTablesAsync(int pageNumber, int pageSize, int? status = null, string? tableType = null, string? searchTerm = null, string? sortBy = null, bool isDescending = false)
+        {
+            var url = $"tables?pageNumber={pageNumber}&pageSize={pageSize}";
+            if (status.HasValue) url += $"&status={status.Value}";
+            if (!string.IsNullOrEmpty(tableType)) url += $"&tableType={Uri.EscapeDataString(tableType)}";
+            if (!string.IsNullOrEmpty(searchTerm)) url += $"&searchTerm={Uri.EscapeDataString(searchTerm)}";
+            if (!string.IsNullOrEmpty(sortBy)) url += $"&sortBy={sortBy}&isDescending={isDescending}";
+            return await GetAsync<PagedResult<TableDto>>(url);
         }
 
         public async Task<TableDto?> GetTableByIdAsync(Guid id)
@@ -32,7 +43,7 @@ namespace BilliardManagement.Web.Services
 
         public async Task<TableDto?> UpdateTableStatusAsync(Guid id, string status)
         {
-            return await PutAsync<UpdateTableStatusRequest, TableDto>($"tables/update-status/{id}", new UpdateTableStatusRequest { Status = status });
+            return await PutAsync<UpdateTableStatusRequest, TableDto>($"tables/{id}/status", new UpdateTableStatusRequest { Status = status });
         }
 
         public async Task<bool> DeleteTableAsync(Guid id)

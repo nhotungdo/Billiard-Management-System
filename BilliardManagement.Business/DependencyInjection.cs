@@ -22,8 +22,10 @@ namespace BilliardManagement.Business
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<IBillingService, BillingService>();
+            services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<IReportService, ReportService>();
             services.AddScoped<IShiftService, ShiftService>();
+            services.AddScoped<IRevenueService, RevenueService>();
 
             services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
             services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);

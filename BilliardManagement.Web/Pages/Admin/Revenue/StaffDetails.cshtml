@@ -1,0 +1,376 @@
+@page
+@model BilliardManagement.Web.Pages.Admin.Revenue.StaffDetailsModel
+@{ Layout = null; }
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chi tiết doanh thu nhân viên - Billiard Admin Panel</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="/css/admin.css" asp-append-version="true" />
+    <link rel="stylesheet" href="/BilliardManagement.Web.styles.css" asp-append-version="true" />
+    @{
+        var apiToken = HttpContext.Session.GetString("JWToken");
+    }
+    @if (!string.IsNullOrEmpty(apiToken))
+    {
+        <meta name="api-token" content="@apiToken" />
+        <meta name="api-base-url" content="https://localhost:5001/api/" />
+        <meta name="api-origin" content="https://localhost:5001" />
+        <meta name="hub-base-url" content="https://localhost:5001" />
+    }
+    <style>
+        .page-link {
+            cursor: pointer;
+        }
+        .bg-light-success {
+            background-color: #ecfdf5;
+            color: #065f46;
+        }
+        .bg-light-info {
+            background-color: #e0f2fe;
+            color: #0369a1;
+        }
+    </style>
+</head>
+<body class="admin-body">
+    <div id="admin-wrapper">
+        <partial name="_AdminSidebar" />
+        <div id="admin-content-wrapper">
+            <nav id="admin-topbar">
+                <div class="topbar-left">
+                    <button class="sidebar-toggle-btn" id="sidebarToggle" title="Toggle Sidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="topbar-breadcrumb">
+                        <span class="breadcrumb-label">Báo cáo Nhân viên</span>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <span class="role-badge admin-badge">
+                        <i class="fa-solid fa-shield-halved me-1"></i> Admin
+                    </span>
+                    <div class="dropdown user-dropdown">
+                        <button class="btn user-avatar-btn dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="avatar-circle">
+                                <i class="fa-solid fa-user-tie"></i>
+                            </div>
+                            <span class="user-name d-none d-md-inline">@HttpContext.Session.GetString("FullName")</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end user-menu" aria-labelledby="userDropdown">
+                            <li class="dropdown-header">
+                                <div class="user-info-header">
+                                    <div class="avatar-circle-sm"><i class="fa-solid fa-user-tie"></i></div>
+                                    <div>
+                                        <div class="fw-600">@HttpContext.Session.GetString("FullName")</div>
+                                        <div class="text-muted small">@HttpContext.Session.GetString("Username")</div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <a class="dropdown-item" href="/Auth/Logout">
+                                    <i class="fa-solid fa-right-from-bracket me-2 text-danger"></i>Đăng xuất
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+            <main id="admin-content">
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i>@TempData["ErrorMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                <div class="dashboard-header mb-4">
+                    <div class="mb-2">
+                        <a href="/Admin/Revenue/Index" class="btn btn-sm btn-outline-secondary">
+                            <i class="fa-solid fa-arrow-left me-1"></i> Quay lại Danh sách
+                        </a>
+                    </div>
+                    <h1 class="page-title">
+                        <i class="fa-solid fa-user-tag me-2"></i>Chi tiết doanh thu: @Model.StaffRevenueData.StaffName
+                    </h1>
+                    <p class="page-subtitle">Xem thông tin doanh thu, thời gian chơi, dịch vụ của từng hóa đơn nhân viên này đã xử lý.</p>
+                </div>
+
+                <!-- Filter Panel -->
+                <div class="card-panel mb-4">
+                    <div class="panel-body py-3">
+                        <form method="get" class="row g-3 align-items-center">
+                            <input type="hidden" asp-for="StaffId" />
+                            <div class="col-12 col-md-4">
+                                <label class="form-label small text-muted mb-1">Từ ngày</label>
+                                <input type="date" asp-for="FromDate" asp-format="{0:yyyy-MM-dd}" class="form-control form-control-sm" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label small text-muted mb-1">Đến ngày</label>
+                                <input type="date" asp-for="ToDate" asp-format="{0:yyyy-MM-dd}" class="form-control form-control-sm" />
+                            </div>
+                            <div class="col-12 col-md-4 d-flex align-items-end gap-2" style="margin-top: auto; padding-bottom: 2px;">
+                                <button type="submit" class="btn btn-sm btn-admin-primary flex-grow-1">
+                                    <i class="fa-solid fa-filter"></i> Lọc báo cáo
+                                </button>
+                                <a href="/Admin/Revenue/StaffDetails?staffId=@Model.StaffId" class="btn btn-sm btn-outline-secondary flex-grow-1 text-center py-2">
+                                    Xóa lọc
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="row g-4 mb-4">
+                    <!-- Total Revenue Filtered -->
+                    <div class="col-12 col-md-6">
+                        <div class="kpi-card kpi-revenue h-100">
+                            <div class="kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+                            <div class="kpi-body">
+                                <div class="kpi-label">Tổng doanh thu (Bộ lọc)</div>
+                                <div class="kpi-value text-nowrap">@Model.StaffRevenueData.TotalRevenue.ToString("N0") đ</div>
+                                <div class="kpi-sub"><i class="fa-solid fa-user me-1"></i>Nhân viên: @Model.StaffRevenueData.StaffName</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Invoices Count Filtered -->
+                    <div class="col-12 col-md-6">
+                        <div class="kpi-card kpi-orders h-100">
+                            <div class="kpi-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                            <div class="kpi-body">
+                                <div class="kpi-label">Số Hóa đơn xử lý</div>
+                                <div class="kpi-value text-nowrap">@Model.StaffRevenueData.InvoicesCount HĐ</div>
+                                <div class="kpi-sub"><i class="fa-solid fa-circle-check text-success me-1"></i>Hóa đơn đã hoàn thành</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Invoices Log Table -->
+                <div class="card-panel">
+                    <div class="panel-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div>
+                            <h5 class="panel-title"><i class="fa-solid fa-list-check me-2"></i>Danh sách Hóa đơn xử lý</h5>
+                            <p class="panel-sub">Chi tiết tất cả hóa đơn đã được xử lý bởi nhân viên này.</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <input type="text" id="invoiceSearchInput" class="form-control form-control-sm" placeholder="Tìm bàn, mã HĐ..." style="max-width: 220px;" />
+                            <button onclick="exportInvoicesToExcel()" class="btn btn-sm btn-success text-white d-flex align-items-center gap-1">
+                                <i class="fa-solid fa-file-excel"></i> Xuất Excel
+                            </button>
+                        </div>
+                    </div>
+                    <div class="panel-body p-0">
+                        <div class="table-responsive">
+                            <table class="data-table" id="invoicesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Mã HĐ</th>
+                                        <th>Bàn</th>
+                                        <th>Thời gian chơi</th>
+                                        <th class="text-end">Tiền giờ</th>
+                                        <th class="text-end">Dịch vụ</th>
+                                        <th class="text-end">Giảm giá</th>
+                                        <th class="text-end">Thành tiền</th>
+                                        <th>Thanh toán</th>
+                                        <th>Thời điểm</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between p-3 border-top flex-wrap gap-2">
+                            <div class="text-muted small" id="tableInfo"></div>
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0" id="tablePagination"></ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </main>
+            <footer class="admin-footer">
+                <div class="text-muted small">&copy; 2026 Billiard Management System &mdash; Admin Panel</div>
+            </footer>
+        </div>
+    </div>
+
+    <div id="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner-ring"></div>
+            <p class="mt-3 text-white">Đang tải...</p>
+        </div>
+    </div>
+
+    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/admin.js" asp-append-version="true"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+
+    <script>
+        // Data passed from Razor PageModel
+        const rawInvoices = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.StaffRevenueData.Revenues.OrderByDescending(x => x.PaidAt)));
+
+        // Helper to format play time minutes
+        function formatDuration(minutes) {
+            if (minutes <= 0) return '0 phút';
+            const hrs = Math.floor(minutes / 60);
+            const mins = Math.round(minutes % 60);
+            let res = '';
+            if (hrs > 0) res += `${hrs}g `;
+            if (mins > 0 || hrs === 0) res += `${mins}ph`;
+            return res.trim();
+        }
+
+        // Pagination & Search variables
+        let currentPage = 1;
+        const pageSize = 10;
+        let filteredInvoices = [...rawInvoices];
+
+        function renderTable() {
+            const tbody = document.querySelector('#invoicesTable tbody');
+            tbody.innerHTML = '';
+            
+            if (filteredInvoices.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted"><i class="fa-solid fa-inbox fa-2x mb-2 d-block"></i>Không tìm thấy hóa đơn</td></tr>`;
+                document.getElementById('tableInfo').textContent = 'Hiển thị 0 - 0 của 0 hóa đơn';
+                document.getElementById('tablePagination').innerHTML = '';
+                return;
+            }
+            
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, filteredInvoices.length);
+            const paginatedItems = filteredInvoices.slice(startIndex, endIndex);
+            
+            paginatedItems.forEach(item => {
+                const row = document.createElement('tr');
+                
+                const startTimeStr = new Date(item.StartTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                const endTimeStr = item.EndTime ? new Date(item.EndTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Chưa xong';
+                const playTimeDesc = `${startTimeStr} - ${endTimeStr} (${formatDuration(item.PlayTimeMinutes)})`;
+                
+                row.innerHTML = `
+                    <td><small class="text-muted" title="${item.InvoiceId}">${item.InvoiceId.substring(0, 8)}</small></td>
+                    <td class="fw-bold text-dark"><i class="fa-solid fa-table-cells text-muted me-1"></i>${item.TableName}</td>
+                    <td class="small text-muted">${playTimeDesc}</td>
+                    <td class="text-end">${item.PlayingFee.toLocaleString('vi-VN')} đ</td>
+                    <td class="text-end">${item.ServiceFee.toLocaleString('vi-VN')} đ</td>
+                    <td class="text-end text-danger">-${item.Discount.toLocaleString('vi-VN')} đ</td>
+                    <td class="text-end text-success fw-bold">${item.TotalAmount.toLocaleString('vi-VN')} đ</td>
+                    <td>
+                        <span class="badge ${item.PaymentMethod === 'Cash' ? 'bg-light-success' : 'bg-light-info'}">
+                            ${item.PaymentMethod}
+                        </span>
+                    </td>
+                    <td class="small text-muted">${new Date(item.PaidAt).toLocaleString('vi-VN')}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Update Table Info
+            document.getElementById('tableInfo').textContent = `Hiển thị ${startIndex + 1} - ${endIndex} của ${filteredInvoices.length} hóa đơn`;
+            
+            // Update Table Pagination
+            const totalPages = Math.ceil(filteredInvoices.length / pageSize);
+            const pagination = document.getElementById('tablePagination');
+            pagination.innerHTML = '';
+            
+            // Prev button
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<button class="page-link" onclick="changePage(${currentPage - 1})">&laquo;</button>`;
+            pagination.appendChild(prevLi);
+            
+            // Pages
+            for (let i = 1; i <= totalPages; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${currentPage === i ? 'active' : ''}`;
+                li.innerHTML = `<button class="page-link" onclick="changePage(${i})">${i}</button>`;
+                pagination.appendChild(li);
+            }
+            
+            // Next button
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<button class="page-link" onclick="changePage(${currentPage + 1})">&raquo;</button>`;
+            pagination.appendChild(nextLi);
+        }
+
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredInvoices.length / pageSize);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderTable();
+        }
+
+        // Live search
+        document.getElementById('invoiceSearchInput').addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase().trim();
+            filteredInvoices = rawInvoices.filter(item => 
+                item.TableName.toLowerCase().includes(query) || 
+                item.InvoiceId.toLowerCase().includes(query)
+            );
+            currentPage = 1;
+            renderTable();
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderTable();
+
+            // SignalR Connection
+            const hubBase = document.querySelector('meta[name="hub-base-url"]')?.content || 'https://localhost:5001';
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl(hubBase + "/hubs/notification")
+                .withAutomaticReconnect()
+                .build();
+
+            connection.on("ReceiveInvoiceNotification", function () {
+                // Show loading overlay and reload page to refresh data
+                const overlay = document.getElementById('loading-overlay');
+                if (overlay) overlay.style.display = 'flex';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            });
+
+            connection.start().catch(function (err) {
+                console.warn("SignalR Connection failed: ", err);
+            });
+        });
+
+        // Export to Excel (CSV format)
+        function exportInvoicesToExcel() {
+            let csv = '\uFEFF'; // UTF-8 BOM
+            csv += `BÁO CÁO DOANH THU NHÂN VIÊN: ${'@Model.StaffRevenueData.StaffName'.toUpperCase()}\n`;
+            csv += `Thời gian lọc: ${'@(Model.FromDate?.ToString("dd/MM/yyyy") ?? "Tất cả")'} đến ${'@(Model.ToDate?.ToString("dd/MM/yyyy") ?? "Tất cả")'}\n\n`;
+            csv += 'Mã hóa đơn,Tên bàn,Thời gian bắt đầu,Thời gian kết thúc,Thời gian chơi (phút),Tiền giờ (đ),Tiền dịch vụ (đ),Giảm giá (đ),Thành tiền (đ),Thời điểm thanh toán,Hình thức\n';
+            
+            rawInvoices.forEach(inv => {
+                csv += `"${inv.InvoiceId}","${inv.TableName}","${new Date(inv.StartTime).toLocaleString('vi-VN')}","${inv.EndTime ? new Date(inv.EndTime).toLocaleString('vi-VN') : ''}","${Math.round(inv.PlayTimeMinutes)}","${inv.PlayingFee}","${inv.ServiceFee}","${inv.Discount}","${inv.TotalAmount}","${new Date(inv.PaidAt).toLocaleString('vi-VN')}","${inv.PaymentMethod}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', `doanh_thu_nhan_vien_${'@Model.StaffRevenueData.StaffName'}_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>

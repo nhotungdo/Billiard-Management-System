@@ -15,6 +15,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using BilliardManagement.Common.Responses;
 
 namespace BilliardManagement.Business.Services
 {
@@ -115,7 +116,7 @@ namespace BilliardManagement.Business.Services
 
             var table = _mapper.Map<BilliardTable>(dto);
             table.TableName = dto.TableName.Trim();
-            table.TableType = dto.TableType.Trim();
+            table.TableType = dto.TableType?.Trim() ?? string.Empty;
             table.Status = status;
             table.Description = dto.Description?.Trim();
 
@@ -204,7 +205,7 @@ namespace BilliardManagement.Business.Services
             }
 
             table.TableName = dto.TableName.Trim();
-            table.TableType = dto.TableType.Trim();
+            table.TableType = dto.TableType?.Trim() ?? string.Empty;
             table.HourlyRate = dto.PricePerHour;
             table.Description = dto.Description?.Trim();
 
@@ -238,6 +239,53 @@ namespace BilliardManagement.Business.Services
 
             _logger.LogInformation("Table deleted: tableId={TableId}", id);
             return result > 0;
+        }
+
+        public async Task<PagedResult<TableDto>> GetPagedTablesAsync(TableQueryParameters query)
+        {
+            var filters = new List<System.Linq.Expressions.Expression<System.Func<BilliardTable, bool>>>();
+
+            if (query.Status.HasValue)
+            {
+                var statusEnum = (TableStatus)query.Status.Value;
+                filters.Add(t => t.Status == statusEnum);
+            }
+            if (!string.IsNullOrEmpty(query.TableType))
+            {
+                filters.Add(t => t.TableType.ToLower().Contains(query.TableType.ToLower()));
+            }
+            if (!string.IsNullOrEmpty(query.SearchTerm))
+            {
+                filters.Add(t => t.TableName.ToLower().Contains(query.SearchTerm.ToLower()));
+            }
+
+            Func<IQueryable<BilliardTable>, IOrderedQueryable<BilliardTable>>? orderBy = null;
+            if (!string.IsNullOrEmpty(query.SortBy))
+            {
+                if (query.SortBy.Equals("PricePerHour", StringComparison.OrdinalIgnoreCase))
+                {
+                    orderBy = q => query.IsDescending ? q.OrderByDescending(t => t.HourlyRate) : q.OrderBy(t => t.HourlyRate);
+                }
+                else if (query.SortBy.Equals("TableName", StringComparison.OrdinalIgnoreCase))
+                {
+                    orderBy = q => query.IsDescending ? q.OrderByDescending(t => t.TableName) : q.OrderBy(t => t.TableName);
+                }
+            }
+            else
+            {
+                orderBy = q => q.OrderBy(t => t.TableName);
+            }
+
+            var (items, totalCount) = await _unitOfWork.Repository<BilliardTable>().GetPagedAsync(
+                filters: filters,
+                orderBy: orderBy,
+                includeProperties: null,
+                page: query.PageNumber,
+                pageSize: query.PageSize
+            );
+
+            var mappedItems = _mapper.Map<IEnumerable<TableDto>>(items);
+            return new PagedResult<TableDto>(mappedItems, query.PageNumber, query.PageSize, totalCount);
         }
     }
 }

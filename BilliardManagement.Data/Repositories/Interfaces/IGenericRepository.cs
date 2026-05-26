@@ -6,6 +6,12 @@ namespace BilliardManagement.Data.Repositories.Interfaces
     {
         Task<bool> AnyAsync(Expression<Func<T, bool>> filter);
         Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>>? filter = null, string? includeProperties = null);
+        Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
+            System.Collections.Generic.IEnumerable<Expression<Func<T, bool>>>? filters = null,
+            Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
+            string? includeProperties = null,
+            int? page = null,
+            int? pageSize = null);
         Task<T?> GetFirstOrDefaultAsync(Expression<Func<T, bool>> filter, string? includeProperties = null);
         Task<T?> GetByIdAsync(object id);
         Task AddAsync(T entity);

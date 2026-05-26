@@ -20,5 +20,20 @@ namespace BilliardManagement.Web.Services
         {
             return await PostAsync<RegisterRequest, LoginResponse>("auth/register", request);
         }
+
+        public async Task<StaffDto?> GetProfileAsync()
+        {
+            return await GetAsync<StaffDto>("users/profile");
+        }
+
+        public async Task<StaffDto?> UpdateProfileAsync(MultipartFormDataContent content)
+        {
+            return await PutMultipartAsync<StaffDto>("users/profile", content);
+        }
+
+        public async Task<bool> ChangePasswordAsync(ChangePasswordRequest request)
+        {
+            return await PutAsync<ChangePasswordRequest>("users/change-password", request);
+        }
     }
 }

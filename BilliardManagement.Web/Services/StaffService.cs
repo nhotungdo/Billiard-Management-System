@@ -29,5 +29,10 @@ namespace BilliardManagement.Web.Services
         {
             return await DeleteAsync<UserDeletionResultDto>($"users/{id}");
         }
+
+        public async Task<List<ShiftDto>?> GetTodayShiftsAsync()
+        {
+            return await GetAsync<List<ShiftDto>>("shifts/today");
+        }
     }
 }

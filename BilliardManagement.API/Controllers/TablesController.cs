@@ -22,15 +22,15 @@ namespace BilliardManagement.API.Controllers
             _tableService = tableService;
             _hubContext = hubContext;
         }
-        // l?y danh s�ch b�n
+        // lấy danh sách bàn hoặc phân trang/tìm kiếm
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] TableQueryParameters query)
         {
-            var tables = await _tableService.GetAllTablesAsync();
-            return Ok(ApiResponse<IEnumerable<TableDto>>.Ok(tables));
+            var pagedResult = await _tableService.GetPagedTablesAsync(query);
+            return Ok(ApiResponse<PagedResult<TableDto>>.Ok(pagedResult));
         }
 
-        // L?y th�ng tin chi ti?t c?a m?t b�n theo ID
+        // L?y thng tin chi ti?t c?a m?t bn theo ID
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -48,10 +48,14 @@ namespace BilliardManagement.API.Controllers
             return Ok(ApiResponse<TableDto>.Ok(table, "tạo bàn thành công"));
         }
 
-        // C?p nh?t thng tin bn (ch? dnh cho Admin)
+        // Cập nhật trạng thái bàn (chỉ dành cho Admin, Staff)
         [HttpPut("{id}/status")]
-        public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] TableStatus status)
+        public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateTableStatusRequest request)
         {
+            if (!Enum.TryParse<TableStatus>(request.Status, true, out var status))
+            {
+                return BadRequest(ApiResponse<object>.Fail("Trạng thái bàn không hợp lệ"));
+            }
             var table = await _tableService.UpdateTableStatusAsync(id, status);
             await _hubContext.Clients.All.SendAsync("ReceiveTableUpdate", $"Table {table.TableName} status updated to {status}.");
             return Ok(ApiResponse<TableDto>.Ok(table, "cập nhật trạng thái bàn thành công"));

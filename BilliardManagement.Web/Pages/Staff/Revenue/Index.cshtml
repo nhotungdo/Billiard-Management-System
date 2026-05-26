@@ -1,0 +1,454 @@
+@page
+@model BilliardManagement.Web.Pages.Staff.Revenue.IndexModel
+@{ Layout = null; }
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Doanh thu cá nhân - Billiard Staff Portal</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="/css/staff.css" asp-append-version="true" />
+    <link rel="stylesheet" href="/BilliardManagement.Web.styles.css" asp-append-version="true" />
+    @{
+        var apiToken = HttpContext.Session.GetString("JWToken");
+    }
+    @if (!string.IsNullOrEmpty(apiToken))
+    {
+        <meta name="api-token" content="@apiToken" />
+        <meta name="api-base-url" content="https://localhost:5001/api/" />
+        <meta name="api-origin" content="https://localhost:5001" />
+        <meta name="hub-base-url" content="https://localhost:5001" />
+    }
+    <style>
+        .page-link {
+            cursor: pointer;
+        }
+        .bg-light-success {
+            background-color: #ecfdf5;
+            color: #065f46;
+        }
+        .bg-light-info {
+            background-color: #e0f2fe;
+            color: #0369a1;
+        }
+        .bg-light-warning {
+            background-color: #fef3c7;
+            color: #b45309;
+        }
+    </style>
+</head>
+<body class="staff-body">
+    <div id="staff-wrapper">
+        <partial name="_StaffSidebar" />
+        <div id="staff-content-wrapper">
+            <nav id="staff-topbar">
+                <div class="topbar-left">
+                    <button class="sidebar-toggle-btn" id="sidebarToggle" title="Toggle Sidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="topbar-breadcrumb">
+                        <span class="breadcrumb-label">Báo cáo Doanh thu cá nhân</span>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <div class="realtime-clock" id="realtimeClock">
+                        <i class="fa-regular fa-clock me-1"></i>
+                        <span id="clockDisplay">--:--:--</span>
+                    </div>
+                    <span class="role-badge staff-badge">
+                        <i class="fa-solid fa-id-badge me-1"></i> Nhân viên
+                    </span>
+                    <div class="dropdown user-dropdown">
+                        <button class="btn user-avatar-btn dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="avatar-circle staff-avatar">
+                                <i class="fa-solid fa-user"></i>
+                            </div>
+                            <span class="user-name d-none d-md-inline">@HttpContext.Session.GetString("FullName")</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end user-menu" aria-labelledby="userDropdown">
+                            <li class="dropdown-header">
+                                <div class="user-info-header">
+                                    <div class="avatar-circle-sm staff-avatar"><i class="fa-solid fa-user"></i></div>
+                                    <div>
+                                        <div class="fw-600">@HttpContext.Session.GetString("FullName")</div>
+                                        <div class="text-muted small">@HttpContext.Session.GetString("Username")</div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <a class="dropdown-item" href="/Auth/Logout">
+                                    <i class="fa-solid fa-right-from-bracket me-2 text-danger"></i>Đăng xuất
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+            <main id="staff-content">
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i>@TempData["ErrorMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                <div class="dashboard-header mb-4">
+                    <h1 class="page-title">
+                        <i class="fa-solid fa-receipt me-2"></i>Doanh thu & Hóa đơn của tôi
+                    </h1>
+                    <p class="page-subtitle">Xem chi tiết doanh số bán hàng và hóa đơn bạn đã xử lý.</p>
+                </div>
+
+                <!-- Filter Panel -->
+                <div class="card-panel mb-4">
+                    <div class="panel-body py-3">
+                        <form method="get" class="row g-3 align-items-center">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label small text-muted mb-1">Từ ngày</label>
+                                <input type="date" asp-for="FromDate" asp-format="{0:yyyy-MM-dd}" class="form-control form-control-sm" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label small text-muted mb-1">Đến ngày</label>
+                                <input type="date" asp-for="ToDate" asp-format="{0:yyyy-MM-dd}" class="form-control form-control-sm" />
+                            </div>
+                            <div class="col-12 col-md-4 d-flex align-items-end gap-2" style="margin-top: auto; padding-bottom: 2px;">
+                                <button type="submit" class="btn btn-sm btn-primary flex-grow-1">
+                                    <i class="fa-solid fa-filter"></i> Lọc báo cáo
+                                </button>
+                                <a href="/Staff/Revenue/Index" class="btn btn-sm btn-outline-secondary flex-grow-1 text-center py-2">
+                                    Xóa lọc
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="row g-4 mb-4">
+                    <!-- My Today Revenue -->
+                    <div class="col-12 col-md-4">
+                        <div class="kpi-card kpi-staff-revenue h-100">
+                            <div class="kpi-icon"><i class="fa-solid fa-calendar-day"></i></div>
+                            <div class="kpi-body">
+                                <div class="kpi-label">Doanh thu Hôm nay của tôi</div>
+                                <div class="kpi-value text-nowrap">@Model.RevenueData.TodayRevenue.ToString("N0") đ</div>
+                                <div class="kpi-sub"><i class="fa-solid fa-clock me-1"></i>Hôm nay</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- My Month Revenue -->
+                    <div class="col-12 col-md-4">
+                        <div class="kpi-card kpi-staff-sessions h-100">
+                            <div class="kpi-icon"><i class="fa-solid fa-calendar-days"></i></div>
+                            <div class="kpi-body">
+                                <div class="kpi-label">Doanh thu Tháng này của tôi</div>
+                                <div class="kpi-value text-nowrap">@Model.RevenueData.MonthRevenue.ToString("N0") đ</div>
+                                <div class="kpi-sub"><i class="fa-solid fa-calendar me-1"></i>Tháng @DateTime.Today.ToString("MM/yyyy")</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- My Total Revenue (Filtered) -->
+                    <div class="col-12 col-md-4">
+                        <div class="kpi-card kpi-staff-tables h-100">
+                            <div class="kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+                            <div class="kpi-body">
+                                <div class="kpi-label">Doanh thu theo bộ lọc</div>
+                                <div class="kpi-value text-nowrap">@Model.RevenueData.TotalRevenue.ToString("N0") đ</div>
+                                <div class="kpi-sub"><i class="fa-solid fa-file-invoice-dollar me-1"></i>Đã xử lý: <strong>@Model.RevenueData.InvoicesCount</strong> hóa đơn</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart Row -->
+                <div class="card-panel mb-4">
+                    <div class="panel-header">
+                        <h5 class="panel-title"><i class="fa-solid fa-chart-column me-2"></i>Doanh thu 7 ngày gần đây</h5>
+                        <p class="panel-sub">Biểu đồ doanh số cột hiển thị kết quả kinh doanh 7 ngày qua</p>
+                    </div>
+                    <div class="panel-body" style="position: relative; height: 300px;">
+                        <canvas id="personal7DaysChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Invoices Log Table -->
+                <div class="card-panel">
+                    <div class="panel-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div>
+                            <h5 class="panel-title"><i class="fa-solid fa-file-lines me-2"></i>Nhật ký Hóa đơn xử lý</h5>
+                            <p class="panel-sub">Xem danh sách đầy đủ các hóa đơn bạn đã tạo và thanh toán</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <input type="text" id="invoiceSearchInput" class="form-control form-control-sm" placeholder="Tìm bàn, mã HĐ..." style="max-width: 220px;" />
+                            <button onclick="exportInvoicesToExcel()" class="btn btn-sm btn-success text-white d-flex align-items-center gap-1">
+                                <i class="fa-solid fa-file-excel"></i> Xuất Excel
+                            </button>
+                        </div>
+                    </div>
+                    <div class="panel-body p-0">
+                        <div class="table-responsive">
+                            <table class="data-table" id="invoicesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Mã HĐ</th>
+                                        <th>Bàn</th>
+                                        <th>Thời gian chơi</th>
+                                        <th class="text-end">Tiền giờ</th>
+                                        <th class="text-end">Dịch vụ</th>
+                                        <th class="text-end">Giảm giá</th>
+                                        <th class="text-end">Thành tiền</th>
+                                        <th>Thanh toán</th>
+                                        <th>Thời điểm</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between p-3 border-top flex-wrap gap-2">
+                            <div class="text-muted small" id="tableInfo"></div>
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0" id="tablePagination"></ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </main>
+            <footer class="staff-footer">
+                <div class="text-muted small">&copy; 2026 Billiard Management System &mdash; Staff Portal</div>
+            </footer>
+        </div>
+    </div>
+
+    <div id="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner-ring"></div>
+            <p class="mt-3 text-white">Đang tải...</p>
+        </div>
+    </div>
+
+    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/staff.js" asp-append-version="true"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+
+    <script>
+        // Data passed from Razor PageModel
+        const rawInvoices = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RevenueData.Revenues.OrderByDescending(x => x.PaidAt)));
+
+        // Helper to format play time minutes
+        function formatDuration(minutes) {
+            if (minutes <= 0) return '0 phút';
+            const hrs = Math.floor(minutes / 60);
+            const mins = Math.round(minutes % 60);
+            let res = '';
+            if (hrs > 0) res += `${hrs}g `;
+            if (mins > 0 || hrs === 0) res += `${mins}ph`;
+            return res.trim();
+        }
+
+        // 1. Pagination & Search Variables
+        let currentPage = 1;
+        const pageSize = 10;
+        let filteredInvoices = [...rawInvoices];
+
+        function renderTable() {
+            const tbody = document.querySelector('#invoicesTable tbody');
+            tbody.innerHTML = '';
+            
+            if (filteredInvoices.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted"><i class="fa-solid fa-inbox fa-2x mb-2 d-block"></i>Không tìm thấy hóa đơn</td></tr>`;
+                document.getElementById('tableInfo').textContent = 'Hiển thị 0 - 0 của 0 hóa đơn';
+                document.getElementById('tablePagination').innerHTML = '';
+                return;
+            }
+            
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, filteredInvoices.length);
+            const paginatedItems = filteredInvoices.slice(startIndex, endIndex);
+            
+            paginatedItems.forEach(item => {
+                const row = document.createElement('tr');
+                
+                const startTimeStr = new Date(item.StartTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                const endTimeStr = item.EndTime ? new Date(item.EndTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Chưa xong';
+                const playTimeDesc = `${startTimeStr} - ${endTimeStr} (${formatDuration(item.PlayTimeMinutes)})`;
+                
+                row.innerHTML = `
+                    <td><small class="text-muted" title="${item.InvoiceId}">${item.InvoiceId.substring(0, 8)}</small></td>
+                    <td class="fw-bold text-dark"><i class="fa-solid fa-table-cells text-muted me-1"></i>${item.TableName}</td>
+                    <td class="small text-muted">${playTimeDesc}</td>
+                    <td class="text-end">${item.PlayingFee.toLocaleString('vi-VN')} đ</td>
+                    <td class="text-end">${item.ServiceFee.toLocaleString('vi-VN')} đ</td>
+                    <td class="text-end text-danger">-${item.Discount.toLocaleString('vi-VN')} đ</td>
+                    <td class="text-end text-success fw-bold">${item.TotalAmount.toLocaleString('vi-VN')} đ</td>
+                    <td>
+                        <span class="badge ${item.PaymentMethod === 'Cash' ? 'bg-light-success' : 'bg-light-info'}">
+                            ${item.PaymentMethod}
+                        </span>
+                    </td>
+                    <td class="small text-muted">${new Date(item.PaidAt).toLocaleString('vi-VN')}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Update Table Info
+            document.getElementById('tableInfo').textContent = `Hiển thị ${startIndex + 1} - ${endIndex} của ${filteredInvoices.length} hóa đơn`;
+            
+            // Update Table Pagination
+            const totalPages = Math.ceil(filteredInvoices.length / pageSize);
+            const pagination = document.getElementById('tablePagination');
+            pagination.innerHTML = '';
+            
+            // Prev
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<button class="page-link" onclick="changePage(${currentPage - 1})">&laquo;</button>`;
+            pagination.appendChild(prevLi);
+            
+            // Pages
+            for (let i = 1; i <= totalPages; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${currentPage === i ? 'active' : ''}`;
+                li.innerHTML = `<button class="page-link" onclick="changePage(${i})">${i}</button>`;
+                pagination.appendChild(li);
+            }
+            
+            // Next
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<button class="page-link" onclick="changePage(${currentPage + 1})">&raquo;</button>`;
+            pagination.appendChild(nextLi);
+        }
+
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredInvoices.length / pageSize);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderTable();
+        }
+
+        // Live search matching table name or truncated invoice id
+        document.getElementById('invoiceSearchInput').addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase().trim();
+            filteredInvoices = rawInvoices.filter(item => 
+                item.TableName.toLowerCase().includes(query) || 
+                item.InvoiceId.toLowerCase().includes(query)
+            );
+            currentPage = 1;
+            renderTable();
+        });
+
+        // 2. Personal last 7 days chart
+        document.addEventListener('DOMContentLoaded', function() {
+            renderTable();
+
+            // Calculate rolling 7 days based on the filter dates or today
+            const filterToDate = '@(Model.ToDate?.ToString("yyyy-MM-dd"))';
+            const endDate = filterToDate ? new Date(filterToDate) : new Date();
+            
+            const last7Days = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(endDate);
+                d.setDate(endDate.getDate() - i);
+                last7Days.push(d);
+            }
+
+            const chartLabels = last7Days.map(d => d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }));
+            const chartData = last7Days.map(d => {
+                const dateStr = d.toDateString();
+                // Sum all matching invoices on this calendar day
+                return rawInvoices.reduce((sum, inv) => {
+                    const invDate = new Date(inv.PaidAt);
+                    if (invDate.toDateString() === dateStr) {
+                        return sum + inv.TotalAmount;
+                    }
+                    return sum;
+                }, 0);
+            });
+
+            const ctx = document.getElementById('personal7DaysChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Doanh thu cá nhân (đ)',
+                        data: chartData,
+                        backgroundColor: 'rgba(20, 185, 129, 0.75)', // Success/emerald green
+                        borderColor: '#10b981',
+                        borderWidth: 1.5,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // SignalR Connection
+            const hubBase = document.querySelector('meta[name="hub-base-url"]')?.content || 'https://localhost:5001';
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl(hubBase + "/hubs/notification")
+                .withAutomaticReconnect()
+                .build();
+
+            connection.on("ReceiveInvoiceNotification", function () {
+                // Show loading overlay and reload page to refresh data
+                const overlay = document.getElementById('loading-overlay');
+                if (overlay) overlay.style.display = 'flex';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            });
+
+            connection.start().catch(function (err) {
+                console.warn("SignalR Connection failed: ", err);
+            });
+        });
+
+        // 3. Export to Excel (CSV format)
+        function exportInvoicesToExcel() {
+            let csv = '\uFEFF'; // UTF-8 BOM
+            csv += 'BÁO CÁO DOANH THU CÁ NHÂN\n';
+            csv += `Nhân viên: ${'@(Model.RevenueData.StaffName)'}\n`;
+            csv += `Thời gian lọc: ${'@(Model.FromDate?.ToString("dd/MM/yyyy") ?? "Tất cả")'} đến ${'@(Model.ToDate?.ToString("dd/MM/yyyy") ?? "Tất cả")'}\n\n`;
+            csv += 'Mã hóa đơn,Tên bàn,Thời gian bắt đầu,Thời gian kết thúc,Thời gian chơi (phút),Tiền giờ (đ),Tiền dịch vụ (đ),Giảm giá (đ),Thành tiền (đ),Thời điểm thanh toán,Hình thức\n';
+            
+            rawInvoices.forEach(inv => {
+                csv += `"${inv.InvoiceId}","${inv.TableName}","${new Date(inv.StartTime).toLocaleString('vi-VN')}","${inv.EndTime ? new Date(inv.EndTime).toLocaleString('vi-VN') : ''}","${Math.round(inv.PlayTimeMinutes)}","${inv.PlayingFee}","${inv.ServiceFee}","${inv.Discount}","${inv.TotalAmount}","${new Date(inv.PaidAt).toLocaleString('vi-VN')}","${inv.PaymentMethod}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', `bao_cao_doanh_thu_ca_nhan_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>

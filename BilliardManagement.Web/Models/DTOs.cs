@@ -14,6 +14,8 @@ namespace BilliardManagement.Web.Models
         [JsonConverter(typeof(RoleJsonConverter))]
         public int Role { get; set; }
         public bool IsActive { get; set; }
+        public string? Email { get; set; }
+        public string? ProfilePictureUrl { get; set; }
     }
     public class LoginRequest { public string Username { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; }
     public class RegisterRequest { public string FullName { get; set; } = string.Empty; public string Username { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; public string? PhoneNumber { get; set; } }
@@ -90,6 +92,7 @@ namespace BilliardManagement.Web.Models
         public string Name { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public string Category { get; set; } = string.Empty;
+        public Guid CategoryId { get; set; }
         public int Stock { get; set; }
         public string? ImageUrl { get; set; }
         public string? Description { get; set; }
@@ -100,7 +103,7 @@ namespace BilliardManagement.Web.Models
     {
         public string Name { get; set; } = string.Empty;
         public decimal Price { get; set; }
-        public string Category { get; set; } = string.Empty;
+        public Guid CategoryId { get; set; }
         public int Stock { get; set; }
         public string? ImageUrl { get; set; }
         public string? Description { get; set; }
@@ -117,7 +120,22 @@ namespace BilliardManagement.Web.Models
     }
     public class CreateOrderItemDto { public Guid ProductId { get; set; } public int Quantity { get; set; } }
 
-    public class InvoiceDto { public Guid Id { get; set; } public Guid SessionId { get; set; } public decimal Subtotal { get; set; } public decimal Discount { get; set; } public decimal Total { get; set; } public int PaymentMethod { get; set; } public bool IsPaid { get; set; } }
+    public class InvoiceDto
+    {
+        public Guid Id { get; set; }
+        public Guid SessionId { get; set; }
+        public decimal Subtotal { get; set; }
+        public decimal Discount { get; set; }
+        public decimal Total { get; set; }
+        public int PaymentMethod { get; set; }
+        public bool IsPaid { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string TableName { get; set; } = string.Empty;
+        public string TableType { get; set; } = string.Empty;
+        public string StaffName { get; set; } = string.Empty;
+        public decimal PlayingFee { get; set; }
+        public decimal ServiceFee { get; set; }
+    }
     public class CreateInvoiceDto { public decimal Discount { get; set; } public int PaymentMethod { get; set; } }
 
     public class StaffDto
@@ -129,6 +147,15 @@ namespace BilliardManagement.Web.Models
         [JsonConverter(typeof(RoleJsonConverter))]
         public int Role { get; set; }
         public bool IsActive { get; set; }
+        public string? Email { get; set; }
+        public string? ProfilePictureUrl { get; set; }
+    }
+
+    public class ChangePasswordRequest
+    {
+        public string CurrentPassword { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
+        public string ConfirmNewPassword { get; set; } = string.Empty;
     }
 
     public class UserDeletionResultDto
@@ -139,5 +166,99 @@ namespace BilliardManagement.Web.Models
 
     public class RevenueDto { public DateTime Date { get; set; } public decimal TotalRevenue { get; set; } }
 
-    public class DashboardDto { public decimal TotalRevenue { get; set; } public int ActiveTables { get; set; } public int OrdersToday { get; set; } public string TopCustomer { get; set; } = string.Empty; }
+    public class DashboardDto
+    {
+        public decimal TotalRevenue { get; set; }
+        public int ActiveTables { get; set; }
+        public int OrdersToday { get; set; }
+        public string TopCustomer { get; set; } = string.Empty;
+
+        [JsonPropertyName("todayRevenue")]
+        public decimal TodayRevenue { get => TotalRevenue; set => TotalRevenue = value; }
+
+        [JsonPropertyName("totalOrdersToday")]
+        public int TotalOrdersToday { get => OrdersToday; set => OrdersToday = value; }
+    }
+
+    public class ShiftDto
+    {
+        public Guid Id { get; set; }
+        public Guid UserId { get; set; }
+        public DateTime CheckIn { get; set; }
+        public DateTime? CheckOut { get; set; }
+        public decimal Revenue { get; set; }
+    }
+
+    public class CategoryDto
+    {
+        public Guid Id { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    public class CreateCategoryDto
+    {
+        public string CategoryName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+    }
+
+    public class PagedResult<T>
+    {
+        public List<T> Items { get; set; } = new();
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public int TotalCount { get; set; }
+        public int TotalPages { get; set; }
+    }
+
+    public class DailyRevenueDto { public DateTime Date { get; set; } public decimal TotalRevenue { get; set; } }
+
+    public class RevenueDetailDto
+    {
+        public Guid InvoiceId { get; set; }
+        public string TableName { get; set; } = string.Empty;
+        public DateTime PaidAt { get; set; }
+        public decimal Subtotal { get; set; }
+        public decimal Discount { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string PaymentMethod { get; set; } = string.Empty;
+        public DateTime StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public double PlayTimeMinutes { get; set; }
+        public decimal PlayingFee { get; set; }
+        public decimal ServiceFee { get; set; }
+    }
+
+    public class PersonalRevenueDto
+    {
+        public Guid StaffId { get; set; }
+        public string StaffName { get; set; } = string.Empty;
+        public decimal TotalRevenue { get; set; }
+        public int InvoicesCount { get; set; }
+        public decimal TodayRevenue { get; set; }
+        public decimal MonthRevenue { get; set; }
+        public decimal UnfilteredTotalRevenue { get; set; }
+        public int UnfilteredInvoicesCount { get; set; }
+        public List<RevenueDetailDto> Revenues { get; set; } = new();
+    }
+
+    public class StaffRevenueDto
+    {
+        public Guid StaffId { get; set; }
+        public string StaffName { get; set; } = string.Empty;
+        public decimal TotalRevenue { get; set; }
+        public int InvoicesCount { get; set; }
+    }
+
+    public class RevenueSummaryDto
+    {
+        public decimal TotalRevenue { get; set; }
+        public int TotalInvoices { get; set; }
+        public decimal TodayRevenue { get; set; }
+        public int TodayInvoices { get; set; }
+        public decimal MonthRevenue { get; set; }
+        public List<StaffRevenueDto> StaffRevenues { get; set; } = new();
+        public List<DailyRevenueDto> DailyRevenues { get; set; } = new();
+    }
 }

@@ -33,15 +33,19 @@ namespace BilliardManagement.Business.Validators
 
     public class CreateProductDtoValidator : AbstractValidator<CreateProductDto>
     {
-        private static readonly string[] AllowedCategories = { "Nước ngọt", "Cafe", "Bia", "Snack", "Trà sữa" };
-
         public CreateProductDtoValidator()
         {
             RuleFor(x => x.Name).NotEmpty().WithMessage("Tên sản phẩm không được để trống");
             RuleFor(x => x.Price).GreaterThan(0).WithMessage("Giá bán phải lớn hơn 0");
-            RuleFor(x => x.Category)
-                .Must(c => AllowedCategories.Contains(c, StringComparer.OrdinalIgnoreCase))
-                .WithMessage("Danh mục không hợp lệ");
+            RuleFor(x => x.CategoryId).NotEmpty().WithMessage("Danh mục sản phẩm không được để trống");
+        }
+    }
+
+    public class CreateCategoryDtoValidator : AbstractValidator<CreateCategoryDto>
+    {
+        public CreateCategoryDtoValidator()
+        {
+            RuleFor(x => x.CategoryName).NotEmpty().WithMessage("Tên danh mục không được để trống");
         }
     }
 }

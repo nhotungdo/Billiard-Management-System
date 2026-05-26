@@ -36,7 +36,25 @@
             headers: headers,
             body: body ? JSON.stringify(body) : undefined
         }).then(function (r) {
-            return r.json().then(function (j) { return { ok: r.ok, data: j }; });
+            const contentType = r.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                return r.json().then(function (j) { 
+                    return { ok: r.ok, data: j }; 
+                }).catch(function () {
+                    return { ok: false, data: { success: false, message: "Lỗi phân tích cú pháp dữ liệu (JSON lỗi)" } };
+                });
+            } else {
+                return r.text().then(function (t) {
+                    let errMsg = "Lỗi hệ thống (" + r.status + ")";
+                    if (t && t.trim().startsWith("{")) {
+                        try {
+                            const parsed = JSON.parse(t);
+                            errMsg = parsed.message || parsed.Message || errMsg;
+                        } catch(e) {}
+                    }
+                    return { ok: r.ok, data: { success: false, message: errMsg } };
+                });
+            }
         });
     }
 
@@ -322,7 +340,7 @@
             e.preventDefault();
             const tableId = a.getAttribute('data-table-id');
             const status = a.getAttribute('data-status');
-            apiFetch('tables/update-status/' + tableId, 'PUT', { status: status })
+            apiFetch('tables/' + tableId + '/status', 'PUT', { status: status })
                 .then(function (res) {
                     if (!res.ok || !apiSuccess(res.data)) {
                         showToast(apiMessage(res.data), 'danger');

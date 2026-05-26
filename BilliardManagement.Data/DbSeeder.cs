@@ -11,6 +11,21 @@ namespace BilliardManagement.Data
     {
         public static void Seed(BilliardManagementDbContext context)
         {
+            // Migrate old order statuses if any (2 was Completed, now 3 is Completed; 3 was Cancelled, now 4 is Cancelled)
+            var oldCancelledOrders = context.Orders.ToList().Where(o => (int)o.Status == 3).ToList();
+            foreach (var o in oldCancelledOrders)
+            {
+                o.Status = OrderStatus.Cancelled; // 4
+            }
+            context.SaveChanges();
+
+            var oldCompletedOrders = context.Orders.ToList().Where(o => (int)o.Status == 2).ToList();
+            foreach (var o in oldCompletedOrders)
+            {
+                o.Status = OrderStatus.Completed; // 3
+            }
+            context.SaveChanges();
+
             // Clean up old plain text 'staff' user if exists
             var oldStaff = context.Users.FirstOrDefault(u => u.Username == "staff");
             if (oldStaff != null)

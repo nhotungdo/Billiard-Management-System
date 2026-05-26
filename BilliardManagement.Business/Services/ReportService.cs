@@ -45,5 +45,42 @@ namespace BilliardManagement.Business.Services
                            })
                            .OrderBy(x => x.Date);
         }
+
+        public async Task<IEnumerable<DailyRevenueDto>> GetRevenueReportAsync(DateTime startDate, DateTime endDate, string groupType)
+        {
+            var invoices = await _unitOfWork.Repository<Invoice>().GetAllAsync(
+                i => i.CreatedAt >= startDate && i.CreatedAt <= endDate);
+
+            if (groupType.ToLower() == "month")
+            {
+                return invoices.GroupBy(i => new DateTime(i.CreatedAt.Year, i.CreatedAt.Month, 1))
+                               .Select(g => new DailyRevenueDto
+                               {
+                                   Date = g.Key,
+                                   TotalRevenue = g.Sum(i => i.TotalAmount)
+                               })
+                               .OrderBy(x => x.Date);
+            }
+            else if (groupType.ToLower() == "year")
+            {
+                return invoices.GroupBy(i => new DateTime(i.CreatedAt.Year, 1, 1))
+                               .Select(g => new DailyRevenueDto
+                               {
+                                   Date = g.Key,
+                                   TotalRevenue = g.Sum(i => i.TotalAmount)
+                               })
+                               .OrderBy(x => x.Date);
+            }
+            else // Default to day
+            {
+                return invoices.GroupBy(i => i.CreatedAt.Date)
+                               .Select(g => new DailyRevenueDto
+                               {
+                                   Date = g.Key,
+                                   TotalRevenue = g.Sum(i => i.TotalAmount)
+                               })
+                               .OrderBy(x => x.Date);
+            }
+        }
     }
 }

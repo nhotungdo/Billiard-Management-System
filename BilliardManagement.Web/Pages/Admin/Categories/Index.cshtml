@@ -1,16 +1,19 @@
+@page
+@model BilliardManagement.Web.Pages.Admin.Categories.IndexModel
+@{ Layout = null; }
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Billiard Staff Portal</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <title>@ViewData["Title"] - Billiard Admin Panel</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="~/css/staff.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/BilliardManagement.Web.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="/css/admin.css" asp-append-version="true" />
+    <link rel="stylesheet" href="/BilliardManagement.Web.styles.css" asp-append-version="true" />
     @{
-        var apiToken = Context.Session.GetString("JWToken");
+        var apiToken = HttpContext.Session.GetString("JWToken");
     }
     @if (!string.IsNullOrEmpty(apiToken))
     {
@@ -20,16 +23,11 @@
         <meta name="hub-base-url" content="https://localhost:5001" />
     }
 </head>
-<body class="staff-body">
-
-    <div id="staff-wrapper">
-        <!-- Sidebar -->
-        <partial name="_StaffSidebar" />
-
-        <!-- Content Wrapper -->
-        <div id="staff-content-wrapper">
-            <!-- Top Navbar -->
-            <nav id="staff-topbar">
+<body class="admin-body">
+    <div id="admin-wrapper">
+        <partial name="_AdminSidebar" />
+        <div id="admin-content-wrapper">
+            <nav id="admin-topbar">
                 <div class="topbar-left">
                     <button class="sidebar-toggle-btn" id="sidebarToggle" title="Toggle Sidebar">
                         <i class="fa-solid fa-bars"></i>
@@ -39,30 +37,23 @@
                     </div>
                 </div>
                 <div class="topbar-right">
-                    <!-- Real-time clock -->
-                    <div class="realtime-clock" id="realtimeClock">
-                        <i class="fa-regular fa-clock me-1"></i>
-                        <span id="clockDisplay">--:--:--</span>
-                    </div>
-                    <!-- Role Badge -->
-                    <span class="role-badge staff-badge">
-                        <i class="fa-solid fa-id-badge me-1"></i> Staff
+                    <span class="role-badge admin-badge">
+                        <i class="fa-solid fa-shield-halved me-1"></i> Admin
                     </span>
-                    <!-- User Avatar Dropdown -->
                     <div class="dropdown user-dropdown">
                         <button class="btn user-avatar-btn dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="avatar-circle staff-avatar">
-                                <i class="fa-solid fa-user"></i>
+                            <div class="avatar-circle">
+                                <i class="fa-solid fa-user-tie"></i>
                             </div>
-                            <span class="user-name d-none d-md-inline">@Context.Session.GetString("FullName")</span>
+                            <span class="user-name d-none d-md-inline">@HttpContext.Session.GetString("FullName")</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end user-menu" aria-labelledby="userDropdown">
                             <li class="dropdown-header">
                                 <div class="user-info-header">
-                                    <div class="avatar-circle-sm staff-avatar"><i class="fa-solid fa-user"></i></div>
+                                    <div class="avatar-circle-sm"><i class="fa-solid fa-user-tie"></i></div>
                                     <div>
-                                        <div class="fw-600">@Context.Session.GetString("FullName")</div>
-                                        <div class="text-muted small">@Context.Session.GetString("Username")</div>
+                                        <div class="fw-600">@HttpContext.Session.GetString("FullName")</div>
+                                        <div class="text-muted small">@HttpContext.Session.GetString("Username")</div>
                                     </div>
                                 </div>
                             </li>
@@ -76,9 +67,7 @@
                     </div>
                 </div>
             </nav>
-
-            <!-- Main Content Area -->
-            <main id="staff-content">
+            <main id="admin-content">
                 @if (TempData["SuccessMessage"] != null)
                 {
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -94,27 +83,6 @@
                     </div>
                 }
 
-                @RenderBody()
-            </main>
-
-            <!-- Footer -->
-            <footer class="staff-footer">
-                <div class="text-muted small">&copy; 2026 Billiard Management System &mdash; Staff Portal</div>
-            </footer>
-        </div>
-    </div>
-
-    <!-- Loading Overlay -->
-    <div id="loading-overlay">
-        <div class="loading-spinner">
-            <div class="spinner-ring"></div>
-            <p class="mt-3 text-white">Đang tải...</p>
-        </div>
-    </div>
-
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/staff.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+@{  }
 </body>
 </html>

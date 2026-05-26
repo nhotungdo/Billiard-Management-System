@@ -96,6 +96,26 @@ namespace BilliardManagement.Web.Services
             return true;
         }
 
+        protected async Task<TResponse?> PutMultipartAsync<TResponse>(string url, MultipartFormDataContent form)
+        {
+            var response = await _httpClient.PutAsync(url, form);
+            var responseContent = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errMsg = $"API Error ({response.StatusCode})";
+                try
+                {
+                    var apiErr = JsonSerializer.Deserialize<ApiResponse<object>>(responseContent, ApiJson.Options);
+                    if (apiErr != null && !string.IsNullOrEmpty(apiErr.Message))
+                        errMsg = apiErr.Message;
+                }
+                catch { }
+                throw new Exception(errMsg);
+            }
+            var apiResponse = JsonSerializer.Deserialize<ApiResponse<TResponse>>(responseContent, ApiJson.Options);
+            return apiResponse != null ? apiResponse.Data : default;
+        }
+
         protected async Task<TResponse?> PostAsync<TRequest, TResponse>(string url, TRequest data)
         {
             var json = JsonSerializer.Serialize(data);

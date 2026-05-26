@@ -1,29 +1,69 @@
-using BilliardManagement.Web.Services;
 using BilliardManagement.Web.Models;
+using BilliardManagement.Web.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace BilliardManagement.Web.Pages.Admin.Revenue
 {
     public class IndexModel : AdminPageModel
     {
         private readonly RevenueService _revenueService;
-        public IndexModel(RevenueService revenueService) { _revenueService = revenueService; }
+        private readonly StaffService _staffService;
 
-        public List<RevenueDto> DailyRevenue { get; set; } = new();
-        public List<RevenueDto> MonthlyRevenue { get; set; } = new();
-        public decimal TotalRevenue => DailyRevenue.Sum(r => r.TotalRevenue);
-        public string? ErrorMessage { get; set; }
+        public IndexModel(RevenueService revenueService, StaffService staffService)
+        {
+            _revenueService = revenueService;
+            _staffService = staffService;
+        }
+
+        public RevenueSummaryDto SummaryData { get; set; } = new();
+
+        [BindProperty(SupportsGet = true)]
+        public DateTime? FromDate { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public DateTime? ToDate { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public Guid? StaffId { get; set; }
+
+        public List<SelectListItem> StaffList { get; set; } = new();
 
         public async Task<IActionResult> OnGetAsync()
         {
+            await LoadStaffListAsync();
+
             try
             {
-                var daily = await _revenueService.GetDailyRevenueAsync(30);
-                DailyRevenue = daily?.ToList() ?? new();
-                MonthlyRevenue = DailyRevenue;
+                SummaryData = await _revenueService.GetTotalRevenueAsync(StaffId, FromDate, ToDate) ?? new();
             }
-            catch (Exception ex) { ErrorMessage = ex.Message; }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Không thể tải dữ liệu thống kê: " + ex.Message;
+            }
+
             return Page();
+        }
+
+        private async Task LoadStaffListAsync()
+        {
+            try
+            {
+                var staffs = await _staffService.GetAllStaffAsync();
+                StaffList = staffs?
+                    .Where(u => u.Role == 2) // Staff members only
+                    .Select(u => new SelectListItem
+                    {
+                        Value = u.Id.ToString(),
+                        Text = u.FullName,
+                        Selected = StaffId == u.Id
+                    })
+                    .ToList() ?? new();
+            }
+            catch
+            {
+                StaffList = new();
+            }
         }
     }
 }
