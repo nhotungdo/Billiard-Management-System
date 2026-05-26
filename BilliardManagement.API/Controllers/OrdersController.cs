@@ -56,6 +56,42 @@ namespace BilliardManagement.API.Controllers
             // Notify Kitchen/Bar
             await _orderHubContext.Clients.All.SendAsync("ReceiveOrderUpdate", $"New order {order.Id} created for session {dto.SessionId}");
 
+            // Notify TableHub for active session updates on dashboard
+            try
+            {
+                var activeSessions = await _sessionService.GetActiveSessionsAsync();
+                var sessionDto = activeSessions.FirstOrDefault(s => s.Id == order.SessionId);
+                if (sessionDto != null)
+                {
+                    var realtime = new SessionRealtimeDto
+                    {
+                        SessionId = sessionDto.Id,
+                        TableId = sessionDto.TableId,
+                        TableName = sessionDto.TableName ?? string.Empty,
+                        Status = (int)sessionDto.Status,
+                        TableStatus = 2, // Playing
+                        StartTime = sessionDto.StartTime,
+                        EndTime = sessionDto.EndTime,
+                        DurationHours = sessionDto.DurationHours,
+                        RemainingMinutes = sessionDto.RemainingMinutes,
+                        RemainingSeconds = sessionDto.RemainingSeconds,
+                        TotalPrice = sessionDto.TotalPrice,
+                        OrdersTotal = sessionDto.OrdersTotal,
+                        CurrentTotal = sessionDto.CurrentTotal,
+                        IsExpired = sessionDto.IsExpired,
+                        IsFinished = sessionDto.IsFinished,
+                        TimerLevel = sessionDto.IsExpired ? "expired" : sessionDto.RemainingMinutes < 15 ? "warning" : "ok",
+                        OrderLines = sessionDto.OrderLines
+                    };
+                    await _tableHubContext.Clients.All.SendAsync("SessionUpdated", realtime);
+                }
+                await _tableHubContext.Clients.All.SendAsync("ReceiveTableUpdate", "OrderCreated");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to broadcast session update on order creation");
+            }
+
             return Ok(ApiResponse<OrderDto>.Ok(order, "Đơn hàng đã được tạo thành công"));
         }
         

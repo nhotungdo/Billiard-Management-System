@@ -5,7 +5,7 @@ using BilliardManagement.Web.Models;
 
 namespace BilliardManagement.Web.Pages.Sessions
 {
-    public class IndexModel : PageModel
+    public class IndexModel : AdminOrStaffPageModel
     {
         private readonly TableService _tableService;
         private readonly SessionService _sessionService;

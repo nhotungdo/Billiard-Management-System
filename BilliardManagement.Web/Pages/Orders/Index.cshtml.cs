@@ -5,7 +5,7 @@ using BilliardManagement.Web.Models;
 
 namespace BilliardManagement.Web.Pages.Orders
 {
-    public class IndexModel : PageModel
+    public class IndexModel : AdminOrStaffPageModel
     {
         private readonly OrderService _orderService;
         private readonly ProductService _productService;

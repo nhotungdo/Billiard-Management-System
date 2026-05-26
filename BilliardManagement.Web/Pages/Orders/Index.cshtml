@@ -253,11 +253,17 @@ else
                                             <td>
                                                 @switch (order.Status)
                                                 {
-                                                    case 0:
+                                                    case 1:
                                                         <span class="badge bg-warning text-dark">Pending</span>
                                                         break;
-                                                    case 1:
-                                                        <span class="badge bg-success">Paid</span>
+                                                    case 2:
+                                                        <span class="badge bg-info text-dark">Processing</span>
+                                                        break;
+                                                    case 3:
+                                                        <span class="badge bg-success">Completed</span>
+                                                        break;
+                                                    case 4:
+                                                        <span class="badge bg-danger">Cancelled</span>
                                                         break;
                                                     default:
                                                         <span class="badge bg-secondary">Unknown</span>
@@ -326,8 +332,7 @@ else
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/@jsFile" asp-append-version="true"></script>
 
-<script>
-<script>
+    <script>
         $(document).ready(function() {
             // Cart Quantity Management
             $(".plus-btn").on("click", function() {
@@ -382,6 +387,5 @@ else
             }
         });
     </script>
-</script>
 </body>
 </html>

@@ -144,6 +144,16 @@ namespace BilliardManagement.Business.Services
             session.DurationMinutes = (int)Math.Ceiling((session.EndTime.Value - session.StartTime).TotalMinutes);
 
             table.Status = TableStatus.Available;
+
+            // Auto-complete all non-cancelled orders for this session
+            var orders = await _unitOfWork.Repository<Order>().GetAllAsync(
+                o => o.TableSessionId == sessionId && o.Status != OrderStatus.Cancelled);
+            foreach (var order in orders)
+            {
+                order.Status = OrderStatus.Completed;
+                _unitOfWork.Repository<Order>().Update(order);
+            }
+
             _unitOfWork.Repository<TableSession>().Update(session);
             _unitOfWork.Repository<BilliardTable>().Update(table);
             await _unitOfWork.SaveChangesAsync();
@@ -329,7 +339,7 @@ namespace BilliardManagement.Business.Services
         private async Task<(decimal ordersTotal, List<SessionOrderLineDto> lines)> LoadOrderSummaryAsync(Guid sessionId)
         {
             var orders = await _unitOfWork.Repository<Order>().GetAllAsync(
-                o => o.TableSessionId == sessionId && o.Status == OrderStatus.Completed, "OrderItems,OrderItems.Product");
+                o => o.TableSessionId == sessionId && o.Status != OrderStatus.Cancelled, "OrderItems,OrderItems.Product");
 
             var lines = new List<SessionOrderLineDto>();
             foreach (var order in orders)
