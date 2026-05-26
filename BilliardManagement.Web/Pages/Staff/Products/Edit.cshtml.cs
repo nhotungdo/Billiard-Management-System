@@ -1,4 +1,4 @@
-﻿using BilliardManagement.Web.Services;
+using BilliardManagement.Web.Services;
 using BilliardManagement.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
@@ -59,10 +59,12 @@ namespace BilliardManagement.Web.Pages.Staff.Products
 
             try
             {
+                // Category field stores the CategoryId Guid as string
+                Guid.TryParse(EditProduct.Category, out var categoryId);
                 var success = await _productService.UpdateProductWithImageAsync(
                     Id,
                     EditProduct.Name,
-                    EditProduct.Category,
+                    categoryId,
                     EditProduct.Price,
                     EditProduct.Description,
                     EditProduct.IsAvailable,

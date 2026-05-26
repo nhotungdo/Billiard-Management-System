@@ -3,7 +3,17 @@ using BilliardManagement.Models.Enums;
 
 namespace BilliardManagement.Business.DTOs
 {
-    public class UserDto { public Guid Id { get; set; } public string FullName { get; set; } = string.Empty; public string Username { get; set; } = string.Empty; public string? PhoneNumber { get; set; } public UserRole Role { get; set; } public bool IsActive { get; set; } }
+    public class UserDto
+    {
+        public Guid Id { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
+        public UserRole Role { get; set; }
+        public bool IsActive { get; set; }
+        public string? Email { get; set; }
+        public string? ProfilePictureUrl { get; set; }
+    }
 
     public class UserDeletionResultDto
     {
@@ -14,6 +24,21 @@ namespace BilliardManagement.Business.DTOs
     public class LoginDto { public string Username { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; }
     public class RegisterDto { public string FullName { get; set; } = string.Empty; public string Username { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; public string? PhoneNumber { get; set; } }
     public class AuthResponseDto { public string Token { get; set; } = string.Empty; public UserDto User { get; set; } = default!; }
+
+    public class UpdateProfileDto
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
+        public string? Email { get; set; }
+        public string? ProfilePictureUrl { get; set; }
+    }
+
+    public class ChangePasswordDto
+    {
+        public string CurrentPassword { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
+        public string ConfirmNewPassword { get; set; } = string.Empty;
+    }
 
     public class TableDto
     {
@@ -136,12 +161,26 @@ namespace BilliardManagement.Business.DTOs
         public List<SessionOrderLineDto> OrderLines { get; set; } = new();
     }
 
+    public class CategoryDto
+    {
+        public Guid Id { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+    }
+
+    public class CreateCategoryDto
+    {
+        public string CategoryName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+    }
+
     public class ProductDto
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public string Category { get; set; } = string.Empty;
+        public Guid CategoryId { get; set; }
         public int Stock { get; set; }
         public string? ImageUrl { get; set; }
         public string? Description { get; set; }
@@ -152,7 +191,7 @@ namespace BilliardManagement.Business.DTOs
     {
         public string Name { get; set; } = string.Empty;
         public decimal Price { get; set; }
-        public string Category { get; set; } = string.Empty;
+        public Guid CategoryId { get; set; }
         public int Stock { get; set; }
         public string? ImageUrl { get; set; }
         public string? Description { get; set; }
@@ -165,6 +204,7 @@ namespace BilliardManagement.Business.DTOs
         public string Name { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public string Category { get; set; } = string.Empty;
+        public Guid CategoryId { get; set; }
         public string? ImageUrl { get; set; }
         public bool IsAvailable { get; set; }
     }
@@ -185,4 +225,47 @@ namespace BilliardManagement.Business.DTOs
     public class ShiftDto { public Guid Id { get; set; } public Guid UserId { get; set; } public DateTime CheckIn { get; set; } public DateTime? CheckOut { get; set; } public decimal Revenue { get; set; } }
     
     public class DailyRevenueDto { public DateTime Date { get; set; } public decimal TotalRevenue { get; set; } }
+
+    public class RevenueDto
+    {
+        public Guid InvoiceId { get; set; }
+        public string TableName { get; set; } = string.Empty;
+        public DateTime PaidAt { get; set; }
+        public decimal Subtotal { get; set; }
+        public decimal Discount { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string PaymentMethod { get; set; } = string.Empty;
+    }
+
+    public class PersonalRevenueDto
+    {
+        public Guid StaffId { get; set; }
+        public string StaffName { get; set; } = string.Empty;
+        public decimal TotalRevenue { get; set; }
+        public int InvoicesCount { get; set; }
+        public List<RevenueDto> Revenues { get; set; } = new();
+    }
+
+    public class StaffRevenueDto
+    {
+        public Guid StaffId { get; set; }
+        public string StaffName { get; set; } = string.Empty;
+        public decimal TotalRevenue { get; set; }
+        public int InvoicesCount { get; set; }
+    }
+
+    public class RevenueSummaryDto
+    {
+        public decimal TotalRevenue { get; set; }
+        public int TotalInvoices { get; set; }
+        public List<StaffRevenueDto> StaffRevenues { get; set; } = new();
+        public List<DailyRevenueDto> DailyRevenues { get; set; } = new();
+    }
+
+    public class RevenueFilterQuery
+    {
+        public Guid? StaffId { get; set; }
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
+    }
 }

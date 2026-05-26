@@ -1,46 +1,170 @@
 @page
 @model BilliardManagement.Web.Pages.Admin.Revenue.IndexModel
+@{ Layout = null; }
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Billiard Admin Panel</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="/css/admin.css" asp-append-version="true" />
+    <link rel="stylesheet" href="/BilliardManagement.Web.styles.css" asp-append-version="true" />
+    @{
+        var apiToken = HttpContext.Session.GetString("JWToken");
+    }
+    @if (!string.IsNullOrEmpty(apiToken))
+    {
+        <meta name="api-token" content="@apiToken" />
+        <meta name="api-base-url" content="https://localhost:5001/api/" />
+        <meta name="api-origin" content="https://localhost:5001" />
+        <meta name="hub-base-url" content="https://localhost:5001" />
+    }
+</head>
+<body class="admin-body">
+    <div id="admin-wrapper">
+        <partial name="_AdminSidebar" />
+        <div id="admin-content-wrapper">
+            <nav id="admin-topbar">
+                <div class="topbar-left">
+                    <button class="sidebar-toggle-btn" id="sidebarToggle" title="Toggle Sidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="topbar-breadcrumb">
+                        <span class="breadcrumb-label">@(ViewData["BreadcrumbTitle"] ?? ViewData["Title"])</span>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <span class="role-badge admin-badge">
+                        <i class="fa-solid fa-shield-halved me-1"></i> Admin
+                    </span>
+                    <div class="dropdown user-dropdown">
+                        <button class="btn user-avatar-btn dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="avatar-circle">
+                                <i class="fa-solid fa-user-tie"></i>
+                            </div>
+                            <span class="user-name d-none d-md-inline">@HttpContext.Session.GetString("FullName")</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end user-menu" aria-labelledby="userDropdown">
+                            <li class="dropdown-header">
+                                <div class="user-info-header">
+                                    <div class="avatar-circle-sm"><i class="fa-solid fa-user-tie"></i></div>
+                                    <div>
+                                        <div class="fw-600">@HttpContext.Session.GetString("FullName")</div>
+                                        <div class="text-muted small">@HttpContext.Session.GetString("Username")</div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <a class="dropdown-item" href="/Auth/Logout">
+                                    <i class="fa-solid fa-right-from-bracket me-2 text-danger"></i>Đăng xuất
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+            <main id="admin-content">
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i>@TempData["ErrorMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
 @{
-    Layout = "_AdminLayout";
-    ViewData["Title"] = "Doanh thu";
+    ViewData["Title"] = "Thống kê Doanh thu";
+    ViewData["BreadcrumbTitle"] = "Thống kê Doanh thu";
 }
 
-<div class="dashboard-header mb-4">
-    <h1 class="page-title"><i class="fa-solid fa-chart-line me-2"></i>Thống kê Doanh thu</h1>
-    <p class="page-subtitle">Tổng doanh thu 30 ngày: <strong class="text-success">@Model.TotalRevenue.ToString("N0") đ</strong></p>
-</div>
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-dark mb-0">Thống kê Doanh thu</h2>
+        
+        <form method="get" class="d-flex gap-2 align-items-center">
+            <select asp-for="StaffId" asp-items="Model.StaffList" class="form-select form-select-sm" style="width: auto;">
+                <option value="">-- Tất cả Nhân viên --</option>
+            </select>
+            <input type="date" asp-for="FromDate" class="form-control form-control-sm" style="width: auto;" title="Từ ngày" />
+            <span>-</span>
+            <input type="date" asp-for="ToDate" class="form-control form-control-sm" style="width: auto;" title="Đến ngày" />
+            <button type="submit" class="btn btn-primary btn-sm">Lọc</button>
+            <a href="/Admin/Revenue/Index" class="btn btn-secondary btn-sm">Xóa lọc</a>
+        </form>
+    </div>
 
-@if (!string.IsNullOrEmpty(Model.ErrorMessage))
-{
-    <div class="alert alert-warning">@Model.ErrorMessage</div>
-}
-
-<div class="row g-4">
-    <div class="col-12 col-xl-8">
-        <div class="card-panel">
-            <div class="panel-header"><h5 class="panel-title">Biểu đồ doanh thu theo ngày</h5></div>
-            <div class="panel-body">
-                <canvas id="revenueBarChart" height="120"></canvas>
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm border-0 bg-primary text-white h-100">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center p-4">
+                    <h5 class="card-title text-uppercase mb-2"><i class="fa-solid fa-money-bill-wave me-2"></i> Tổng Doanh Thu</h5>
+                    <h2 class="display-5 fw-bold mb-0" id="totalRevenueData">@Model.SummaryData.TotalRevenue.ToString("N0") VNĐ</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm border-0 bg-success text-white h-100">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center p-4">
+                    <h5 class="card-title text-uppercase mb-2"><i class="fa-solid fa-file-invoice me-2"></i> Tổng Hóa Đơn Đã Thanh Toán</h5>
+                    <h2 class="display-5 fw-bold mb-0">@Model.SummaryData.TotalInvoices</h2>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-12 col-xl-4">
-        <div class="card-panel">
-            <div class="panel-header"><h5 class="panel-title">Chi tiết</h5></div>
-            <div class="panel-body p-0" style="max-height:400px;overflow-y:auto">
-                <table class="data-table">
-                    <thead><tr><th>Ngày</th><th>Doanh thu</th></tr></thead>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-4">
+            <h5 class="card-title fw-bold mb-4">Biểu đồ doanh thu (Theo Ngày)</h5>
+            <canvas id="revenueChart" style="max-height: 350px;"></canvas>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+            <h5 class="card-title fw-bold mb-3">Tổng hợp doanh thu theo nhân viên</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nhân viên</th>
+                            <th>Số lượng HĐ</th>
+                            <th>Tổng thu</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
                     <tbody>
-                        @foreach (var r in Model.DailyRevenue.OrderByDescending(x => x.Date))
+                        @if (Model.SummaryData.StaffRevenues.Any())
+                        {
+                            @foreach (var item in Model.SummaryData.StaffRevenues.OrderByDescending(x => x.TotalRevenue))
+                            {
+                                <tr>
+                                    <td class="fw-bold">@item.StaffName</td>
+                                    <td>@item.InvoicesCount</td>
+                                    <td class="text-success fw-bold">@item.TotalRevenue.ToString("N0") VNĐ</td>
+                                    <td>
+                                        <a href="/Admin/Revenue/StaffDetails?staffId=@item.StaffId" class="btn btn-sm btn-outline-info">
+                                            <i class="fa-solid fa-eye"></i> Chi tiết
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
                         {
                             <tr>
-                                <td>@r.Date.ToString("dd/MM/yyyy")</td>
-                                <td class="text-end fw-600">@r.TotalRevenue.ToString("N0") đ</td>
+                                <td colspan="4" class="text-center py-4 text-muted">Không có dữ liệu</td>
                             </tr>
-                        }
-                        @if (!Model.DailyRevenue.Any())
-                        {
-                            <tr><td colspan="2" class="text-center py-3 text-muted">Không có dữ liệu</td></tr>
                         }
                     </tbody>
                 </table>
@@ -49,18 +173,68 @@
     </div>
 </div>
 
-@section Scripts {
+            </main>
+            <footer class="admin-footer">
+                <div class="text-muted small">&copy; 2026 Billiard Management System &mdash; Admin Panel</div>
+            </footer>
+        </div>
+    </div>
+    <div id="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner-ring"></div>
+            <p class="mt-3 text-white">Đang tải...</p>
+        </div>
+    </div>
+    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/admin.js" asp-append-version="true"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
     <script>
-        const labels = [@Html.Raw(string.Join(",", Model.DailyRevenue.Select(r => $"'{r.Date:dd/MM}'")))];
-        const data = [@Html.Raw(string.Join(",", Model.DailyRevenue.Select(r => r.TotalRevenue)))];
-        new Chart(document.getElementById('revenueBarChart').getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: labels.length ? labels : ['Không có dữ liệu'],
-                datasets: [{ label: 'Doanh thu', data: data.length ? data : [0], backgroundColor: 'rgba(99,102,241,0.7)', borderRadius: 6 }]
-            },
-            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        document.addEventListener('DOMContentLoaded', function () {
+            // Chart Data Prep
+            const dailyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SummaryData.DailyRevenues));
+            
+            const labels = dailyData.map(d => new Date(d.Date).toLocaleDateString('vi-VN'));
+            const dataPoints = dailyData.map(d => d.TotalRevenue);
+
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Doanh thu',
+                        data: dataPoints,
+                        backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                        borderColor: '#0d6efd',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // SignalR Connection
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("https://localhost:7198/hubs/notification")
+                .withAutomaticReconnect()
+                .build();
+
+            connection.on("ReceiveInvoiceNotification", function () {
+                window.location.reload();
+            });
+
+            connection.start().catch(function (err) {
+                return console.error(err.toString());
+            });
         });
     </script>
-}
+</body>
+</html>

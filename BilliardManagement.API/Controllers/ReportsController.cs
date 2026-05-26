@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using BilliardManagement.Business.Interfaces;
 using BilliardManagement.Common.Responses;
@@ -30,6 +30,19 @@ namespace BilliardManagement.API.Controllers
         public async Task<IActionResult> GetDailyRevenue([FromQuery] int days = 7)
         {
             var data = await _reportService.GetDailyRevenueAsync(days);
+            return Ok(ApiResponse<object>.Ok(data));
+        }
+
+        // Báo cáo doanh thu theo khoảng thời gian và nhóm (ngày, tháng, năm)
+        [HttpGet("revenue")]
+        public async Task<IActionResult> GetRevenueReport(
+            [FromQuery] DateTime? startDate, 
+            [FromQuery] DateTime? endDate, 
+            [FromQuery] string groupType = "day")
+        {
+            var start = startDate ?? DateTime.UtcNow.Date.AddDays(-7);
+            var end = endDate ?? DateTime.UtcNow;
+            var data = await _reportService.GetRevenueReportAsync(start, end, groupType);
             return Ok(ApiResponse<object>.Ok(data));
         }
     }

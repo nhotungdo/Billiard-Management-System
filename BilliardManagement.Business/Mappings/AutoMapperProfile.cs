@@ -21,6 +21,9 @@ namespace BilliardManagement.Business.Mappings
 
             CreateMap<TableSession, SessionDto>().ReverseMap();
 
+            CreateMap<Category, CategoryDto>().ReverseMap();
+            CreateMap<CreateCategoryDto, Category>();
+
             CreateMap<Product, ProductDto>()
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.ProductName))
                 .ForMember(dest => dest.Stock, opt => opt.MapFrom(src => src.StockQuantity))
@@ -33,7 +36,6 @@ namespace BilliardManagement.Business.Mappings
             CreateMap<CreateProductDto, Product>()
                 .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Name))
                 .ForMember(dest => dest.StockQuantity, opt => opt.MapFrom(src => src.Stock))
-                .ForMember(dest => dest.CategoryId, opt => opt.Ignore())
                 .ForMember(dest => dest.Category, opt => opt.Ignore());
 
             CreateMap<Order, OrderDto>()

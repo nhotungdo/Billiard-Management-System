@@ -75,12 +75,64 @@ namespace BilliardManagement.Business.Services
             }
             
             await _unitOfWork.SaveChangesAsync();
-
-            return new UserDeletionResultDto
-            {
-                CustomersServed = customersServed,
-                ItemsSold = itemsSold
-            };
-        }
-    }
-}
+ 
+             return new UserDeletionResultDto
+             {
+                 CustomersServed = customersServed,
+                 ItemsSold = itemsSold
+             };
+         }
+ 
+         // Cập nhật thông tin cá nhân
+         public async Task<UserDto> UpdateProfileAsync(Guid id, UpdateProfileDto dto)
+         {
+             var user = await _unitOfWork.Repository<User>().GetByIdAsync(id);
+             if (user == null) throw new CustomException("Không tìm thấy người dùng", 404);
+ 
+             if (string.IsNullOrWhiteSpace(dto.FullName))
+                 throw new CustomException("Họ tên không được để trống", 400);
+ 
+             user.FullName = dto.FullName.Trim();
+             user.PhoneNumber = dto.PhoneNumber?.Trim();
+             user.Email = dto.Email?.Trim();
+             if (dto.ProfilePictureUrl != null)
+             {
+                 user.ProfilePictureUrl = dto.ProfilePictureUrl;
+             }
+ 
+             _unitOfWork.Repository<User>().Update(user);
+             await _unitOfWork.SaveChangesAsync();
+ 
+             return _mapper.Map<UserDto>(user);
+         }
+ 
+         // Đổi mật khẩu
+         public async Task<bool> ChangePasswordAsync(Guid id, ChangePasswordDto dto)
+         {
+             var user = await _unitOfWork.Repository<User>().GetByIdAsync(id);
+             if (user == null) throw new CustomException("Không tìm thấy người dùng", 404);
+ 
+             if (string.IsNullOrWhiteSpace(dto.CurrentPassword))
+                 throw new CustomException("Mật khẩu hiện tại không được để trống", 400);
+ 
+             if (string.IsNullOrWhiteSpace(dto.NewPassword))
+                 throw new CustomException("Mật khẩu mới không được để trống", 400);
+ 
+             if (dto.NewPassword != dto.ConfirmNewPassword)
+                 throw new CustomException("Mật khẩu mới và xác nhận mật khẩu không khớp", 400);
+ 
+             // Verify current password
+             bool isPasswordValid = BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash);
+             if (!isPasswordValid)
+                 throw new CustomException("Mật khẩu hiện tại không chính xác", 400);
+ 
+             // Hash new password
+             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+ 
+             _unitOfWork.Repository<User>().Update(user);
+             await _unitOfWork.SaveChangesAsync();
+ 
+             return true;
+         }
+     }
+ }

@@ -23,7 +23,7 @@ namespace BilliardManagement.API.Controllers
 
         // Bắt đầu phiên chơi cho một bàn
         [HttpPost("start/{tableId}")]
-        public async Task<IActionResult> StartSession(Guid tableId)
+        public async Task<IActionResult> StartSession(Guid tableId, [FromQuery] int durationHours = 2)
         {
             try
             {
@@ -36,7 +36,7 @@ namespace BilliardManagement.API.Controllers
                     return Unauthorized(ApiResponse<object>.Fail("Unauthorized: invalid user token"));
                 }
 
-                var session = await _sessionService.StartSessionAsync(tableId, userId);
+                var session = await _sessionService.StartSessionAsync(tableId, userId, durationHours);
                 _logger.LogInformation("bắt đầu phiên chơi thành công: sessionId={SessionId}", session.Id);
                 return Ok(ApiResponse<SessionDto>.Ok(session, "bắt đầu phiên chơi thành công"));
             }
@@ -78,6 +78,22 @@ namespace BilliardManagement.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "lấy danh sách các phiên chơi đang hoạt động lỗi: {Message}", ex.Message);
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
+        }
+
+        // Lấy danh sách phiên chơi hoặc phân trang/tìm kiếm
+        [HttpGet]
+        public async Task<IActionResult> GetAll([FromQuery] SessionQueryParameters query)
+        {
+            try
+            {
+                var pagedResult = await _sessionService.GetPagedSessionsAsync(query);
+                return Ok(ApiResponse<PagedResult<SessionDto>>.Ok(pagedResult));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lấy danh sách các phiên chơi lỗi: {Message}", ex.Message);
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
         }

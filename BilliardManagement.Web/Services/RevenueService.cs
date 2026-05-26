@@ -29,5 +29,12 @@ namespace BilliardManagement.Web.Services
         {
             return await GetAsync<List<RevenueDto>>("reports/revenue/daily?days=365");
         }
+
+        public async Task<List<RevenueDto>?> GetRevenueReportAsync(DateTime startDate, DateTime endDate, string groupType)
+        {
+            var startStr = startDate.ToString("o");
+            var endStr = endDate.ToString("o");
+            return await GetAsync<List<RevenueDto>>($"reports/revenue?startDate={startStr}&endDate={endStr}&groupType={groupType}");
+        }
     }
 }

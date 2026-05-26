@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,6 +10,8 @@ using BilliardManagement.Models.Enums;
 using BilliardManagement.Models.Models;
 using BilliardManagement.Common.Exceptions;
 using Microsoft.Extensions.Logging;
+
+using BilliardManagement.Common.Responses;
 
 namespace BilliardManagement.Business.Services
 {
@@ -327,7 +329,7 @@ namespace BilliardManagement.Business.Services
         private async Task<(decimal ordersTotal, List<SessionOrderLineDto> lines)> LoadOrderSummaryAsync(Guid sessionId)
         {
             var orders = await _unitOfWork.Repository<Order>().GetAllAsync(
-                o => o.TableSessionId == sessionId, "OrderItems,OrderItems.Product");
+                o => o.TableSessionId == sessionId && o.Status == OrderStatus.Completed, "OrderItems,OrderItems.Product");
 
             var lines = new List<SessionOrderLineDto>();
             foreach (var order in orders)
@@ -367,6 +369,66 @@ namespace BilliardManagement.Business.Services
                 DateTimeKind.Local => dt.ToUniversalTime(),
                 _ => DateTime.SpecifyKind(dt, DateTimeKind.Utc)
             };
+        }
+
+        public async Task<PagedResult<SessionDto>> GetPagedSessionsAsync(SessionQueryParameters query)
+        {
+            var filters = new List<System.Linq.Expressions.Expression<System.Func<TableSession, bool>>>();
+
+            if (query.Status.HasValue)
+            {
+                var statusEnum = (SessionStatus)query.Status.Value;
+                filters.Add(s => s.Status == statusEnum);
+            }
+            if (query.TableId.HasValue)
+            {
+                filters.Add(s => s.TableId == query.TableId.Value);
+            }
+            if (query.IsFinished.HasValue)
+            {
+                filters.Add(s => s.IsFinished == query.IsFinished.Value);
+            }
+
+            Func<IQueryable<TableSession>, IOrderedQueryable<TableSession>>? orderBy = null;
+            if (!string.IsNullOrEmpty(query.SortBy))
+            {
+                if (query.SortBy.Equals("StartTime", StringComparison.OrdinalIgnoreCase))
+                {
+                    orderBy = q => query.IsDescending ? q.OrderByDescending(s => s.StartTime) : q.OrderBy(s => s.StartTime);
+                }
+                else if (query.SortBy.Equals("EndTime", StringComparison.OrdinalIgnoreCase))
+                {
+                    orderBy = q => query.IsDescending ? q.OrderByDescending(s => s.EndTime) : q.OrderBy(s => s.EndTime);
+                }
+                else if (query.SortBy.Equals("TotalPrice", StringComparison.OrdinalIgnoreCase))
+                {
+                    orderBy = q => query.IsDescending ? q.OrderByDescending(s => s.TotalPrice) : q.OrderBy(s => s.TotalPrice);
+                }
+            }
+            else
+            {
+                orderBy = q => q.OrderByDescending(s => s.StartTime);
+            }
+
+            var (items, totalCount) = await _unitOfWork.Repository<TableSession>().GetPagedAsync(
+                filters: filters,
+                orderBy: orderBy,
+                includeProperties: "BilliardTable,Orders",
+                page: query.PageNumber,
+                pageSize: query.PageSize
+            );
+
+            var mappedList = new List<SessionDto>();
+            foreach (var session in items)
+            {
+                var table = session.BilliardTable ?? await _unitOfWork.Repository<BilliardTable>().GetByIdAsync(session.TableId);
+                if (table != null)
+                {
+                    mappedList.Add(await MapSessionDtoAsync(session, table));
+                }
+            }
+
+            return new PagedResult<SessionDto>(mappedList, query.PageNumber, query.PageSize, totalCount);
         }
     }
 }

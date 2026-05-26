@@ -22,6 +22,13 @@ namespace BilliardManagement.Models.Models
         [MaxLength(20)]
         public string? PhoneNumber { get; set; }
 
+        [MaxLength(100)]
+        [EmailAddress]
+        public string? Email { get; set; }
+
+        [MaxLength(500)]
+        public string? ProfilePictureUrl { get; set; }
+
         [Required]
         public UserRole Role { get; set; }
 

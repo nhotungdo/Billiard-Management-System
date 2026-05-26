@@ -9,14 +9,14 @@ using BilliardManagement.Data.Repositories.Interfaces;
 using BilliardManagement.Models.Models;
 using BilliardManagement.Common.Exceptions;
 using Microsoft.Extensions.Logging;
+using System.IO;
+
+using BilliardManagement.Common.Responses;
 
 namespace BilliardManagement.Business.Services
 {
     public class ProductService : IProductService
     {
-        private static readonly string[] AllowedCategories =
-            { "Nước ngọt","Đồ ăn nhanh", "Cafe", "Bia", "Đồ ăn vặt", "Trà sữa" };
-
         private static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png" };
 
         private readonly IUnitOfWork _unitOfWork;
@@ -44,9 +44,6 @@ namespace BilliardManagement.Business.Services
             if (dto.Price <= 0)
                 throw new CustomException("Giá bán phải lớn hơn 0", 400);
 
-            if (!AllowedCategories.Contains(dto.Category?.Trim() ?? "", StringComparer.OrdinalIgnoreCase))
-                throw new CustomException("Danh mục sản phẩm không hợp lệ", 400);
-
             var isExists = await _unitOfWork.Repository<Product>()
                 .AnyAsync(x => x.ProductName.Trim().ToLower() == dto.Name.Trim().ToLower() && !x.IsDeleted);
             if (isExists)
@@ -55,8 +52,7 @@ namespace BilliardManagement.Business.Services
                 throw new CustomException("Tên sản phẩm đã tồn tại", 400);
             }
 
-            var category = await _unitOfWork.Repository<Category>()
-                .GetFirstOrDefaultAsync(c => c.CategoryName == dto.Category.Trim());
+            var category = await _unitOfWork.Repository<Category>().GetByIdAsync(dto.CategoryId);
             if (category == null)
                 throw new CustomException("Danh mục không tồn tại trong hệ thống", 400);
 
@@ -104,8 +100,7 @@ namespace BilliardManagement.Business.Services
                 throw new CustomException("Tên sản phẩm đã tồn tại", 400);
             }
 
-            var category = await _unitOfWork.Repository<Category>()
-                .GetFirstOrDefaultAsync(c => c.CategoryName == dto.Category.Trim());
+            var category = await _unitOfWork.Repository<Category>().GetByIdAsync(dto.CategoryId);
             if (category == null)
                 throw new CustomException("Danh mục không tồn tại trong hệ thống", 400);
 
@@ -163,6 +158,65 @@ namespace BilliardManagement.Business.Services
                 return await _unitOfWork.Repository<Product>().AnyAsync(x => x.Id != excludeId.Value && x.ProductName.Trim().ToLower() == name.Trim().ToLower() && !x.IsDeleted);
             }
             return await _unitOfWork.Repository<Product>().AnyAsync(x => x.ProductName.Trim().ToLower() == name.Trim().ToLower() && !x.IsDeleted);
+        }
+
+        public async Task<PagedResult<ProductDto>> GetPagedProductsAsync(ProductQueryParameters query)
+        {
+            var filters = new List<System.Linq.Expressions.Expression<System.Func<Product, bool>>>();
+            filters.Add(p => !p.IsDeleted);
+
+            if (query.CategoryId.HasValue)
+            {
+                filters.Add(p => p.CategoryId == query.CategoryId.Value);
+            }
+            if (query.IsAvailable.HasValue)
+            {
+                filters.Add(p => p.IsAvailable == query.IsAvailable.Value);
+            }
+            if (query.MinPrice.HasValue)
+            {
+                filters.Add(p => p.Price >= query.MinPrice.Value);
+            }
+            if (query.MaxPrice.HasValue)
+            {
+                filters.Add(p => p.Price <= query.MaxPrice.Value);
+            }
+            if (!string.IsNullOrEmpty(query.SearchTerm))
+            {
+                filters.Add(p => p.ProductName.ToLower().Contains(query.SearchTerm.ToLower()));
+            }
+
+            Func<IQueryable<Product>, IOrderedQueryable<Product>>? orderBy = null;
+            if (!string.IsNullOrEmpty(query.SortBy))
+            {
+                if (query.SortBy.Equals("Price", StringComparison.OrdinalIgnoreCase))
+                {
+                    orderBy = q => query.IsDescending ? q.OrderByDescending(p => p.Price) : q.OrderBy(p => p.Price);
+                }
+                else if (query.SortBy.Equals("StockQuantity", StringComparison.OrdinalIgnoreCase))
+                {
+                    orderBy = q => query.IsDescending ? q.OrderByDescending(p => p.StockQuantity) : q.OrderBy(p => p.StockQuantity);
+                }
+                else if (query.SortBy.Equals("Name", StringComparison.OrdinalIgnoreCase))
+                {
+                    orderBy = q => query.IsDescending ? q.OrderByDescending(p => p.ProductName) : q.OrderBy(p => p.ProductName);
+                }
+            }
+            else
+            {
+                orderBy = q => q.OrderBy(p => p.ProductName);
+            }
+
+            var (items, totalCount) = await _unitOfWork.Repository<Product>().GetPagedAsync(
+                filters: filters,
+                orderBy: orderBy,
+                includeProperties: "Category",
+                page: query.PageNumber,
+                pageSize: query.PageSize
+            );
+
+            var mappedItems = _mapper.Map<IEnumerable<ProductDto>>(items);
+            return new PagedResult<ProductDto>(mappedItems, query.PageNumber, query.PageSize, totalCount);
         }
     }
 }

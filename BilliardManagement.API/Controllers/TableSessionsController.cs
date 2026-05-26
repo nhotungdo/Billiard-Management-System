@@ -47,6 +47,21 @@ namespace BilliardManagement.API.Controllers
             return Ok(ApiResponse<IEnumerable<SessionDto>>.Ok(sessions));
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetAll([FromQuery] SessionQueryParameters query)
+        {
+            try
+            {
+                var pagedResult = await _sessionService.GetPagedSessionsAsync(query);
+                return Ok(ApiResponse<PagedResult<SessionDto>>.Ok(pagedResult));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lấy danh sách các phiên chơi lỗi: {Message}", ex.Message);
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
+        }
+
         [HttpPost("start")]
         public async Task<IActionResult> Start([FromBody] StartSessionRequest request)
         {

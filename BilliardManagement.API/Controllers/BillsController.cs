@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using BilliardManagement.Business.Interfaces;
 using BilliardManagement.Common.Responses;
@@ -34,12 +34,12 @@ namespace BilliardManagement.API.Controllers
             return Ok(ApiResponse<BillDto>.Ok(bill, "Hóa đơn đã được thanh toán thành công"));
         }
 
-        // lấy tất cả hóa đơn
+        // lấy tất cả hóa đơn hoặc phân trang/tìm kiếm
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] InvoiceQueryParameters query)
         {
-            var bills = await _billingService.GetAllBillsAsync();
-            return Ok(ApiResponse<IEnumerable<BillDto>>.Ok(bills));
+            var pagedResult = await _billingService.GetPagedBillsAsync(query);
+            return Ok(ApiResponse<PagedResult<BillDto>>.Ok(pagedResult));
         }
 
         // lấy hóa đơn theo id

@@ -14,7 +14,7 @@ namespace BilliardManagement.API.Controllers
     {
         public IFormFile? Image { get; set; }
         public string Name { get; set; } = string.Empty;
-        public string Category { get; set; } = string.Empty;
+        public Guid CategoryId { get; set; }
         public decimal Price { get; set; }
         public string? Description { get; set; }
         public bool IsAvailable { get; set; } = true;
@@ -25,7 +25,7 @@ namespace BilliardManagement.API.Controllers
     {
         public IFormFile? Image { get; set; }
         public string Name { get; set; } = string.Empty;
-        public string Category { get; set; } = string.Empty;
+        public Guid CategoryId { get; set; }
         public decimal Price { get; set; }
         public string? Description { get; set; }
         public bool IsAvailable { get; set; } = true;
@@ -56,10 +56,10 @@ namespace BilliardManagement.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] ProductQueryParameters query)
         {
-            var products = await _productService.GetAllProductsAsync();
-            return Ok(ApiResponse<IEnumerable<ProductDto>>.Ok(products));
+            var pagedResult = await _productService.GetPagedProductsAsync(query);
+            return Ok(ApiResponse<PagedResult<ProductDto>>.Ok(pagedResult));
         }
 
         [HttpGet("check-name")]
@@ -101,7 +101,7 @@ namespace BilliardManagement.API.Controllers
                 var dto = new CreateProductDto
                 {
                     Name = request.Name,
-                    Category = request.Category,
+                    CategoryId = request.CategoryId,
                     Price = request.Price,
                     Description = request.Description,
                     IsAvailable = request.IsAvailable,
@@ -122,6 +122,7 @@ namespace BilliardManagement.API.Controllers
                     Name = product.Name,
                     Price = product.Price,
                     Category = product.Category,
+                    CategoryId = product.CategoryId,
                     ImageUrl = product.ImageUrl,
                     IsAvailable = product.IsAvailable
                 };
@@ -169,7 +170,7 @@ namespace BilliardManagement.API.Controllers
                 var dto = new CreateProductDto
                 {
                     Name = request.Name,
-                    Category = request.Category,
+                    CategoryId = request.CategoryId,
                     Price = request.Price,
                     Description = request.Description,
                     IsAvailable = request.IsAvailable,
@@ -208,7 +209,7 @@ namespace BilliardManagement.API.Controllers
                 _logger.LogInformation("Product {ProductId} deleted at {Time}", id, DateTime.UtcNow);
                 await _productHub.Clients.All.SendAsync("ReceiveProductUpdate", "Product deleted");
 
-                return Ok(ApiResponse<object>.Ok(null, "Xóa sản phẩm thành công"));
+                return Ok(ApiResponse<object?>.Ok(null, "Xóa sản phẩm thành công"));
             }
             catch (Exception ex)
             {
@@ -216,6 +217,7 @@ namespace BilliardManagement.API.Controllers
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
         }
+
         private Guid? GetUserId()
         {
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);

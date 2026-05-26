@@ -1,23 +1,41 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using BilliardManagement.Business.Interfaces;
 using BilliardManagement.Common.Responses;
 using BilliardManagement.Business.DTOs;
 using BilliardManagement.Models.Enums;
+using BilliardManagement.Business.Services;
+using System.Security.Claims;
 
 namespace BilliardManagement.API.Controllers
 {
+    public class UpdateProfileRequest
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
+        public string? Email { get; set; }
+        public IFormFile? ProfilePicture { get; set; }
+    }
+
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
+        private readonly IWebHostEnvironment _env;
+        private readonly ILogger<UsersController> _logger;
 
-        public UsersController(IUserService userService)
+        public UsersController(
+            IUserService userService, 
+            IWebHostEnvironment env, 
+            ILogger<UsersController> logger)
         {
             _userService = userService;
+            _env = env;
+            _logger = logger;
         }
+
         // lấy tất cả người dùng (chỉ dành cho admin)
         [HttpGet]
         [Authorize(Roles = "Admin")]
@@ -50,8 +68,90 @@ namespace BilliardManagement.API.Controllers
         {
             var result = await _userService.DeleteUserAsync(id);
             return Ok(ApiResponse<UserDeletionResultDto>.Ok(result, "User deleted successfully"));
+        }
 
+        // GET: api/users/profile
+        [HttpGet("profile")]
+        public async Task<IActionResult> GetProfile()
+        {
+            var userId = GetUserId();
+            if (userId == null) return Unauthorized(ApiResponse<object>.Fail("Không xác định được người dùng"));
+            var user = await _userService.GetUserByIdAsync(userId.Value);
+            return Ok(ApiResponse<UserDto>.Ok(user));
         }
-        
+
+        // PUT: api/users/profile
+        [HttpPut("profile")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UpdateProfile([FromForm] UpdateProfileRequest request)
+        {
+            try
+            {
+                var userId = GetUserId();
+                if (userId == null) return Unauthorized(ApiResponse<object>.Fail("Không xác định được người dùng"));
+
+                string? imageUrl = null;
+                if (request.ProfilePicture != null && request.ProfilePicture.Length > 0)
+                {
+                    if (!ProductService.IsValidImageExtension(request.ProfilePicture.FileName))
+                        return BadRequest(ApiResponse<object>.Fail("Chỉ chấp nhận ảnh JPG, JPEG, PNG"));
+
+                    var uploadsDir = Path.Combine(_env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot"), "uploads", "avatars");
+                    Directory.CreateDirectory(uploadsDir);
+
+                    var ext = Path.GetExtension(request.ProfilePicture.FileName).ToLowerInvariant();
+                    var fileName = $"{Guid.NewGuid()}{ext}";
+                    var filePath = Path.Combine(uploadsDir, fileName);
+
+                    await using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await request.ProfilePicture.CopyToAsync(stream);
+                    }
+
+                    imageUrl = $"/uploads/avatars/{fileName}";
+                }
+
+                var dto = new UpdateProfileDto
+                {
+                    FullName = request.FullName,
+                    PhoneNumber = request.PhoneNumber,
+                    Email = request.Email,
+                    ProfilePictureUrl = imageUrl
+                };
+
+                var user = await _userService.UpdateProfileAsync(userId.Value, dto);
+                return Ok(ApiResponse<UserDto>.Ok(user, "Cập nhật trang cá nhân thành công"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi cập nhật profile");
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
         }
+
+        // PUT: api/users/change-password
+        [HttpPut("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+        {
+            try
+            {
+                var userId = GetUserId();
+                if (userId == null) return Unauthorized(ApiResponse<object>.Fail("Không xác định được người dùng"));
+
+                var success = await _userService.ChangePasswordAsync(userId.Value, dto);
+                return Ok(ApiResponse<bool>.Ok(success, "Đổi mật khẩu thành công"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi đổi mật khẩu");
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
+        }
+
+        private Guid? GetUserId()
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return Guid.TryParse(userIdStr, out var userId) ? userId : null;
+        }
+    }
 }
