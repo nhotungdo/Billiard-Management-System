@@ -15,6 +15,7 @@ namespace BilliardManagement.Business.DTOs
     {
         public bool? IsPaid { get; set; }
         public int? PaymentMethod { get; set; }
+        public Guid? StaffId { get; set; }
     }
 
     public class OrderQueryParameters : BaseQueryParameters

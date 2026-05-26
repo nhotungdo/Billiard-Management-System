@@ -223,6 +223,7 @@ namespace BilliardManagement.Business.DTOs
     {
         public Guid Id { get; set; }
         public Guid SessionId { get; set; }
+        public Guid? StaffId { get; set; }
         public decimal Subtotal { get; set; }
         public decimal Discount { get; set; }
         public decimal Total { get; set; }

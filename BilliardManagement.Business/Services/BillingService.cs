@@ -29,7 +29,7 @@ namespace BilliardManagement.Business.Services
             var session = await _unitOfWork.Repository<TableSession>().GetFirstOrDefaultAsync(s => s.Id == sessionId, "Orders,Orders.OrderItems");
             if (session == null) throw new CustomException("Session not found", 404);
 
-            var orders = await _unitOfWork.Repository<Order>().GetAllAsync(o => o.TableSessionId == sessionId && o.Status == OrderStatus.Completed);
+            var orders = await _unitOfWork.Repository<Order>().GetAllAsync(o => o.TableSessionId == sessionId && o.Status != OrderStatus.Cancelled);
             decimal ordersTotal = orders.Sum(o => o.TotalAmount);
             decimal sessionTotal = session.TotalPrice;
             decimal subtotal = ordersTotal + sessionTotal;
@@ -90,6 +90,10 @@ namespace BilliardManagement.Business.Services
             {
                 var method = (PaymentMethod)query.PaymentMethod.Value;
                 filters.Add(i => i.PaymentMethod == method);
+            }
+            if (query.StaffId.HasValue)
+            {
+                filters.Add(i => i.TableSession != null && i.TableSession.UserId == query.StaffId.Value);
             }
 
             Func<IQueryable<Invoice>, IOrderedQueryable<Invoice>>? orderBy = null;

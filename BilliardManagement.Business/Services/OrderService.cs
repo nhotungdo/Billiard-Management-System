@@ -37,6 +37,10 @@ namespace BilliardManagement.Business.Services
             if (session.IsFinished || session.Status != SessionStatus.Active)
                 throw new CustomException("Cannot order: session is not active", 400);
 
+            var table = await _unitOfWork.Repository<BilliardTable>().GetByIdAsync(session.TableId);
+            if (table == null || table.Status != TableStatus.Playing)
+                throw new CustomException("Cannot order: table is not currently playing", 400);
+
             var order = new Order
             {
                 TableSessionId = sessionId,
