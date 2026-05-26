@@ -6,7 +6,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Billiard Admin Panel</title>
+    <title>Doanh thu - Billiard Admin Panel</title>
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
@@ -22,6 +22,20 @@
         <meta name="api-origin" content="https://localhost:5001" />
         <meta name="hub-base-url" content="https://localhost:5001" />
     }
+    <style>
+        .btn-xs {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            border-radius: 0.2rem;
+        }
+        .page-link {
+            cursor: pointer;
+        }
+        .bg-light-success {
+            background-color: #ecfdf5;
+            color: #065f46;
+        }
+    </style>
 </head>
 <body class="admin-body">
     <div id="admin-wrapper">
@@ -33,7 +47,7 @@
                         <i class="fa-solid fa-bars"></i>
                     </button>
                     <div class="topbar-breadcrumb">
-                        <span class="breadcrumb-label">@(ViewData["BreadcrumbTitle"] ?? ViewData["Title"])</span>
+                        <span class="breadcrumb-label">Quản lý Doanh thu</span>
                     </div>
                 </div>
                 <div class="topbar-right">
@@ -83,158 +97,541 @@
                     </div>
                 }
 
-@{
-    ViewData["Title"] = "Thống kê Doanh thu";
-    ViewData["BreadcrumbTitle"] = "Thống kê Doanh thu";
-}
-
-<div class="container-fluid p-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold text-dark mb-0">Thống kê Doanh thu</h2>
-        
-        <form method="get" class="d-flex gap-2 align-items-center">
-            <select asp-for="StaffId" asp-items="Model.StaffList" class="form-select form-select-sm" style="width: auto;">
-                <option value="">-- Tất cả Nhân viên --</option>
-            </select>
-            <input type="date" asp-for="FromDate" class="form-control form-control-sm" style="width: auto;" title="Từ ngày" />
-            <span>-</span>
-            <input type="date" asp-for="ToDate" class="form-control form-control-sm" style="width: auto;" title="Đến ngày" />
-            <button type="submit" class="btn btn-primary btn-sm">Lọc</button>
-            <a href="/Admin/Revenue/Index" class="btn btn-secondary btn-sm">Xóa lọc</a>
-        </form>
-    </div>
-
-    <div class="row mb-4">
-        <div class="col-md-6 mb-3">
-            <div class="card shadow-sm border-0 bg-primary text-white h-100">
-                <div class="card-body d-flex flex-column justify-content-center align-items-center p-4">
-                    <h5 class="card-title text-uppercase mb-2"><i class="fa-solid fa-money-bill-wave me-2"></i> Tổng Doanh Thu</h5>
-                    <h2 class="display-5 fw-bold mb-0" id="totalRevenueData">@Model.SummaryData.TotalRevenue.ToString("N0") VNĐ</h2>
+                <div class="dashboard-header mb-4">
+                    <h1 class="page-title">
+                        <i class="fa-solid fa-chart-line me-2"></i>Báo cáo Doanh thu Hệ thống
+                    </h1>
+                    <p class="page-subtitle">Xem thông tin doanh thu, số lượng hóa đơn, và hiệu suất của từng nhân viên.</p>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-6 mb-3">
-            <div class="card shadow-sm border-0 bg-success text-white h-100">
-                <div class="card-body d-flex flex-column justify-content-center align-items-center p-4">
-                    <h5 class="card-title text-uppercase mb-2"><i class="fa-solid fa-file-invoice me-2"></i> Tổng Hóa Đơn Đã Thanh Toán</h5>
-                    <h2 class="display-5 fw-bold mb-0">@Model.SummaryData.TotalInvoices</h2>
+
+                <!-- Filter Panel -->
+                <div class="card-panel mb-4">
+                    <div class="panel-body py-3">
+                        <form method="get" class="row g-3 align-items-center">
+                            <div class="col-12 col-md-3">
+                                <label class="form-label small text-muted mb-1">Lọc theo Nhân viên</label>
+                                <select asp-for="StaffId" asp-items="Model.StaffList" class="form-select form-select-sm">
+                                    <option value="">-- Tất cả Nhân viên --</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label small text-muted mb-1">Từ ngày</label>
+                                <input type="date" asp-for="FromDate" asp-format="{0:yyyy-MM-dd}" class="form-control form-control-sm" />
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label small text-muted mb-1">Đến ngày</label>
+                                <input type="date" asp-for="ToDate" asp-format="{0:yyyy-MM-dd}" class="form-control form-control-sm" />
+                            </div>
+                            <div class="col-12 col-md-3 d-flex align-items-end gap-2" style="margin-top: auto; padding-bottom: 2px;">
+                                <button type="submit" class="btn btn-sm btn-admin-primary flex-grow-1">
+                                    <i class="fa-solid fa-filter"></i> Lọc kết quả
+                                </button>
+                                <a href="/Admin/Revenue/Index" class="btn btn-sm btn-outline-secondary flex-grow-1 text-center py-2">
+                                    Xóa lọc
+                                </a>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body p-4">
-            <h5 class="card-title fw-bold mb-4">Biểu đồ doanh thu (Theo Ngày)</h5>
-            <canvas id="revenueChart" style="max-height: 350px;"></canvas>
-        </div>
-    </div>
+                <!-- KPI Cards -->
+                <div class="row g-4 mb-4">
+                    <!-- Today Revenue -->
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="kpi-card kpi-revenue h-100">
+                            <div class="kpi-icon"><i class="fa-solid fa-calendar-day"></i></div>
+                            <div class="kpi-body">
+                                <div class="kpi-label">Doanh thu Hôm nay</div>
+                                <div class="kpi-value text-nowrap">@Model.SummaryData.TodayRevenue.ToString("N0") đ</div>
+                                <div class="kpi-sub"><i class="fa-solid fa-clock me-1"></i>Hôm nay</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Month Revenue -->
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="kpi-card kpi-staff h-100">
+                            <div class="kpi-icon"><i class="fa-solid fa-calendar-days"></i></div>
+                            <div class="kpi-body">
+                                <div class="kpi-label">Doanh thu Tháng này</div>
+                                <div class="kpi-value text-nowrap">@Model.SummaryData.MonthRevenue.ToString("N0") đ</div>
+                                <div class="kpi-sub"><i class="fa-solid fa-calendar me-1"></i>Tháng @DateTime.Today.ToString("MM/yyyy")</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Total Revenue (Filtered) -->
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="kpi-card kpi-tables h-100">
+                            <div class="kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+                            <div class="kpi-body">
+                                <div class="kpi-label">Doanh thu Lọc</div>
+                                <div class="kpi-value text-nowrap">@Model.SummaryData.TotalRevenue.ToString("N0") đ</div>
+                                <div class="kpi-sub"><i class="fa-solid fa-sliders me-1"></i>Theo bộ lọc hiện tại</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Invoices Today -->
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="kpi-card kpi-orders h-100">
+                            <div class="kpi-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                            <div class="kpi-body">
+                                <div class="kpi-label">Hóa đơn Hôm nay</div>
+                                <div class="kpi-value text-nowrap">@Model.SummaryData.TodayInvoices HĐ</div>
+                                <div class="kpi-sub"><i class="fa-solid fa-circle-check text-success me-1"></i>Đã thanh toán hôm nay</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-4">
-            <h5 class="card-title fw-bold mb-3">Tổng hợp doanh thu theo nhân viên</h5>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Nhân viên</th>
-                            <th>Số lượng HĐ</th>
-                            <th>Tổng thu</th>
-                            <th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model.SummaryData.StaffRevenues.Any())
-                        {
-                            @foreach (var item in Model.SummaryData.StaffRevenues.OrderByDescending(x => x.TotalRevenue))
-                            {
-                                <tr>
-                                    <td class="fw-bold">@item.StaffName</td>
-                                    <td>@item.InvoicesCount</td>
-                                    <td class="text-success fw-bold">@item.TotalRevenue.ToString("N0") VNĐ</td>
-                                    <td>
-                                        <a href="/Admin/Revenue/StaffDetails?staffId=@item.StaffId" class="btn btn-sm btn-outline-info">
-                                            <i class="fa-solid fa-eye"></i> Chi tiết
-                                        </a>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="4" class="text-center py-4 text-muted">Không có dữ liệu</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
+                <!-- Charts Row -->
+                <div class="row g-4 mb-4">
+                    <div class="col-12 col-xl-6">
+                        <div class="card-panel h-100">
+                            <div class="panel-header">
+                                <h5 class="panel-title"><i class="fa-solid fa-chart-column me-2"></i>Doanh thu Hàng ngày (Cột)</h5>
+                                <p class="panel-sub">Chi tiết doanh thu theo từng ngày</p>
+                            </div>
+                            <div class="panel-body" style="position: relative; height: 300px;">
+                                <canvas id="dailyRevenueBarChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-xl-6">
+                        <div class="card-panel h-100">
+                            <div class="panel-header">
+                                <h5 class="panel-title"><i class="fa-solid fa-chart-line me-2"></i>Xu hướng Doanh thu Tích lũy (Đường)</h5>
+                                <p class="panel-sub">Biểu đồ xu hướng tăng trưởng doanh thu</p>
+                            </div>
+                            <div class="panel-body" style="position: relative; height: 300px;">
+                                <canvas id="revenueTrendLineChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
+                <!-- Staff Summary Table -->
+                <div class="card-panel mb-4">
+                    <div class="panel-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div>
+                            <h5 class="panel-title"><i class="fa-solid fa-users me-2"></i>Doanh thu theo Nhân viên</h5>
+                            <p class="panel-sub">Danh sách nhân viên xếp hạng theo doanh thu cao nhất</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <input type="text" id="staffSearchInput" class="form-control form-control-sm" placeholder="Tìm nhân viên..." style="max-width: 200px;" />
+                            <button onclick="exportStaffToExcel()" class="btn btn-sm btn-success text-white d-flex align-items-center gap-1">
+                                <i class="fa-solid fa-file-excel"></i> Xuất Excel
+                            </button>
+                        </div>
+                    </div>
+                    <div class="panel-body p-0">
+                        <div class="table-responsive">
+                            <table class="data-table" id="staffRevenueTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 80px;">Hạng</th>
+                                        <th>Nhân viên</th>
+                                        <th class="text-center">Số hóa đơn</th>
+                                        <th class="text-end">Doanh thu</th>
+                                        <th class="text-center" style="width: 250px;">Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between p-3 border-top flex-wrap gap-2">
+                            <div class="text-muted small" id="tableInfo"></div>
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0" id="tablePagination"></ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
             </main>
             <footer class="admin-footer">
                 <div class="text-muted small">&copy; 2026 Billiard Management System &mdash; Admin Panel</div>
             </footer>
         </div>
     </div>
+
+    <!-- Quick Details Modal -->
+    <div class="modal fade" id="quickDetailsModal" tabindex="-1" aria-labelledby="quickDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold" id="quickDetailsModalLabel">
+                        <i class="fa-solid fa-file-invoice-dollar me-2"></i>Hóa đơn nhân viên: <span id="modalStaffName"></span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="text-muted small">
+                            Danh sách các hóa đơn xử lý trong khoảng thời gian lọc.
+                        </div>
+                        <button onclick="exportModalInvoicesToExcel()" class="btn btn-sm btn-outline-success">
+                            <i class="fa-solid fa-file-excel me-1"></i> Xuất Excel
+                        </button>
+                    </div>
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-hover align-middle" id="modalInvoicesTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Mã HĐ</th>
+                                    <th>Bàn</th>
+                                    <th>Thời gian</th>
+                                    <th class="text-end">Tiền giờ+DV</th>
+                                    <th class="text-end">Giảm giá</th>
+                                    <th class="text-end">Thành tiền</th>
+                                    <th>Thanh toán</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded via API -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="loading-overlay">
         <div class="loading-spinner">
             <div class="spinner-ring"></div>
             <p class="mt-3 text-white">Đang tải...</p>
         </div>
     </div>
+
     <script src="/lib/jquery/dist/jquery.min.js"></script>
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/admin.js" asp-append-version="true"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Chart Data Prep
-            const dailyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SummaryData.DailyRevenues));
-            
-            const labels = dailyData.map(d => new Date(d.Date).toLocaleDateString('vi-VN'));
-            const dataPoints = dailyData.map(d => d.TotalRevenue);
 
-            const ctx = document.getElementById('revenueChart').getContext('2d');
-            new Chart(ctx, {
+    <script>
+        // Data passed from Razor PageModel
+        const staffRevenues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SummaryData.StaffRevenues.OrderByDescending(x => x.TotalRevenue)));
+        const dailyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SummaryData.DailyRevenues));
+
+        // 1. Render Summary Table with Search and Pagination
+        let currentPage = 1;
+        const pageSize = 5;
+        let filteredStaff = [...staffRevenues];
+
+        function renderTable() {
+            const tbody = document.querySelector('#staffRevenueTable tbody');
+            tbody.innerHTML = '';
+            
+            if (filteredStaff.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fa-solid fa-inbox fa-2x mb-2 d-block"></i>Không tìm thấy nhân viên</td></tr>`;
+                document.getElementById('tableInfo').textContent = 'Hiển thị 0 - 0 của 0 nhân viên';
+                document.getElementById('tablePagination').innerHTML = '';
+                return;
+            }
+            
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, filteredStaff.length);
+            const paginatedItems = filteredStaff.slice(startIndex, endIndex);
+            
+            paginatedItems.forEach((item, index) => {
+                const rank = startIndex + index + 1;
+                const row = document.createElement('tr');
+                
+                let rankBadge = `<span class="badge bg-secondary">${rank}</span>`;
+                if (rank === 1) rankBadge = `<span class="badge bg-warning text-dark"><i class="fa-solid fa-trophy"></i> 1</span>`;
+                else if (rank === 2) rankBadge = `<span class="badge bg-light text-dark border"><i class="fa-solid fa-medal text-muted"></i> 2</span>`;
+                else if (rank === 3) rankBadge = `<span class="badge bg-light text-dark border"><i class="fa-solid fa-medal text-warning"></i> 3</span>`;
+                
+                row.innerHTML = `
+                    <td>${rankBadge}</td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="avatar-xs">${item.StaffName.substring(0, 1).toUpperCase()}</div>
+                            <span class="fw-bold">${item.StaffName}</span>
+                        </div>
+                    </td>
+                    <td class="text-center">${item.InvoicesCount}</td>
+                    <td class="text-end text-success fw-bold">${item.TotalRevenue.toLocaleString('vi-VN')} đ</td>
+                    <td class="text-center">
+                        <button onclick="showQuickDetails('${item.StaffId}', '${item.StaffName}')" class="btn btn-xs btn-outline-primary me-1" title="Xem nhanh hóa đơn">
+                            <i class="fa-solid fa-eye"></i> Xem nhanh
+                        </button>
+                        <a href="/Admin/Revenue/StaffDetails?staffId=${item.StaffId}" class="btn btn-xs btn-outline-info" title="Xem báo cáo chi tiết">
+                            <i class="fa-solid fa-file-invoice"></i> Chi tiết
+                        </a>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Update Info
+            document.getElementById('tableInfo').textContent = `Hiển thị ${startIndex + 1} - ${endIndex} của ${filteredStaff.length} nhân viên`;
+            
+            // Update Pagination
+            const totalPages = Math.ceil(filteredStaff.length / pageSize);
+            const pagination = document.getElementById('tablePagination');
+            pagination.innerHTML = '';
+            
+            // Prev button
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<button class="page-link" onclick="changePage(${currentPage - 1})">&laquo;</button>`;
+            pagination.appendChild(prevLi);
+            
+            // Page buttons
+            for (let i = 1; i <= totalPages; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${currentPage === i ? 'active' : ''}`;
+                li.innerHTML = `<button class="page-link" onclick="changePage(${i})">${i}</button>`;
+                pagination.appendChild(li);
+            }
+            
+            // Next button
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<button class="page-link" onclick="changePage(${currentPage + 1})">&raquo;</button>`;
+            pagination.appendChild(nextLi);
+        }
+
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredStaff.length / pageSize);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderTable();
+        }
+
+        // Search event listener
+        document.getElementById('staffSearchInput').addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase().trim();
+            filteredStaff = staffRevenues.filter(item => item.StaffName.toLowerCase().includes(query));
+            currentPage = 1;
+            renderTable();
+        });
+
+        // 2. Charts Initialization
+        document.addEventListener('DOMContentLoaded', function () {
+            renderTable();
+
+            // Prepare Chart Data
+            const chartLabels = dailyData.map(d => {
+                const date = new Date(d.Date);
+                return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+            });
+            const chartData = dailyData.map(d => d.TotalRevenue);
+
+            // Cumulative running total for line trend
+            let cumulativeTotal = 0;
+            const cumulativeData = dailyData.map(d => {
+                cumulativeTotal += d.TotalRevenue;
+                return cumulativeTotal;
+            });
+
+            // Column (Bar) Chart
+            const barCtx = document.getElementById('dailyRevenueBarChart').getContext('2d');
+            new Chart(barCtx, {
                 type: 'bar',
                 data: {
-                    labels: labels,
+                    labels: chartLabels.length ? chartLabels : ['Không có dữ liệu'],
                     datasets: [{
-                        label: 'Doanh thu',
-                        data: dataPoints,
-                        backgroundColor: 'rgba(13, 110, 253, 0.7)',
-                        borderColor: '#0d6efd',
-                        borderWidth: 1
+                        label: 'Doanh thu Ngày (đ)',
+                        data: chartData.length ? chartData : [0],
+                        backgroundColor: 'rgba(99, 102, 241, 0.75)',
+                        borderColor: '#6366f1',
+                        borderWidth: 1.5,
+                        borderRadius: 4
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
                     scales: {
-                        y: { beginAtZero: true }
+                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Line Chart
+            const lineCtx = document.getElementById('revenueTrendLineChart').getContext('2d');
+            new Chart(lineCtx, {
+                type: 'line',
+                data: {
+                    labels: chartLabels.length ? chartLabels : ['Không có dữ liệu'],
+                    datasets: [{
+                        label: 'Tích lũy (đ)',
+                        data: cumulativeData.length ? cumulativeData : [0],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                        borderWidth: 2.5,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#10b981',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        x: { grid: { display: false } }
                     }
                 }
             });
 
             // SignalR Connection
+            const hubBase = document.querySelector('meta[name="hub-base-url"]')?.content || 'https://localhost:5001';
             const connection = new signalR.HubConnectionBuilder()
-                .withUrl("https://localhost:7198/hubs/notification")
+                .withUrl(hubBase + "/hubs/notification")
                 .withAutomaticReconnect()
                 .build();
 
             connection.on("ReceiveInvoiceNotification", function () {
-                window.location.reload();
+                // Flash overlay and reload
+                const overlay = document.getElementById('loading-overlay');
+                if (overlay) overlay.style.display = 'flex';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
             });
 
             connection.start().catch(function (err) {
-                return console.error(err.toString());
+                console.warn("SignalR Connection failed: ", err);
             });
         });
+
+        // 3. Quick View Modal Invoices
+        let currentModalInvoices = [];
+        let currentModalStaffName = '';
+
+        async function showQuickDetails(staffId, staffName) {
+            currentModalStaffName = staffName;
+            document.getElementById('modalStaffName').textContent = staffName;
+            const tbody = document.querySelector('#modalInvoicesTable tbody');
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Đang tải hóa đơn...</td></tr>`;
+            
+            const myModal = new bootstrap.Modal(document.getElementById('quickDetailsModal'));
+            myModal.show();
+            
+            try {
+                const token = document.querySelector('meta[name="api-token"]')?.content;
+                const apiBase = document.querySelector('meta[name="api-base-url"]')?.content || 'https://localhost:5001/api/';
+                
+                let url = `${apiBase}revenues/staff/${staffId}`;
+                
+                // Keep the current dates if loaded
+                const fromDateVal = '@(Model.FromDate?.ToString("yyyy-MM-dd"))';
+                const toDateVal = '@(Model.ToDate?.ToString("yyyy-MM-dd"))';
+                const params = [];
+                if (fromDateVal) params.push(`fromDate=${encodeURIComponent(fromDateVal)}`);
+                if (toDateVal) params.push(`toDate=${encodeURIComponent(toDateVal)}`);
+                if (params.length) url += `?${params.join('&')}`;
+
+                const res = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!res.ok) throw new Error('API Error');
+                
+                let json;
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    json = await res.json();
+                } else {
+                    throw new Error('API Response was not JSON');
+                }
+                
+                if (json.success && json.data) {
+                    currentModalInvoices = json.data.revenues || [];
+                    renderModalTable();
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">Không thể lấy dữ liệu doanh thu.</td></tr>`;
+                }
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">Lỗi kết nối API. Vui lòng thử lại.</td></tr>`;
+            }
+        }
+
+        function renderModalTable() {
+            const tbody = document.querySelector('#modalInvoicesTable tbody');
+            tbody.innerHTML = '';
+            
+            if (currentModalInvoices.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">Không có hóa đơn nào</td></tr>`;
+                return;
+            }
+            
+            currentModalInvoices.forEach(inv => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><small class="text-muted">${inv.invoiceId.substring(0, 8)}</small></td>
+                    <td class="fw-bold">${inv.tableName}</td>
+                    <td>${new Date(inv.paidAt).toLocaleString('vi-VN')}</td>
+                    <td class="text-end">${inv.subtotal.toLocaleString('vi-VN')} đ</td>
+                    <td class="text-end text-danger">-${inv.discount.toLocaleString('vi-VN')} đ</td>
+                    <td class="text-end text-success fw-bold">${inv.totalAmount.toLocaleString('vi-VN')} đ</td>
+                    <td>
+                        <span class="badge bg-light-success">
+                            ${inv.paymentMethod}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // 4. Export to Excel (CSV format)
+        function exportStaffToExcel() {
+            let csv = '\uFEFF'; // UTF-8 BOM
+            csv += 'XẾP HẠNG DOANH THU NHÂN VIÊN\n';
+            csv += `Thời gian lọc: ${'@(Model.FromDate?.ToString("dd/MM/yyyy") ?? "Tất cả")'} đến ${'@(Model.ToDate?.ToString("dd/MM/yyyy") ?? "Tất cả")'}\n\n`;
+            csv += 'Hạng,Nhân viên,Số hóa đơn,Doanh thu (đ)\n';
+            
+            staffRevenues.forEach((item, index) => {
+                csv += `"${index + 1}","${item.StaffName}","${item.InvoicesCount}","${item.TotalRevenue}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', `bao_cao_doanh_thu_nhan_vien_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportModalInvoicesToExcel() {
+            if (!currentModalInvoices.length) return;
+            let csv = '\uFEFF'; // UTF-8 BOM
+            csv += `Báo cáo hóa đơn chi tiết - Nhân viên: ${currentModalStaffName}\n`;
+            csv += `Khoảng thời gian: ${'@(Model.FromDate?.ToString("dd/MM/yyyy") ?? "Tất cả")'} đến ${'@(Model.ToDate?.ToString("dd/MM/yyyy") ?? "Tất cả")'}\n\n`;
+            csv += 'Mã hóa đơn,Billiard Table,Thời gian thanh toán,Tiền trước giảm (đ),Giảm giá (đ),Thành tiền (đ),Hình thức\n';
+            
+            currentModalInvoices.forEach(inv => {
+                csv += `"${inv.invoiceId}","${inv.tableName}","${new Date(inv.paidAt).toLocaleString('vi-VN')}","${inv.subtotal}","${inv.discount}","${inv.totalAmount}","${inv.paymentMethod}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', `hoa_don_${currentModalStaffName}_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
 </body>
 </html>

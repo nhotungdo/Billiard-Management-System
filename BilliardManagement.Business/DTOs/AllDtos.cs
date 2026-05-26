@@ -219,7 +219,22 @@ namespace BilliardManagement.Business.DTOs
     }
     public class CreateOrderItemDto { public Guid ProductId { get; set; } public int Quantity { get; set; } }
 
-    public class BillDto { public Guid Id { get; set; } public Guid SessionId { get; set; } public decimal Subtotal { get; set; } public decimal Discount { get; set; } public decimal Total { get; set; } public PaymentMethod PaymentMethod { get; set; } public bool IsPaid { get; set; } }
+    public class BillDto
+    {
+        public Guid Id { get; set; }
+        public Guid SessionId { get; set; }
+        public decimal Subtotal { get; set; }
+        public decimal Discount { get; set; }
+        public decimal Total { get; set; }
+        public PaymentMethod PaymentMethod { get; set; }
+        public bool IsPaid { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string TableName { get; set; } = string.Empty;
+        public string TableType { get; set; } = string.Empty;
+        public string StaffName { get; set; } = string.Empty;
+        public decimal PlayingFee { get; set; }
+        public decimal ServiceFee { get; set; }
+    }
     public class GenerateBillDto { public decimal Discount { get; set; } public PaymentMethod PaymentMethod { get; set; } }
     
     public class ShiftDto { public Guid Id { get; set; } public Guid UserId { get; set; } public DateTime CheckIn { get; set; } public DateTime? CheckOut { get; set; } public decimal Revenue { get; set; } }
@@ -235,6 +250,11 @@ namespace BilliardManagement.Business.DTOs
         public decimal Discount { get; set; }
         public decimal TotalAmount { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
+        public DateTime StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public double PlayTimeMinutes { get; set; }
+        public decimal PlayingFee { get; set; }
+        public decimal ServiceFee { get; set; }
     }
 
     public class PersonalRevenueDto
@@ -243,6 +263,10 @@ namespace BilliardManagement.Business.DTOs
         public string StaffName { get; set; } = string.Empty;
         public decimal TotalRevenue { get; set; }
         public int InvoicesCount { get; set; }
+        public decimal TodayRevenue { get; set; }
+        public decimal MonthRevenue { get; set; }
+        public decimal UnfilteredTotalRevenue { get; set; }
+        public int UnfilteredInvoicesCount { get; set; }
         public List<RevenueDto> Revenues { get; set; } = new();
     }
 
@@ -258,6 +282,9 @@ namespace BilliardManagement.Business.DTOs
     {
         public decimal TotalRevenue { get; set; }
         public int TotalInvoices { get; set; }
+        public decimal TodayRevenue { get; set; }
+        public int TodayInvoices { get; set; }
+        public decimal MonthRevenue { get; set; }
         public List<StaffRevenueDto> StaffRevenues { get; set; } = new();
         public List<DailyRevenueDto> DailyRevenues { get; set; } = new();
     }

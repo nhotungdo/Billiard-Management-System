@@ -1,49 +1,35 @@
 using BilliardManagement.Web.Models;
+using BilliardManagement.Web.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Text.Json;
-using System.Net.Http.Headers;
 
 namespace BilliardManagement.Web.Pages.Staff.Revenue
 {
     public class IndexModel : StaffPageModel
     {
-        private readonly IHttpClientFactory _clientFactory;
-        private readonly IConfiguration _config;
+        private readonly RevenueService _revenueService;
 
-        public IndexModel(IHttpClientFactory clientFactory, IConfiguration config)
+        public IndexModel(RevenueService revenueService)
         {
-            _clientFactory = clientFactory;
-            _config = config;
+            _revenueService = revenueService;
         }
 
         public PersonalRevenueDto RevenueData { get; set; } = new();
 
         [BindProperty(SupportsGet = true)]
-        public DateTime? FilterDate { get; set; }
+        public DateTime? FromDate { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public DateTime? ToDate { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
         {
-            var token = HttpContext.Session.GetString("JWToken");
-            if (string.IsNullOrEmpty(token)) return RedirectToPage("/Auth/Login");
-
-            var client = _clientFactory.CreateClient("Api");
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-            var query = "";
-            if (FilterDate.HasValue)
+            try
             {
-                var startOfDay = FilterDate.Value.Date.ToString("o");
-                var endOfDay = FilterDate.Value.Date.AddDays(1).AddTicks(-1).ToString("o");
-                query = $"?fromDate={startOfDay}&toDate={endOfDay}";
+                RevenueData = await _revenueService.GetPersonalRevenueAsync(FromDate, ToDate) ?? new();
             }
-
-            var response = await client.GetAsync($"/api/revenues/personal{query}");
-            if (response.IsSuccessStatusCode)
+            catch (Exception ex)
             {
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var content = await response.Content.ReadAsStringAsync();
-                RevenueData = JsonSerializer.Deserialize<PersonalRevenueDto>(content, options) ?? new();
+                TempData["ErrorMessage"] = "Không thể tải báo cáo doanh thu cá nhân: " + ex.Message;
             }
 
             return Page();

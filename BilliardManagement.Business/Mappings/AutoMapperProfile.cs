@@ -49,7 +49,12 @@ namespace BilliardManagement.Business.Mappings
 
             CreateMap<Invoice, BillDto>()
                 .ForMember(dest => dest.SessionId, opt => opt.MapFrom(src => src.TableSessionId))
-                .ForMember(dest => dest.Total, opt => opt.MapFrom(src => src.TotalAmount));
+                .ForMember(dest => dest.Total, opt => opt.MapFrom(src => src.TotalAmount))
+                .ForMember(dest => dest.TableName, opt => opt.MapFrom(src => src.TableSession != null && src.TableSession.BilliardTable != null ? src.TableSession.BilliardTable.TableName : string.Empty))
+                .ForMember(dest => dest.TableType, opt => opt.MapFrom(src => src.TableSession != null && src.TableSession.BilliardTable != null ? src.TableSession.BilliardTable.TableType : string.Empty))
+                .ForMember(dest => dest.StaffName, opt => opt.MapFrom(src => src.TableSession != null && src.TableSession.User != null ? src.TableSession.User.FullName : string.Empty))
+                .ForMember(dest => dest.PlayingFee, opt => opt.MapFrom(src => src.TableSession != null ? src.TableSession.TotalPrice : 0))
+                .ForMember(dest => dest.ServiceFee, opt => opt.MapFrom(src => src.TableSession != null ? Math.Max(0, src.Subtotal - src.TableSession.TotalPrice) : 0));
             CreateMap<BillDto, Invoice>()
                 .ForMember(dest => dest.TableSessionId, opt => opt.MapFrom(src => src.SessionId))
                 .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => src.Total));

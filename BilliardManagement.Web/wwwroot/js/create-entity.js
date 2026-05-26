@@ -41,7 +41,16 @@
                 description: formData.description || ''
             })
         });
-        const json = await res.json();
+        
+        let json;
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+            json = await res.json();
+        } else {
+            const text = await res.text();
+            throw new Error(text || `Lỗi hệ thống (${res.status})`);
+        }
+
         if (!res.ok || !(json.success ?? json.Success))
             throw new Error(json.message || json.Message || 'Không thể tạo dữ liệu');
         return json.data || json.Data;
@@ -54,7 +63,16 @@
             headers: { 'Authorization': 'Bearer ' + API_TOKEN },
             body: fd
         });
-        const json = await res.json();
+
+        let json;
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+            json = await res.json();
+        } else {
+            const text = await res.text();
+            throw new Error(text || `Lỗi hệ thống (${res.status})`);
+        }
+
         if (!res.ok || !(json.success ?? json.Success))
             throw new Error(json.message || json.Message || 'Không thể tạo dữ liệu');
         return json.data || json.Data;
@@ -108,6 +126,11 @@
                     const res = await fetch(API_BASE + 'products/check-name?name=' + encodeURIComponent(name), {
                         headers: { 'Authorization': 'Bearer ' + API_TOKEN }
                     });
+                    
+                    const contentType = res.headers.get("content-type");
+                    if (!res.ok || !contentType || contentType.indexOf("application/json") === -1) {
+                        return;
+                    }
                     const json = await res.json();
                     if (json.isDuplicate) {
                         nameInput.classList.add('is-invalid');

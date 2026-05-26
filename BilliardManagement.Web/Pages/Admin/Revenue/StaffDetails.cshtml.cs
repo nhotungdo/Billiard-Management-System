@@ -1,18 +1,16 @@
 using BilliardManagement.Web.Models;
+using BilliardManagement.Web.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Text.Json;
-using System.Net.Http.Headers;
 
 namespace BilliardManagement.Web.Pages.Admin.Revenue
 {
     public class StaffDetailsModel : AdminPageModel
     {
-        private readonly IHttpClientFactory _clientFactory;
+        private readonly RevenueService _revenueService;
 
-        public StaffDetailsModel(IHttpClientFactory clientFactory)
+        public StaffDetailsModel(RevenueService revenueService)
         {
-            _clientFactory = clientFactory;
+            _revenueService = revenueService;
         }
 
         public PersonalRevenueDto StaffRevenueData { get; set; } = new();
@@ -28,29 +26,15 @@ namespace BilliardManagement.Web.Pages.Admin.Revenue
 
         public async Task<IActionResult> OnGetAsync()
         {
-            var token = HttpContext.Session.GetString("JWToken");
-            if (string.IsNullOrEmpty(token)) return RedirectToPage("/Auth/Login");
-
             if (StaffId == Guid.Empty) return RedirectToPage("/Admin/Revenue/Index");
 
-            var client = _clientFactory.CreateClient("Api");
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-            var queryParams = new List<string>();
-            if (FromDate.HasValue) queryParams.Add($"fromDate={FromDate.Value.ToString("o")}");
-            if (ToDate.HasValue) queryParams.Add($"toDate={ToDate.Value.ToString("o")}");
-            
-            var query = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-
-            var response = await client.GetAsync($"/api/revenues/staff/{StaffId}{query}");
-            if (response.IsSuccessStatusCode)
+            try
             {
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var content = await response.Content.ReadAsStringAsync();
-                StaffRevenueData = JsonSerializer.Deserialize<PersonalRevenueDto>(content, options) ?? new();
+                StaffRevenueData = await _revenueService.GetStaffRevenueAsync(StaffId, FromDate, ToDate) ?? new();
             }
-            else
+            catch (Exception ex)
             {
+                TempData["ErrorMessage"] = ex.Message;
                 return RedirectToPage("/Admin/Revenue/Index");
             }
 

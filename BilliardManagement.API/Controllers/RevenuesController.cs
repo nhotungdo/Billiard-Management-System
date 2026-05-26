@@ -1,5 +1,6 @@
 using BilliardManagement.Business.DTOs;
 using BilliardManagement.Business.Interfaces;
+using BilliardManagement.Common.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -27,15 +28,15 @@ namespace BilliardManagement.API.Controllers
                 var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
                 {
-                    return Unauthorized("Invalid user token");
+                    return Unauthorized(ApiResponse<object>.Fail("Invalid user token"));
                 }
 
                 var result = await _revenueService.GetPersonalRevenueAsync(userId, fromDate, toDate);
-                return Ok(result);
+                return Ok(ApiResponse<PersonalRevenueDto>.Ok(result));
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
         }
 
@@ -46,11 +47,11 @@ namespace BilliardManagement.API.Controllers
             try
             {
                 var result = await _revenueService.GetTotalRevenueAsync(filter);
-                return Ok(result);
+                return Ok(ApiResponse<RevenueSummaryDto>.Ok(result));
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
         }
 
@@ -61,11 +62,11 @@ namespace BilliardManagement.API.Controllers
             try
             {
                 var result = await _revenueService.GetRevenueByStaffAsync(staffId, fromDate, toDate);
-                return Ok(result);
+                return Ok(ApiResponse<PersonalRevenueDto>.Ok(result));
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
         }
     }

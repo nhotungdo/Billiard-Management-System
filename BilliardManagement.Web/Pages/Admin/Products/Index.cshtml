@@ -199,7 +199,15 @@
                     }
                 });
                 
-                const json = await res.json();
+                let json;
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    json = await res.json();
+                } else {
+                    const text = await res.text();
+                    throw new Error(text || `Không thể xóa sản phẩm (${res.status})`);
+                }
+
                 if (!res.ok || !(json.success ?? json.Success)) {
                     throw new Error(json.message || 'Không thể xóa sản phẩm');
                 }

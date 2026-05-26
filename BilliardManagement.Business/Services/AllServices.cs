@@ -116,7 +116,7 @@ namespace BilliardManagement.Business.Services
 
             var table = _mapper.Map<BilliardTable>(dto);
             table.TableName = dto.TableName.Trim();
-            table.TableType = dto.TableType.Trim();
+            table.TableType = dto.TableType?.Trim() ?? string.Empty;
             table.Status = status;
             table.Description = dto.Description?.Trim();
 
@@ -205,7 +205,7 @@ namespace BilliardManagement.Business.Services
             }
 
             table.TableName = dto.TableName.Trim();
-            table.TableType = dto.TableType.Trim();
+            table.TableType = dto.TableType?.Trim() ?? string.Empty;
             table.HourlyRate = dto.PricePerHour;
             table.Description = dto.Description?.Trim();
 

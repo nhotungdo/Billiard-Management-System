@@ -217,6 +217,10 @@
                         const res = await fetch(API_BASE + 'products/check-name?name=' + encodeURIComponent(name) + '&excludeId=' + productId, {
                             headers: { 'Authorization': 'Bearer ' + API_TOKEN }
                         });
+                        const contentType = res.headers.get("content-type");
+                        if (!res.ok || !contentType || contentType.indexOf("application/json") === -1) {
+                            return;
+                        }
                         const json = await res.json();
                         if (json.isDuplicate) {
                             nameInput.classList.add('is-invalid');

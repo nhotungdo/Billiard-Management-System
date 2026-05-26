@@ -1,21 +1,18 @@
 using BilliardManagement.Web.Models;
 using BilliardManagement.Web.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using System.Text.Json;
-using System.Net.Http.Headers;
 
 namespace BilliardManagement.Web.Pages.Admin.Revenue
 {
     public class IndexModel : AdminPageModel
     {
-        private readonly IHttpClientFactory _clientFactory;
+        private readonly RevenueService _revenueService;
         private readonly StaffService _staffService;
 
-        public IndexModel(IHttpClientFactory clientFactory, StaffService staffService)
+        public IndexModel(RevenueService revenueService, StaffService staffService)
         {
-            _clientFactory = clientFactory;
+            _revenueService = revenueService;
             _staffService = staffService;
         }
 
@@ -34,44 +31,39 @@ namespace BilliardManagement.Web.Pages.Admin.Revenue
 
         public async Task<IActionResult> OnGetAsync()
         {
-            var token = HttpContext.Session.GetString("JWToken");
-            if (string.IsNullOrEmpty(token)) return RedirectToPage("/Auth/Login");
+            await LoadStaffListAsync();
 
-            var client = _clientFactory.CreateClient("Api");
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-            // Fetch Staff list for filter
             try
             {
-                var staffs = await _staffService.GetAllStaffAsync();
-                if (staffs != null)
-                {
-                    // Only roles: Staff
-                    StaffList = staffs.Where(u => u.Role == 2).Select(u => new SelectListItem
-                    {
-                        Value = u.Id.ToString(),
-                        Text = u.FullName
-                    }).ToList();
-                }
+                SummaryData = await _revenueService.GetTotalRevenueAsync(StaffId, FromDate, ToDate) ?? new();
             }
-            catch { }
-
-            var queryParams = new List<string>();
-            if (FromDate.HasValue) queryParams.Add($"fromDate={FromDate.Value.ToString("o")}");
-            if (ToDate.HasValue) queryParams.Add($"toDate={ToDate.Value.ToString("o")}");
-            if (StaffId.HasValue) queryParams.Add($"staffId={StaffId.Value}");
-            
-            var query = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-
-            var response = await client.GetAsync($"/api/revenues/total{query}");
-            if (response.IsSuccessStatusCode)
+            catch (Exception ex)
             {
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var content = await response.Content.ReadAsStringAsync();
-                SummaryData = JsonSerializer.Deserialize<RevenueSummaryDto>(content, options) ?? new();
+                TempData["ErrorMessage"] = "Không thể tải dữ liệu thống kê: " + ex.Message;
             }
 
             return Page();
+        }
+
+        private async Task LoadStaffListAsync()
+        {
+            try
+            {
+                var staffs = await _staffService.GetAllStaffAsync();
+                StaffList = staffs?
+                    .Where(u => u.Role == 2) // Staff members only
+                    .Select(u => new SelectListItem
+                    {
+                        Value = u.Id.ToString(),
+                        Text = u.FullName,
+                        Selected = StaffId == u.Id
+                    })
+                    .ToList() ?? new();
+            }
+            catch
+            {
+                StaffList = new();
+            }
         }
     }
 }

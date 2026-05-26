@@ -101,7 +101,7 @@ namespace BilliardManagement.API.Controllers
                             {
                                 SessionId = sessionDto.Id,
                                 TableId = sessionDto.TableId,
-                                TableName = sessionDto.TableName,
+                                TableName = sessionDto.TableName ?? string.Empty,
                                 Status = (int)sessionDto.Status,
                                 TableStatus = 2, // Playing
                                 StartTime = sessionDto.StartTime,

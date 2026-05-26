@@ -52,20 +52,20 @@ namespace BilliardManagement.Business.Services
 
         public async Task<IEnumerable<BillDto>> GetAllBillsAsync()
         {
-            var bills = await _unitOfWork.Repository<Invoice>().GetAllAsync();
+            var bills = await _unitOfWork.Repository<Invoice>().GetAllAsync(includeProperties: "TableSession,TableSession.BilliardTable,TableSession.User");
             return _mapper.Map<IEnumerable<BillDto>>(bills);
         }
 
         public async Task<BillDto> GetBillByIdAsync(Guid id)
         {
-            var bill = await _unitOfWork.Repository<Invoice>().GetByIdAsync(id);
+            var bill = await _unitOfWork.Repository<Invoice>().GetFirstOrDefaultAsync(i => i.Id == id, "TableSession,TableSession.BilliardTable,TableSession.User");
             if (bill == null) throw new CustomException("Bill not found", 404);
             return _mapper.Map<BillDto>(bill);
         }
 
         public async Task<BillDto> PayBillAsync(Guid id)
         {
-            var bill = await _unitOfWork.Repository<Invoice>().GetByIdAsync(id);
+            var bill = await _unitOfWork.Repository<Invoice>().GetFirstOrDefaultAsync(i => i.Id == id, "TableSession,TableSession.BilliardTable,TableSession.User");
             if (bill == null) throw new CustomException("Bill not found", 404);
 
             bill.IsPaid = true;
@@ -81,7 +81,10 @@ namespace BilliardManagement.Business.Services
 
             if (query.IsPaid.HasValue)
             {
-                filters.Add(i => i.IsPaid == query.IsPaid.Value);
+                if (query.IsPaid.Value == false)
+                {
+                    filters.Add(i => false);
+                }
             }
             if (query.PaymentMethod.HasValue)
             {
@@ -104,16 +107,20 @@ namespace BilliardManagement.Business.Services
                 {
                     orderBy = q => query.IsDescending ? q.OrderByDescending(i => i.Subtotal) : q.OrderBy(i => i.Subtotal);
                 }
+                else if (query.SortBy.Equals("CreatedAt", StringComparison.OrdinalIgnoreCase) || query.SortBy.Equals("Date", StringComparison.OrdinalIgnoreCase))
+                {
+                    orderBy = q => query.IsDescending ? q.OrderByDescending(i => i.CreatedAt) : q.OrderBy(i => i.CreatedAt);
+                }
             }
             else
             {
-                orderBy = q => q.OrderByDescending(i => i.Id);
+                orderBy = q => q.OrderByDescending(i => i.CreatedAt);
             }
 
             var (items, totalCount) = await _unitOfWork.Repository<Invoice>().GetPagedAsync(
                 filters: filters,
                 orderBy: orderBy,
-                includeProperties: null,
+                includeProperties: "TableSession,TableSession.BilliardTable,TableSession.User",
                 page: query.PageNumber,
                 pageSize: query.PageSize
             );

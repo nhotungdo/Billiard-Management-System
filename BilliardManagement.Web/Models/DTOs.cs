@@ -120,7 +120,22 @@ namespace BilliardManagement.Web.Models
     }
     public class CreateOrderItemDto { public Guid ProductId { get; set; } public int Quantity { get; set; } }
 
-    public class InvoiceDto { public Guid Id { get; set; } public Guid SessionId { get; set; } public decimal Subtotal { get; set; } public decimal Discount { get; set; } public decimal Total { get; set; } public int PaymentMethod { get; set; } public bool IsPaid { get; set; } }
+    public class InvoiceDto
+    {
+        public Guid Id { get; set; }
+        public Guid SessionId { get; set; }
+        public decimal Subtotal { get; set; }
+        public decimal Discount { get; set; }
+        public decimal Total { get; set; }
+        public int PaymentMethod { get; set; }
+        public bool IsPaid { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string TableName { get; set; } = string.Empty;
+        public string TableType { get; set; } = string.Empty;
+        public string StaffName { get; set; } = string.Empty;
+        public decimal PlayingFee { get; set; }
+        public decimal ServiceFee { get; set; }
+    }
     public class CreateInvoiceDto { public decimal Discount { get; set; } public int PaymentMethod { get; set; } }
 
     public class StaffDto
@@ -151,7 +166,28 @@ namespace BilliardManagement.Web.Models
 
     public class RevenueDto { public DateTime Date { get; set; } public decimal TotalRevenue { get; set; } }
 
-    public class DashboardDto { public decimal TotalRevenue { get; set; } public int ActiveTables { get; set; } public int OrdersToday { get; set; } public string TopCustomer { get; set; } = string.Empty; }
+    public class DashboardDto
+    {
+        public decimal TotalRevenue { get; set; }
+        public int ActiveTables { get; set; }
+        public int OrdersToday { get; set; }
+        public string TopCustomer { get; set; } = string.Empty;
+
+        [JsonPropertyName("todayRevenue")]
+        public decimal TodayRevenue { get => TotalRevenue; set => TotalRevenue = value; }
+
+        [JsonPropertyName("totalOrdersToday")]
+        public int TotalOrdersToday { get => OrdersToday; set => OrdersToday = value; }
+    }
+
+    public class ShiftDto
+    {
+        public Guid Id { get; set; }
+        public Guid UserId { get; set; }
+        public DateTime CheckIn { get; set; }
+        public DateTime? CheckOut { get; set; }
+        public decimal Revenue { get; set; }
+    }
 
     public class CategoryDto
     {
@@ -187,6 +223,11 @@ namespace BilliardManagement.Web.Models
         public decimal Discount { get; set; }
         public decimal TotalAmount { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
+        public DateTime StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public double PlayTimeMinutes { get; set; }
+        public decimal PlayingFee { get; set; }
+        public decimal ServiceFee { get; set; }
     }
 
     public class PersonalRevenueDto
@@ -195,6 +236,10 @@ namespace BilliardManagement.Web.Models
         public string StaffName { get; set; } = string.Empty;
         public decimal TotalRevenue { get; set; }
         public int InvoicesCount { get; set; }
+        public decimal TodayRevenue { get; set; }
+        public decimal MonthRevenue { get; set; }
+        public decimal UnfilteredTotalRevenue { get; set; }
+        public int UnfilteredInvoicesCount { get; set; }
         public List<RevenueDetailDto> Revenues { get; set; } = new();
     }
 
@@ -210,6 +255,9 @@ namespace BilliardManagement.Web.Models
     {
         public decimal TotalRevenue { get; set; }
         public int TotalInvoices { get; set; }
+        public decimal TodayRevenue { get; set; }
+        public int TodayInvoices { get; set; }
+        public decimal MonthRevenue { get; set; }
         public List<StaffRevenueDto> StaffRevenues { get; set; } = new();
         public List<DailyRevenueDto> DailyRevenues { get; set; } = new();
     }
