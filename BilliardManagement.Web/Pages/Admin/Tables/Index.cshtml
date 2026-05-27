@@ -205,9 +205,9 @@
                         var cfg = t.Status switch
                         {
                             1 => ("success", "Trống bàn", "circle-check"),
-                            2 => ("danger", "Đang chơi", "circle-play"),
+                            2 => ("primary", "Đang chơi", "circle-play"),
                             3 => ("warning", "Đặt trước", "clock"),
-                            4 => ("secondary", "Bảo trì", "wrench"),
+                            4 => ("danger", "Bảo trì", "wrench"),
                             _ => ("dark", "Không xác định", "question")
                         };
                         <tr id="row-@t.Id" data-table-id="@t.Id" data-status="@t.Status">
@@ -237,6 +237,12 @@
                                         <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
                                     </span>
                                     <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-outline-info view-history-btn"
+                                                data-id="@t.Id"
+                                                data-tablename="@t.TableName"
+                                                title="Lịch sử trạng thái">
+                                            <i class="fa-solid fa-clock-rotate-left"></i>
+                                        </button>
                                         <button type="button" class="btn btn-sm btn-outline-primary edit-table-btn"
                                                 data-id="@t.Id"
                                                 data-tablename="@t.TableName"
@@ -264,6 +270,47 @@
 </div>
 
 <partial name="_CreateTableModal" />
+
+<!-- Table Status History Modal -->
+<div class="modal fade" id="statusHistoryModal" tabindex="-1" aria-labelledby="statusHistoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title font-weight-bold" id="statusHistoryModalLabel">
+                    <i class="fa-solid fa-clock-rotate-left me-2 text-warning"></i>
+                    Lịch sử trạng thái - <span id="historyModalTableName" class="text-info">Bàn</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive" style="max-height: 450px;">
+                    <table class="table table-hover table-striped mb-0 align-middle">
+                        <thead class="table-dark position-sticky top-0" style="z-index: 1;">
+                            <tr>
+                                <th>Thời gian</th>
+                                <th>Trạng thái cũ</th>
+                                <th>Trạng thái mới</th>
+                                <th>Người thực hiện</th>
+                                <th>Lý do / Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-tbody">
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    <span class="spinner-border spinner-border-sm text-primary me-2" role="status"></span>
+                                    Đang tải lịch sử...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Edit Table Modal -->
 <div class="modal fade" id="editTableModal" tabindex="-1" aria-labelledby="editTableModalLabel" aria-hidden="true">
@@ -338,10 +385,10 @@
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/admin.js" asp-append-version="true"></script>
 
-<script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
-<script src="~/js/table-status.js" asp-append-version="true"></script>
-<script src="~/js/create-entity.js" asp-append-version="true"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/js/table-status.js" asp-append-version="true"></script>
+<script src="/js/create-entity.js" asp-append-version="true"></script>
 <style>
     .fw-500 { font-weight: 500; }
     .status-select:disabled { opacity: 0.7; }
@@ -400,7 +447,7 @@
         recalcStats();
     }
 
-    async function updateTableStatus(tableId, statusKey) {
+    async function updateTableStatus(tableId, statusKey, reason = '', force = false) {
         const spinner = document.getElementById('spinner-' + tableId);
         const select = document.querySelector(`.status-select[data-table-id="${tableId}"]`);
         if (select) select.disabled = true;
@@ -413,7 +460,7 @@
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + API_TOKEN
                 },
-                body: JSON.stringify({ status: statusKey })
+                body: JSON.stringify({ status: statusKey, reason: reason, force: force })
             });
 
             let json;
@@ -432,25 +479,133 @@
             const data = json.data || json.Data;
             const newStatus = STATUS_ENUM[statusKey] || data?.status || data?.Status;
             applyStatusToRow(tableId, newStatus);
-            showToast('Cập nhật trạng thái bàn thành công', 'success');
+            Swal.fire({
+                icon: 'success',
+                title: 'Thành công',
+                text: 'Cập nhật trạng thái bàn thành công',
+                timer: 1500,
+                showConfirmButton: false
+            });
         } catch (err) {
             if (select) select.value = getTableStatusConfig(parseInt(select.dataset.original)).key;
-            showToast(err.message || 'Không thể cập nhật trạng thái bàn', 'error');
+            Swal.fire({
+                icon: 'error',
+                title: 'Thất bại',
+                text: err.message || 'Không thể cập nhật trạng thái bàn'
+            });
         } finally {
             if (select) select.disabled = false;
             if (spinner) spinner.classList.add('d-none');
         }
     }
 
-    document.querySelectorAll('.status-select').forEach(function (sel) {
-        sel.addEventListener('change', function () {
-            const tableId = this.dataset.tableId;
-            const newKey = this.value;
-            const original = parseInt(this.dataset.original);
-            const newStatus = STATUS_ENUM[newKey];
-            if (newStatus === original) return;
-            updateTableStatus(tableId, newKey);
+    $(document).on('change', '.status-select', async function () {
+        const tableId = this.dataset.tableId;
+        const newKey = this.value;
+        const original = parseInt(this.dataset.original);
+        const newStatus = STATUS_ENUM[newKey];
+        if (newStatus === original) return;
+
+        const isCurrentlyPlaying = (original === 2); // 2 = Playing
+        let title = `Thay đổi trạng thái sang ${getTableStatusConfig(newStatus).text}?`;
+        let htmlContent = `
+            <div class="mb-3 text-start">
+                <label class="form-label small fw-bold">Lý do thay đổi (Tùy chọn):</label>
+                <textarea id="swal-reason" class="form-control form-control-sm" rows="2" placeholder="Nhập lý do..."></textarea>
+            </div>
+        `;
+
+        if (isCurrentlyPlaying && (newStatus === 1 || newStatus === 3 || newStatus === 4)) {
+            htmlContent += `
+                <div class="form-check form-switch text-start mt-2">
+                    <input class="form-check-input" type="checkbox" id="swal-force" checked>
+                    <label class="form-check-label text-danger small fw-bold" for="swal-force">
+                        Cưỡng ép thay đổi (Kết thúc phiên chơi đang hoạt động)
+                    </label>
+                </div>
+            `;
+        }
+
+        const selectElement = this;
+
+        const { value: formValues } = await Swal.fire({
+            title: title,
+            html: htmlContent,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Xác nhận',
+            cancelButtonText: 'Hủy',
+            preConfirm: () => {
+                return {
+                    reason: document.getElementById('swal-reason').value,
+                    force: document.getElementById('swal-force') ? document.getElementById('swal-force').checked : false
+                }
+            }
         });
+
+        if (formValues) {
+            updateTableStatus(tableId, newKey, formValues.reason, formValues.force);
+        } else {
+            // Reset select
+            selectElement.value = getTableStatusConfig(original).key;
+        }
+    });
+
+    async function loadTableHistory(tableId, tableName) {
+        const tbody = document.getElementById('history-tbody');
+        document.getElementById('historyModalTableName').textContent = tableName;
+        
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">
+            <span class="spinner-border spinner-border-sm text-primary me-2" role="status"></span>
+            Đang tải lịch sử...
+        </td></tr>`;
+
+        const modal = new bootstrap.Modal(document.getElementById('statusHistoryModal'));
+        modal.show();
+
+        try {
+            const res = await fetch(API_BASE + 'tables/' + tableId + '/history', {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + API_TOKEN
+                }
+            });
+
+            if (!res.ok) throw new Error('Không thể tải lịch sử thay đổi trạng thái');
+
+            const json = await res.json();
+            const list = json.data || json.Data || [];
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">Không có lịch sử thay đổi trạng thái nào</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = list.map(item => {
+                const date = new Date(item.changedAt || item.ChangedAt).toLocaleString('vi-VN');
+                const oldCfg = getTableStatusConfig(item.oldStatus || item.OldStatus);
+                const newCfg = getTableStatusConfig(item.newStatus || item.NewStatus);
+                const changer = item.changedByName || item.ChangedByName || 'Hệ thống';
+                const reason = item.reason || item.Reason || '—';
+
+                return `<tr>
+                    <td>${date}</td>
+                    <td><span class="badge bg-${oldCfg.badge}"><i class="fa-solid fa-${oldCfg.icon} me-1"></i>${oldCfg.text}</span></td>
+                    <td><span class="badge bg-${newCfg.badge}"><i class="fa-solid fa-${newCfg.icon} me-1"></i>${newCfg.text}</span></td>
+                    <td><strong class="text-dark">${changer}</strong></td>
+                    <td class="text-secondary small">${reason}</td>
+                </tr>`;
+            }).join('');
+
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i>Lỗi: ${err.message}</td></tr>`;
+        }
+    }
+
+    $(document).on('click', '.view-history-btn', function() {
+        const id = $(this).data('id');
+        const name = $(this).data('tablename');
+        loadTableHistory(id, name);
     });
 
     connectTableStatusHub({

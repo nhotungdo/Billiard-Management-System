@@ -50,15 +50,54 @@ namespace BilliardManagement.API.Controllers
 
         // Cập nhật trạng thái bàn (chỉ dành cho Admin, Staff)
         [HttpPut("{id}/status")]
-        public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateTableStatusRequest request)
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] TableStatusUpdateDto request)
         {
             if (!Enum.TryParse<TableStatus>(request.Status, true, out var status))
             {
                 return BadRequest(ApiResponse<object>.Fail("Trạng thái bàn không hợp lệ"));
             }
-            var table = await _tableService.UpdateTableStatusAsync(id, status);
-            await _hubContext.Clients.All.SendAsync("ReceiveTableUpdate", $"Table {table.TableName} status updated to {status}.");
-            return Ok(ApiResponse<TableDto>.Ok(table, "cập nhật trạng thái bàn thành công"));
+
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            Guid? updatedBy = Guid.TryParse(userIdStr, out var uId) ? uId : null;
+            var isAdmin = User.IsInRole("Admin");
+
+            try
+            {
+                var table = await _tableService.UpdateTableStatusAsync(id, status, updatedBy, request.Reason, request.Force, isAdmin);
+
+                var statusPayload = new TableStatusChangedDto
+                {
+                    TableId = table.Id,
+                    TableName = table.TableName,
+                    Status = (int)table.Status,
+                    StatusName = table.Status.ToString()
+                };
+                await _hubContext.Clients.All.SendAsync("TableStatusChanged", statusPayload);
+                await _hubContext.Clients.All.SendAsync("ReceiveTableUpdate", $"Table {table.TableName} status updated to {status}.");
+
+                return Ok(ApiResponse<TableDto>.Ok(table, "Cập nhật trạng thái bàn thành công"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
+        }
+
+        // Lấy lịch sử thay đổi trạng thái bàn
+        [HttpGet("{id}/history")]
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<IActionResult> GetHistory(Guid id)
+        {
+            try
+            {
+                var history = await _tableService.GetTableHistoryAsync(id);
+                return Ok(ApiResponse<IEnumerable<TableStatusHistoryDto>>.Ok(history));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
         }
     }
 }

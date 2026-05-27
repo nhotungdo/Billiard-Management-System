@@ -145,31 +145,63 @@
                     @{ int i = 1; }
                     @foreach (var t in Model.Tables)
                     {
-                        var cfg = t.Status switch { 1 => "success", 2 => "danger", 3 => "warning", _ => "secondary" };
+                        var cfg = t.Status switch { 1 => "success", 2 => "primary", 3 => "warning", 4 => "danger", _ => "secondary" };
                         var txt = t.Status switch { 1 => "Trống bàn", 2 => "Đang chơi", 3 => "Đặt trước", 4 => "Bảo trì", _ => "—" };
                         <tr id="row-@t.Id" data-status="@t.Status">
                             <td>@(i++)</td>
                             <td><strong>@t.TableName</strong></td>
                             <td>@t.TableType</td>
                             <td>@t.PricePerHour.ToString("N0") đ</td>
-                            <td><span class="badge bg-@cfg">@txt</span></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-@cfg text-white" id="status-badge-@t.Id">@txt</span>
+                                    <select class="form-select form-select-sm staff-status-select"
+                                            data-table-id="@t.Id"
+                                            data-original="@t.Status"
+                                            style="max-width: 120px;">
+                                        @if (t.Status == 1) { <option value="Available" selected>Trống bàn</option> } else { <option value="Available">Trống bàn</option> }
+                                        @if (t.Status == 2) { <option value="Playing" selected>Đang chơi</option> } else { <option value="Playing">Đang chơi</option> }
+                                        @if (t.Status == 3) { <option value="Reserved" selected>Đặt trước</option> } else { <option value="Reserved">Đặt trước</option> }
+                                        @if (t.Status == 4) { <option value="Maintenance" selected>Bảo trì</option> } else { <option value="Maintenance">Bảo trì</option> }
+                                    </select>
+                                    <span class="status-spinner d-none" id="spinner-@t.Id">
+                                        <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                                    </span>
+                                </div>
+                            </td>
                             <td class="text-end pe-3">
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-sm btn-outline-primary edit-table-btn"
-                                            data-id="@t.Id"
-                                            data-tablename="@t.TableName"
-                                            data-tabletype="@t.TableType"
-                                            data-priceperhour="@t.PricePerHour"
-                                            data-status="@(t.Status switch { 1 => "Available", 2 => "Playing", 3 => "Reserved", 4 => "Maintenance", _ => "Available" })"
-                                            data-description="@t.Description"
-                                            title="Sửa Bàn">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                    </button>
-                                    <form method="post" asp-page-handler="Delete" asp-route-id="@t.Id" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bàn này?');" style="display:inline;">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa Bàn">
-                                            <i class="fa-solid fa-trash"></i>
+                                <div class="d-inline-flex align-items-center gap-2">
+                                    <div class="quick-actions" id="quick-actions-@t.Id">
+                                        @if (t.Status == 1)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-success quick-toggle-btn" data-table-id="@t.Id" data-new-status="Playing" title="Chuyển nhanh sang Đang chơi">
+                                                <i class="fa-solid fa-play"></i> Chơi
+                                            </button>
+                                        }
+                                        else if (t.Status == 2)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-primary quick-toggle-btn" data-table-id="@t.Id" data-new-status="Available" title="Chuyển nhanh sang Trống">
+                                                <i class="fa-solid fa-circle-check"></i> Trống
+                                            </button>
+                                        }
+                                    </div>
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary edit-table-btn"
+                                                data-id="@t.Id"
+                                                data-tablename="@t.TableName"
+                                                data-tabletype="@t.TableType"
+                                                data-priceperhour="@t.PricePerHour"
+                                                data-status="@(t.Status switch { 1 => "Available", 2 => "Playing", 3 => "Reserved", 4 => "Maintenance", _ => "Available" })"
+                                                data-description="@t.Description"
+                                                title="Sửa Bàn">
+                                            <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
-                                    </form>
+                                        <form method="post" asp-page-handler="Delete" asp-route-id="@t.Id" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bàn này?');" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa Bàn">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
@@ -255,21 +287,173 @@
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/staff.js" asp-append-version="true"></script>
 
-<script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
-    <script src="~/js/table-status.js" asp-append-version="true"></script>
-    <script src="~/js/create-entity.js" asp-append-version="true"></script>
-    <script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/js/table-status.js" asp-append-version="true"></script>
+<script src="/js/create-entity.js" asp-append-version="true"></script>
+<style>
+    .quick-toggle-btn { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
+    .staff-status-select:disabled { opacity: 0.7; }
+</style>
+<script>
         let tablesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Tables.Select(t => new {
             id = t.Id, tableName = t.TableName, tableType = t.TableType, status = t.Status, pricePerHour = t.PricePerHour
         })));
 
+        const API_BASE = document.querySelector('meta[name="api-base-url"]')?.content || 'https://localhost:5001/api/';
+        const API_TOKEN = document.querySelector('meta[name="api-token"]')?.content || '';
+
+        const STATUS_ENUM = {
+            Available: 1,
+            Playing: 2,
+            Reserved: 3,
+            Maintenance: 4
+        };
+
         function recalcStats() { updateTableStatusStats(tablesData); }
+
+        function applyStatusToRow(tableId, status) {
+            const row = document.getElementById('row-' + tableId);
+            if (row) row.dataset.status = status;
+            
+            renderTableStatusBadge(status, 'status-badge-' + tableId);
+            
+            const sel = document.querySelector(`.staff-status-select[data-table-id="${tableId}"]`);
+            if (sel) {
+                const cfg = getTableStatusConfig(status);
+                sel.value = cfg.key;
+                sel.dataset.original = status;
+            }
+
+            // Update Quick Actions buttons
+            const qaContainer = document.getElementById('quick-actions-' + tableId);
+            if (qaContainer) {
+                if (status === 1) {
+                    qaContainer.innerHTML = `
+                        <button type="button" class="btn btn-sm btn-outline-success quick-toggle-btn" data-table-id="${tableId}" data-new-status="Playing" title="Chuyển nhanh sang Đang chơi">
+                            <i class="fa-solid fa-play"></i> Chơi
+                        </button>
+                    `;
+                } else if (status === 2) {
+                    qaContainer.innerHTML = `
+                        <button type="button" class="btn btn-sm btn-outline-primary quick-toggle-btn" data-table-id="${tableId}" data-new-status="Available" title="Chuyển nhanh sang Trống">
+                            <i class="fa-solid fa-circle-check"></i> Trống
+                        </button>
+                    `;
+                } else {
+                    qaContainer.innerHTML = '';
+                }
+            }
+
+            const item = tablesData.find(t => t.id === tableId);
+            if (item) item.status = status;
+            recalcStats();
+        }
+
+        async function updateTableStatus(tableId, statusKey, reason = '') {
+            const spinner = document.getElementById('spinner-' + tableId);
+            const select = document.querySelector(`.staff-status-select[data-table-id="${tableId}"]`);
+            if (select) select.disabled = true;
+            if (spinner) spinner.classList.remove('d-none');
+
+            try {
+                const res = await fetch(API_BASE + 'tables/' + tableId + '/status', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + API_TOKEN
+                    },
+                    body: JSON.stringify({ status: statusKey, reason: reason, force: false })
+                });
+
+                let json;
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    json = await res.json();
+                } else {
+                    const text = await res.text();
+                    throw new Error(text || `Lỗi hệ thống (${res.status})`);
+                }
+
+                if (!res.ok || !(json.success ?? json.Success)) {
+                    throw new Error(json.message || 'Không thể cập nhật trạng thái bàn');
+                }
+
+                const data = json.data || json.Data;
+                const newStatus = STATUS_ENUM[statusKey] || data?.status || data?.Status;
+                applyStatusToRow(tableId, newStatus);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công',
+                    text: 'Cập nhật trạng thái bàn thành công',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } catch (err) {
+                if (select) select.value = getTableStatusConfig(parseInt(select.dataset.original)).key;
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Thất bại',
+                    text: err.message || 'Không thể cập nhật trạng thái bàn'
+                });
+            } finally {
+                if (select) select.disabled = false;
+                if (spinner) spinner.classList.add('d-none');
+            }
+        }
+
+        $(document).on('click', '.quick-toggle-btn', async function() {
+            const tableId = $(this).data('table-id');
+            const newKey = $(this).data('new-status');
+            const original = parseInt(document.getElementById('row-' + tableId).dataset.status);
+            
+            let title = `Chuyển nhanh sang trạng thái ${getTableStatusConfig(STATUS_ENUM[newKey]).text}?`;
+            
+            const { isConfirmed } = await Swal.fire({
+                title: title,
+                text: newKey === 'Playing' ? 'Lưu ý: Yêu cầu bàn đã có phiên chơi hoạt động.' : 'Kết thúc trạng thái đang chơi hiện tại.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy'
+            });
+
+            if (isConfirmed) {
+                updateTableStatus(tableId, newKey, 'Cập nhật nhanh bởi nhân viên');
+            }
+        });
+
+        $(document).on('change', '.staff-status-select', async function() {
+            const tableId = this.dataset.tableId;
+            const newKey = this.value;
+            const original = parseInt(this.dataset.original);
+            const newStatus = STATUS_ENUM[newKey];
+            if (newStatus === original) return;
+
+            let title = `Chuyển trạng thái bàn sang ${getTableStatusConfig(newStatus).text}?`;
+            
+            const { value: reason } = await Swal.fire({
+                title: title,
+                input: 'text',
+                inputLabel: 'Lý do thay đổi (Tùy chọn)',
+                inputPlaceholder: 'Nhập lý do...',
+                showCancelButton: true,
+                confirmButtonText: 'Xác nhận',
+                cancelButtonText: 'Hủy'
+            });
+
+            if (reason !== undefined) {
+                updateTableStatus(tableId, newKey, reason);
+            } else {
+                this.value = getTableStatusConfig(original).key;
+            }
+        });
 
         connectTableStatusHub({
             onStatusChanged: function (p) {
-                const row = document.getElementById('row-' + (p.tableId || p.TableId));
-                if (row) row.dataset.status = p.status ?? p.Status;
+                const status = p.status !== undefined ? p.status : p.Status;
+                const tableId = p.tableId || p.TableId;
+                applyStatusToRow(tableId, status);
             },
             onTableCreated: function (payload) {
                 const id = payload.id || payload.Id;

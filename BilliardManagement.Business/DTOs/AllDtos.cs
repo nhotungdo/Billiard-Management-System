@@ -74,6 +74,28 @@ namespace BilliardManagement.Business.DTOs
         public string Status { get; set; } = string.Empty;
     }
 
+    public class TableStatusUpdateDto
+    {
+        public string Status { get; set; } = string.Empty;
+        public string? Reason { get; set; }
+        public bool Force { get; set; } = false;
+    }
+
+    public class TableStatusHistoryDto
+    {
+        public Guid Id { get; set; }
+        public Guid TableId { get; set; }
+        public string TableName { get; set; } = string.Empty;
+        public int OldStatus { get; set; }
+        public string OldStatusName { get; set; } = string.Empty;
+        public int NewStatus { get; set; }
+        public string NewStatusName { get; set; } = string.Empty;
+        public Guid? ChangedById { get; set; }
+        public string ChangedByName { get; set; } = string.Empty;
+        public DateTime ChangedAt { get; set; }
+        public string? Reason { get; set; }
+    }
+
     public class TableStatusChangedDto
     {
         public Guid TableId { get; set; }
@@ -209,7 +231,7 @@ namespace BilliardManagement.Business.DTOs
         public bool IsAvailable { get; set; }
     }
 
-    public class OrderDto { public Guid Id { get; set; } public Guid SessionId { get; set; } public Guid UserId { get; set; } public decimal TotalAmount { get; set; } public OrderStatus Status { get; set; } }
+    public class OrderDto { public Guid Id { get; set; } public Guid SessionId { get; set; } public Guid UserId { get; set; } public decimal TotalAmount { get; set; } public OrderStatus Status { get; set; } public DateTime OrderTime { get; set; } }
     public class OrderItemDto { public Guid Id { get; set; } public Guid ProductId { get; set; } public int Quantity { get; set; } public decimal UnitPrice { get; set; } }
     public class CreateOrderDto
     {

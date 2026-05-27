@@ -217,9 +217,6 @@
                         </div>
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <input type="text" id="staffSearchInput" class="form-control form-control-sm" placeholder="Tìm nhân viên..." style="max-width: 200px;" />
-                            <button onclick="exportStaffToExcel()" class="btn btn-sm btn-success text-white d-flex align-items-center gap-1">
-                                <i class="fa-solid fa-file-excel"></i> Xuất Excel
-                            </button>
                         </div>
                     </div>
                     <div class="panel-body p-0">
@@ -269,9 +266,6 @@
                         <div class="text-muted small">
                             Danh sách các hóa đơn xử lý trong khoảng thời gian lọc.
                         </div>
-                        <button onclick="exportModalInvoicesToExcel()" class="btn btn-sm btn-outline-success">
-                            <i class="fa-solid fa-file-excel me-1"></i> Xuất Excel
-                        </button>
                     </div>
                     <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                         <table class="table table-hover align-middle" id="modalInvoicesTable">
@@ -591,46 +585,6 @@
                 `;
                 tbody.appendChild(row);
             });
-        }
-
-        // 4. Export to Excel (CSV format)
-        function exportStaffToExcel() {
-            let csv = '\uFEFF'; // UTF-8 BOM
-            csv += 'XẾP HẠNG DOANH THU NHÂN VIÊN\n';
-            csv += `Thời gian lọc: ${'@(Model.FromDate?.ToString("dd/MM/yyyy") ?? "Tất cả")'} đến ${'@(Model.ToDate?.ToString("dd/MM/yyyy") ?? "Tất cả")'}\n\n`;
-            csv += 'Hạng,Nhân viên,Số hóa đơn,Doanh thu (đ)\n';
-            
-            staffRevenues.forEach((item, index) => {
-                csv += `"${index + 1}","${item.StaffName}","${item.InvoicesCount}","${item.TotalRevenue}"\n`;
-            });
-            
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.setAttribute('download', `bao_cao_doanh_thu_nhan_vien_${new Date().toISOString().slice(0,10)}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        function exportModalInvoicesToExcel() {
-            if (!currentModalInvoices.length) return;
-            let csv = '\uFEFF'; // UTF-8 BOM
-            csv += `Báo cáo hóa đơn chi tiết - Nhân viên: ${currentModalStaffName}\n`;
-            csv += `Khoảng thời gian: ${'@(Model.FromDate?.ToString("dd/MM/yyyy") ?? "Tất cả")'} đến ${'@(Model.ToDate?.ToString("dd/MM/yyyy") ?? "Tất cả")'}\n\n`;
-            csv += 'Mã hóa đơn,Billiard Table,Thời gian thanh toán,Tiền trước giảm (đ),Giảm giá (đ),Thành tiền (đ),Hình thức\n';
-            
-            currentModalInvoices.forEach(inv => {
-                csv += `"${inv.invoiceId}","${inv.tableName}","${new Date(inv.paidAt).toLocaleString('vi-VN')}","${inv.subtotal}","${inv.discount}","${inv.totalAmount}","${inv.paymentMethod}"\n`;
-            });
-            
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.setAttribute('download', `hoa_don_${currentModalStaffName}_${new Date().toISOString().slice(0,10)}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
         }
     </script>
 </body>

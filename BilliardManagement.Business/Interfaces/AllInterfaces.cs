@@ -29,9 +29,10 @@ namespace BilliardManagement.Business.Interfaces
         Task<PagedResult<TableDto>> GetPagedTablesAsync(TableQueryParameters query);
         Task<TableDto> GetTableByIdAsync(Guid id);
         Task<TableDto> CreateTableAsync(CreateTableDto dto, Guid? createdBy = null);
-        Task<TableDto> UpdateTableStatusAsync(Guid id, TableStatus status, Guid? updatedBy = null);
+        Task<TableDto> UpdateTableStatusAsync(Guid id, TableStatus status, Guid? updatedBy = null, string? reason = null, bool force = false, bool isAdmin = false);
         Task<TableDto> UpdateTableAsync(Guid id, CreateTableDto dto, Guid? updatedBy = null);
         Task<bool> DeleteTableAsync(Guid id);
+        Task<IEnumerable<TableStatusHistoryDto>> GetTableHistoryAsync(Guid id);
     }
 
     public interface ISessionService

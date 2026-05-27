@@ -1,9 +1,9 @@
 // Shared table status helpers — enum values match TableStatus (1-4)
 window.TableStatusConfig = {
     1: { key: 'Available', text: 'Trống bàn', badge: 'success', icon: 'circle-check' },
-    2: { key: 'Playing', text: 'Đang chơi', badge: 'danger', icon: 'circle-play' },
+    2: { key: 'Playing', text: 'Đang chơi', badge: 'primary', icon: 'circle-play' },
     3: { key: 'Reserved', text: 'Đặt trước', badge: 'warning', icon: 'clock' },
-    4: { key: 'Maintenance', text: 'Bảo trì', badge: 'secondary', icon: 'wrench' }
+    4: { key: 'Maintenance', text: 'Bảo trì', badge: 'danger', icon: 'wrench' }
 };
 
 window.getTableStatusConfig = function (status) {

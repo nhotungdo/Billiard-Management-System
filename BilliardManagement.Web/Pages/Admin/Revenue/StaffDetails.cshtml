@@ -168,9 +168,6 @@
                         </div>
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <input type="text" id="invoiceSearchInput" class="form-control form-control-sm" placeholder="Tìm bàn, mã HĐ..." style="max-width: 220px;" />
-                            <button onclick="exportInvoicesToExcel()" class="btn btn-sm btn-success text-white d-flex align-items-center gap-1">
-                                <i class="fa-solid fa-file-excel"></i> Xuất Excel
-                            </button>
                         </div>
                     </div>
                     <div class="panel-body p-0">
@@ -352,25 +349,6 @@
             });
         });
 
-        // Export to Excel (CSV format)
-        function exportInvoicesToExcel() {
-            let csv = '\uFEFF'; // UTF-8 BOM
-            csv += `BÁO CÁO DOANH THU NHÂN VIÊN: ${'@Model.StaffRevenueData.StaffName'.toUpperCase()}\n`;
-            csv += `Thời gian lọc: ${'@(Model.FromDate?.ToString("dd/MM/yyyy") ?? "Tất cả")'} đến ${'@(Model.ToDate?.ToString("dd/MM/yyyy") ?? "Tất cả")'}\n\n`;
-            csv += 'Mã hóa đơn,Tên bàn,Thời gian bắt đầu,Thời gian kết thúc,Thời gian chơi (phút),Tiền giờ (đ),Tiền dịch vụ (đ),Giảm giá (đ),Thành tiền (đ),Thời điểm thanh toán,Hình thức\n';
-            
-            rawInvoices.forEach(inv => {
-                csv += `"${inv.InvoiceId}","${inv.TableName}","${new Date(inv.StartTime).toLocaleString('vi-VN')}","${inv.EndTime ? new Date(inv.EndTime).toLocaleString('vi-VN') : ''}","${Math.round(inv.PlayTimeMinutes)}","${inv.PlayingFee}","${inv.ServiceFee}","${inv.Discount}","${inv.TotalAmount}","${new Date(inv.PaidAt).toLocaleString('vi-VN')}","${inv.PaymentMethod}"\n`;
-            });
-            
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.setAttribute('download', `doanh_thu_nhan_vien_${'@Model.StaffRevenueData.StaffName'}_${new Date().toISOString().slice(0,10)}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
     </script>
 </body>
 </html>

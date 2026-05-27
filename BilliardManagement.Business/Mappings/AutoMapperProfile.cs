@@ -19,6 +19,12 @@ namespace BilliardManagement.Business.Mappings
                 .ForMember(dest => dest.HourlyRate, opt => opt.MapFrom(src => src.PricePerHour))
                 .ForMember(dest => dest.Status, opt => opt.Ignore());
 
+            CreateMap<TableStatusHistory, TableStatusHistoryDto>()
+                .ForMember(dest => dest.TableName, opt => opt.MapFrom(src => src.BilliardTable != null ? src.BilliardTable.TableName : string.Empty))
+                .ForMember(dest => dest.OldStatusName, opt => opt.MapFrom(src => src.OldStatus.ToString()))
+                .ForMember(dest => dest.NewStatusName, opt => opt.MapFrom(src => src.NewStatus.ToString()))
+                .ForMember(dest => dest.ChangedByName, opt => opt.MapFrom(src => src.ChangedByUser != null ? src.ChangedByUser.FullName : string.Empty));
+
             CreateMap<TableSession, SessionDto>().ReverseMap();
 
             CreateMap<Category, CategoryDto>().ReverseMap();

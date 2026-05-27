@@ -143,38 +143,127 @@ namespace BilliardManagement.Business.Services
             return _mapper.Map<TableDto>(table);
         }
 
-        public async Task<TableDto> UpdateTableStatusAsync(Guid id, TableStatus status, Guid? updatedBy = null)
+        public async Task<TableDto> UpdateTableStatusAsync(Guid id, TableStatus status, Guid? updatedBy = null, string? reason = null, bool force = false, bool isAdmin = false)
         {
             var table = await _unitOfWork.Repository<BilliardTable>().GetByIdAsync(id);
-            if (table == null) throw new CustomException("Table not found", 404);
+            if (table == null) throw new CustomException("Không tìm thấy bàn", 404);
 
             if (!Enum.IsDefined(typeof(TableStatus), status))
-                throw new CustomException("Invalid table status", 400);
+                throw new CustomException("Trạng thái bàn không hợp lệ", 400);
 
             var activeSessions = await _unitOfWork.Repository<TableSession>().GetAllAsync(
                 s => s.TableId == id && s.Status == SessionStatus.Active && !s.IsFinished);
             var hasActiveSession = activeSessions.Any();
             var oldStatus = table.Status;
 
+            if (oldStatus == status)
+            {
+                return _mapper.Map<TableDto>(table);
+            }
+
+            // Logic check
             if (status == TableStatus.Playing && !hasActiveSession)
-                throw new CustomException("Cannot set Playing without an active session. Start a session first", 400);
+            {
+                throw new CustomException("Không thể chuyển sang trạng thái Đang chơi mà không có phiên chơi đang hoạt động. Vui lòng bắt đầu phiên chơi trước.", 400);
+            }
 
             if (status == TableStatus.Available && hasActiveSession)
-                throw new CustomException("Cannot set Available while session is active. Please end the session first", 400);
+            {
+                if (isAdmin && force)
+                {
+                    // Admin can force this by ending all active sessions
+                    foreach (var session in activeSessions)
+                    {
+                        session.EndTime = DateTime.UtcNow;
+                        session.Status = SessionStatus.Finished;
+                        session.IsFinished = true;
+                        session.RemainingMinutes = 0;
+                        session.DurationMinutes = (int)Math.Ceiling((session.EndTime.Value - session.StartTime).TotalMinutes);
+                        _unitOfWork.Repository<TableSession>().Update(session);
+                    }
+                }
+                else
+                {
+                    throw new CustomException("Không thể chuyển sang trạng thái Trống khi phiên chơi đang hoạt động. Vui lòng kết thúc phiên chơi trước.", 400);
+                }
+            }
 
-            if (status == TableStatus.Maintenance &&
-                (table.Status == TableStatus.Playing || hasActiveSession))
-                throw new CustomException("Cannot set Maintenance while table is playing", 400);
+            if (status == TableStatus.Maintenance)
+            {
+                if (hasActiveSession)
+                {
+                    if (isAdmin && force)
+                    {
+                        foreach (var session in activeSessions)
+                        {
+                            session.EndTime = DateTime.UtcNow;
+                            session.Status = SessionStatus.Finished;
+                            session.IsFinished = true;
+                            session.RemainingMinutes = 0;
+                            session.DurationMinutes = (int)Math.Ceiling((session.EndTime.Value - session.StartTime).TotalMinutes);
+                            _unitOfWork.Repository<TableSession>().Update(session);
+                        }
+                    }
+                    else
+                    {
+                        throw new CustomException("Không thể bảo trì khi bàn đang hoạt động phiên chơi. Vui lòng kết thúc phiên chơi trước.", 400);
+                    }
+                }
+            }
+
+            if (status == TableStatus.Reserved)
+            {
+                if (hasActiveSession)
+                {
+                    if (isAdmin && force)
+                    {
+                        foreach (var session in activeSessions)
+                        {
+                            session.EndTime = DateTime.UtcNow;
+                            session.Status = SessionStatus.Finished;
+                            session.IsFinished = true;
+                            session.RemainingMinutes = 0;
+                            session.DurationMinutes = (int)Math.Ceiling((session.EndTime.Value - session.StartTime).TotalMinutes);
+                            _unitOfWork.Repository<TableSession>().Update(session);
+                        }
+                    }
+                    else
+                    {
+                        throw new CustomException("Không thể đặt trước khi bàn đang hoạt động phiên chơi.", 400);
+                    }
+                }
+            }
 
             table.Status = status;
             _unitOfWork.Repository<BilliardTable>().Update(table);
+
+            // Log status change history
+            var history = new TableStatusHistory
+            {
+                TableId = id,
+                OldStatus = oldStatus,
+                NewStatus = status,
+                ChangedById = updatedBy,
+                Reason = string.IsNullOrWhiteSpace(reason) ? (isAdmin && force ? "Cưỡng ép thay đổi bởi Admin" : "Cập nhật trạng thái") : reason.Trim()
+            };
+            await _unitOfWork.Repository<TableStatusHistory>().AddAsync(history);
             await _unitOfWork.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Table status updated: tableId={TableId}, oldStatus={OldStatus}, newStatus={NewStatus}, updatedBy={UpdatedBy}",
-                id, oldStatus, status, updatedBy);
+                "Table status updated: tableId={TableId}, oldStatus={OldStatus}, newStatus={NewStatus}, updatedBy={UpdatedBy}, reason={Reason}",
+                id, oldStatus, status, updatedBy, reason);
 
             return _mapper.Map<TableDto>(table);
+        }
+
+        public async Task<IEnumerable<TableStatusHistoryDto>> GetTableHistoryAsync(Guid id)
+        {
+            var histories = await _unitOfWork.Repository<TableStatusHistory>().GetAllAsync(
+                h => h.TableId == id,
+                includeProperties: "BilliardTable,ChangedByUser");
+            
+            var sorted = histories.OrderByDescending(h => h.ChangedAt);
+            return _mapper.Map<IEnumerable<TableStatusHistoryDto>>(sorted);
         }
 
         public async Task<TableDto> UpdateTableAsync(Guid id, CreateTableDto dto, Guid? updatedBy = null)
