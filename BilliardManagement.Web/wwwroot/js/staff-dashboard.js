@@ -100,22 +100,6 @@
         return isNaN(rem) ? 0 : rem;
     }
 
-    function playAlertSound() {
-        const toggle = document.getElementById('soundAlertToggle');
-        if (!toggle || !toggle.checked) return;
-        try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.frequency.value = 880;
-            gain.gain.value = 0.1;
-            osc.start();
-            setTimeout(function () { osc.stop(); ctx.close(); }, 400);
-        } catch (e) { /* ignore */ }
-    }
-
     function formatMoney(n) {
         return Number(n || 0).toLocaleString('vi-VN') + ' đ';
     }
@@ -201,7 +185,6 @@
         if (isExpired && sessionId && !alertedSessions.has(sessionId)) {
             alertedSessions.add(sessionId);
             showToast('<strong>Bàn đã hết giờ chơi!</strong> ' + (payload.tableName || payload.TableName || ''), 'danger');
-            playAlertSound();
         }
 
         recalcKpis();
@@ -226,7 +209,6 @@
                     alertedSessions.add(sid);
                     const name = card.querySelector('.tsc-name')?.textContent || 'Bàn';
                     showToast('<strong>Bàn sắp hết / đã hết giờ:</strong> ' + name, 'warning');
-                    playAlertSound();
                 }
             } else {
                 timerEl.classList.remove('timer-blink');

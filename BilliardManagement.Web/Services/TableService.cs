@@ -41,9 +41,14 @@ namespace BilliardManagement.Web.Services
             return await PutAsync($"tables/{id}", request);
         }
 
-        public async Task<TableDto?> UpdateTableStatusAsync(Guid id, string status)
+        public async Task<TableDto?> UpdateTableStatusAsync(Guid id, TableStatusUpdateDto request)
         {
-            return await PutAsync<UpdateTableStatusRequest, TableDto>($"tables/{id}/status", new UpdateTableStatusRequest { Status = status });
+            return await PutAsync<TableStatusUpdateDto, TableDto>($"tables/{id}/status", request);
+        }
+
+        public async Task<List<TableStatusHistoryDto>?> GetTableHistoryAsync(Guid id)
+        {
+            return await GetAsync<List<TableStatusHistoryDto>>($"tables/{id}/history");
         }
 
         public async Task<bool> DeleteTableAsync(Guid id)

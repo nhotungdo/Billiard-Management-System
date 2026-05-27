@@ -19,6 +19,7 @@ namespace BilliardManagement.Data
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<Shift> Shifts { get; set; }
+        public DbSet<TableStatusHistory> TableStatusHistories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -85,6 +86,18 @@ namespace BilliardManagement.Data
                 .WithMany(s => s.Invoices)
                 .HasForeignKey(i => i.TableSessionId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<TableStatusHistory>()
+                .HasOne(h => h.BilliardTable)
+                .WithMany()
+                .HasForeignKey(h => h.TableId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TableStatusHistory>()
+                .HasOne(h => h.ChangedByUser)
+                .WithMany()
+                .HasForeignKey(h => h.ChangedById)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

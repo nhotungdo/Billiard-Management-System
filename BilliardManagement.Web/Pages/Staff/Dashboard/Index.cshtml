@@ -1,6 +1,10 @@
 @page
 @model BilliardManagement.Web.Pages.Staff.Dashboard.IndexModel
-@{ Layout = null; }
+@{
+    Layout = null;
+    ViewData["Title"] = "Bảng điều khiển nhân viên";
+    var apiToken = HttpContext.Session.GetString("JWToken");
+}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -10,11 +14,9 @@
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
     <link rel="stylesheet" href="/css/staff.css" asp-append-version="true" />
     <link rel="stylesheet" href="/BilliardManagement.Web.styles.css" asp-append-version="true" />
-    @{
-        var apiToken = HttpContext.Session.GetString("JWToken");
-    }
     @if (!string.IsNullOrEmpty(apiToken))
     {
         <meta name="api-token" content="@apiToken" />
@@ -22,6 +24,74 @@
         <meta name="api-origin" content="https://localhost:5001" />
         <meta name="hub-base-url" content="https://localhost:5001" />
     }
+    <style>
+        .welcome-banner {
+            box-shadow: 0 10px 25px -5px rgba(13, 148, 136, 0.3);
+        }
+        .kpi-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05) !important;
+        }
+        .bg-teal-subtle {
+            background-color: rgba(13, 148, 136, 0.15) !important;
+        }
+        .text-teal {
+            color: #0d9488 !important;
+        }
+        .btn-outline-teal {
+            color: #0d9488;
+            border-color: #0d9488;
+        }
+        .btn-outline-teal:hover {
+            color: #fff;
+            background-color: #0d9488;
+            border-color: #0d9488;
+        }
+        .btn-teal {
+            background-color: #0d9488;
+            border-color: #0d9488;
+            color: #fff;
+        }
+        .btn-teal:hover {
+            background-color: #0f766e;
+            border-color: #0f766e;
+            color: #fff;
+        }
+        .hover-shadow {
+            transition: box-shadow 0.3s ease;
+        }
+        .hover-shadow:hover {
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important;
+        }
+        .pulse-danger {
+            animation: pulse-danger-anim 1.5s infinite;
+        }
+        @@keyframes pulse-danger-anim {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+        .activity-stream::-webkit-scrollbar {
+            width: 4px;
+        }
+        .activity-stream::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .activity-stream::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+        .order-product-item {
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+        .order-product-item.selected {
+            border-color: #0d9488 !important;
+            background-color: rgba(13, 148, 136, 0.05);
+        }
+    </style>
 </head>
 <body class="staff-body">
     <div id="staff-wrapper">
@@ -33,7 +103,7 @@
                         <i class="fa-solid fa-bars"></i>
                     </button>
                     <div class="topbar-breadcrumb">
-                        <span class="breadcrumb-label">@(ViewData["BreadcrumbTitle"] ?? ViewData["Title"])</span>
+                        <span class="breadcrumb-label">@ViewData["Title"]</span>
                     </div>
                 </div>
                 <div class="topbar-right">
@@ -42,7 +112,7 @@
                         <span id="clockDisplay">--:--:--</span>
                     </div>
                     <span class="role-badge staff-badge">
-                        <i class="fa-solid fa-id-badge me-1"></i> Staff
+                        <i class="fa-solid fa-id-badge me-1"></i> Nhân viên
                     </span>
                     <div class="dropdown user-dropdown">
                         <button class="btn user-avatar-btn dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -87,395 +157,251 @@
                     </div>
                 }
 
-@{
-    
-    ViewData["Title"] = "Staff Dashboard";
-    ViewData["BreadcrumbTitle"] = "Bảng điều khiển";
-}
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="alert alert-warning">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i>@Model.ErrorMessage
+                    </div>
+                }
 
-<div class="dashboard-header mb-4">
-    <h1 class="page-title">
-        <i class="fa-solid fa-gauge-high me-2"></i>Bảng điều khiển nhân viên
-    </h1>
-    <p class="page-subtitle">Xin chào, <strong>@Model.CurrentFullName</strong>! Quản lý bàn và phiên chơi realtime.</p>
-</div>
+                <!-- Welcome Banner -->
+                <div class="welcome-banner p-4 rounded-4 mb-4 text-white position-relative overflow-hidden" style="background: linear-gradient(135deg, #0d9488 0%, #10b981 100%);">
+                    <div class="position-relative z-1">
+                        <h2 class="fw-bold mb-1">Xin chào quay trở lại, @Model.CurrentFullName! 👋</h2>
+                        <p class="mb-0 opacity-90">Hôm nay là một ngày tuyệt vời để phục vụ khách hàng. Dưới đây là hiệu suất và danh sách bàn chơi của bạn.</p>
+                    </div>
+                    <div class="banner-pattern position-absolute end-0 bottom-0 opacity-10" style="font-size: 8rem; transform: translate(20px, 30px); pointer-events: none;">
+                        <i class="fa-solid fa-gamepad"></i>
+                    </div>
+                </div>
 
-@if (!string.IsNullOrEmpty(Model.ErrorMessage))
-{
-    <div class="alert alert-warning">
-        <i class="fa-solid fa-triangle-exclamation me-2"></i>@Model.ErrorMessage
-    </div>
-}
-
-<div id="session-alert-container"></div>
-
-<!-- KPI Cards -->
-<div class="row g-4 mb-4">
-    <div class="col-6 col-xl-3">
-        <div class="kpi-card kpi-staff-sessions">
-            <div class="kpi-icon"><i class="fa-solid fa-play-circle"></i></div>
-            <div class="kpi-body">
-                <div class="kpi-label">Bàn đang chơi</div>
-                <div class="kpi-value" id="kpi-playing">@Model.CountPlaying</div>
-                <div class="kpi-sub">Phiên đang hoạt động</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-xl-3">
-        <div class="kpi-card kpi-staff-tables">
-            <div class="kpi-icon"><i class="fa-solid fa-table-cells-large"></i></div>
-            <div class="kpi-body">
-                <div class="kpi-label">Tổng số bàn</div>
-                <div class="kpi-value" id="kpi-total">@Model.TableDashboard.Count</div>
-                <div class="kpi-sub"><span class="text-success" id="kpi-available">@Model.CountAvailable</span> trống</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-xl-3">
-        <div class="kpi-card kpi-staff-orders">
-            <div class="kpi-icon"><i class="fa-solid fa-cart-shopping"></i></div>
-            <div class="kpi-body">
-                <div class="kpi-label">Đơn hàng</div>
-                <div class="kpi-value">@Model.TodayOrders.Count</div>
-                <div class="kpi-sub">Đơn trong hệ thống</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-xl-3">
-        <div class="kpi-card kpi-staff-revenue">
-            <div class="kpi-icon"><i class="fa-solid fa-coins"></i></div>
-            <div class="kpi-body">
-                <div class="kpi-label">Hóa đơn đã thu</div>
-                <div class="kpi-value">@Model.TodayRevenue.ToString("N0") đ</div>
-                <div class="kpi-sub">@Model.TodayInvoices.Count(i => i.IsPaid) hóa đơn đã thanh toán</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Table Cards Grid -->
-<div class="card-panel mb-4">
-    <div class="panel-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div>
-            <h5 class="panel-title"><i class="fa-solid fa-table-cells me-2"></i>Sơ đồ bàn — thao tác trực tiếp</h5>
-            <p class="panel-sub">Realtime timer · SignalR · Bootstrap 5</p>
-        </div>
-        <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" id="soundAlertToggle">
-            <label class="form-check-label small" for="soundAlertToggle">Âm thanh cảnh báo hết giờ</label>
-        </div>
-    </div>
-    <div class="panel-body">
-        <div class="row g-3" id="table-cards-grid">
-            @foreach (var t in Model.TableDashboard)
-            {
-                var statusClass = t.Status switch { 1 => "status-available", 2 => "status-playing", 3 => "status-reserved", 4 => "status-maintenance", _ => "" };
-                var statusText = t.Status switch { 1 => "Trống bàn", 2 => "Đang chơi", 3 => "Đặt trước", 4 => "Bảo trì", _ => "—" };
-                var session = t.ActiveSession;
-                var remainingSec = IndexModel.GetRemainingSeconds(session);
-                var endIso = session != null ? IndexModel.GetEndUtc(session).ToString("yyyy-MM-ddTHH:mm:ss.fffZ") : "";
-                var timerText = session != null ? IndexModel.FormatTimer(remainingSec) : "—";
-                var timerClass = remainingSec <= 0 && session != null ? "timer-expired" : remainingSec < 900 && session != null ? "timer-warning" : "timer-ok";
-                var durationText = session?.DurationHours > 0 ? $"{session.DurationHours} giờ" : "—";
-                <div class="col-6 col-md-4 col-xl-3">
-                    <div class="table-session-card @statusClass"
-                         id="table-card-@t.Id"
-                         data-table-id="@t.Id"
-                         data-status="@t.Status"
-                         data-hourly-rate="@t.HourlyRate"
-                         data-session-id="@(session?.Id)"
-                         data-end-time="@endIso"
-                         data-duration-hours="@(session?.DurationHours ?? 0)"
-                         data-remaining-seconds="@remainingSec">
-                        <div class="tsc-header">
-                            <div>
-                                <div class="tsc-name">@t.TableName</div>
-                                <div class="tsc-type text-muted small">@t.TableType</div>
+                <!-- KPI Cards -->
+                <div class="row g-4 mb-4">
+                    <!-- Card 1: My Revenue Today -->
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="kpi-card shadow-sm border-0 rounded-4 p-4 bg-white h-100 position-relative overflow-hidden">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="text-muted fw-medium small text-uppercase">Doanh thu hôm nay</span>
+                                <div class="kpi-icon-wrapper bg-success-subtle text-success p-2 rounded-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fa-solid fa-wallet fs-5"></i>
+                                </div>
                             </div>
-                            <span class="tsc-status-badge badge bg-@(t.Status == 2 ? "danger" : t.Status == 1 ? "success" : t.Status == 3 ? "warning" : "secondary")" id="status-badge-@t.Id">@statusText</span>
+                            <h3 class="fw-bold mb-1 text-dark">@Model.MyRevenueToday.ToString("N0") <span class="fs-6 fw-normal">đ</span></h3>
+                            <p class="mb-0 text-success small fw-semibold">
+                                <i class="fa-solid fa-arrow-trend-up me-1"></i>Đã thu trong ca của bạn
+                            </p>
                         </div>
-                        <div class="tsc-body">
-                            @if (session != null)
-                            {
-                                <div class="tsc-row">
-                                    <span class="tsc-label">Giờ chơi</span>
-                                    <span class="tsc-duration fw-600" id="duration-@t.Id">@durationText</span>
-                                </div>
-                            }
-                            <div class="tsc-row">
-                                <span class="tsc-label">Còn lại</span>
-                                <span class="session-timer @timerClass" id="timer-@t.Id" data-end="@endIso" data-remaining="@remainingSec">@timerText</span>
-                            </div>
-                            <div class="tsc-totals">
-                                <div class="tsc-row">
-                                    <span class="tsc-label">Tiền bàn</span>
-                                    <span id="table-price-@t.Id">@((session?.TotalPrice ?? 0).ToString("N0")) đ</span>
-                                </div>
-                                <div class="tsc-row">
-                                    <span class="tsc-label">Tiền nước</span>
-                                    <span id="orders-price-@t.Id">@((session?.OrdersTotal ?? 0).ToString("N0")) đ</span>
-                                </div>
-                                <div class="tsc-row tsc-row-total">
-                                    <span class="tsc-label">Tổng</span>
-                                    <span class="tsc-price" id="price-@t.Id">@((session?.CurrentTotal ?? 0).ToString("N0")) đ</span>
+                    </div>
+                    <!-- Card 2: Sessions Handled Today -->
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="kpi-card shadow-sm border-0 rounded-4 p-4 bg-white h-100 position-relative overflow-hidden">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="text-muted fw-medium small text-uppercase">Lượt chơi đã xử lý</span>
+                                <div class="kpi-icon-wrapper bg-primary-subtle text-primary p-2 rounded-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fa-solid fa-play fs-5"></i>
                                 </div>
                             </div>
-                            @if (session != null && session.OrderLines.Any())
-                            {
-                                <div class="tsc-orders mt-2" id="orders-list-@t.Id">
-                                    <div class="tsc-label mb-1">Đồ uống / Đồ ăn nhanh</div>
-                                    <ul class="tsc-order-items list-unstyled mb-0 small">
-                                        @foreach (var line in session.OrderLines)
-                                        {
-                                            <li>@line.ProductName <span class="text-muted">x@line.Quantity</span></li>
-                                        }
-                                    </ul>
-                                </div>
-                            }
-                            else if (session != null)
-                            {
-                                <div class="tsc-orders mt-2 text-muted small" id="orders-list-@t.Id">Chưa có order</div>
-                            }
+                            <h3 class="fw-bold mb-1 text-dark">@Model.SessionsHandledToday</h3>
+                            <p class="mb-0 text-secondary small">Số phiên hoạt động hôm nay</p>
                         </div>
-                        <div class="tsc-actions">
-                            @if (session == null && t.Status != 4)
+                    </div>
+                    <!-- Card 3: Active Tables -->
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="kpi-card shadow-sm border-0 rounded-4 p-4 bg-white h-100 position-relative overflow-hidden">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="text-muted fw-medium small text-uppercase">Bàn đang phục vụ</span>
+                                <div class="kpi-icon-wrapper bg-teal-subtle text-teal p-2 rounded-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fa-solid fa-table-cells-large fs-5"></i>
+                                </div>
+                            </div>
+                            <h3 class="fw-bold mb-1 text-dark">@Model.ActiveTablesCount</h3>
+                            <p class="mb-0 text-secondary small">Bàn chơi bạn đang quản lý</p>
+                        </div>
+                    </div>
+                    <!-- Card 4: Orders Today -->
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="kpi-card shadow-sm border-0 rounded-4 p-4 bg-white h-100 position-relative overflow-hidden">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="text-muted fw-medium small text-uppercase">Đơn dịch vụ hôm nay</span>
+                                <div class="kpi-icon-wrapper bg-warning-subtle text-warning p-2 rounded-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fa-solid fa-cart-shopping fs-5"></i>
+                                </div>
+                            </div>
+                            <h3 class="fw-bold mb-1 text-dark">@Model.OrdersTodayCount</h3>
+                            <p class="mb-0 text-secondary small">Đồ ăn / đồ uống đã order</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Active Sessions -->
+                <div class="card shadow-sm border-0 rounded-4 mb-4 overflow-hidden">
+                    <div class="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <h5 class="fw-bold mb-0 text-dark">
+                            <i class="fa-solid fa-hourglass-half me-2 text-teal"></i>Các phiên chơi đang quản lý
+                        </h5>
+                        <span class="badge bg-teal-subtle text-teal px-3 py-2 rounded-pill fw-semibold">
+                            @Model.MyActiveSessions.Count bàn chơi đang mở
+                        </span>
+                    </div>
+                    <div class="card-body px-4 py-3">
+                        <div class="row g-4">
+                            @foreach (var t in Model.MyActiveSessions)
                             {
-                                <button type="button" class="btn btn-sm btn-success btn-start-session" data-table-id="@t.Id" data-table-name="@t.TableName">
-                                    <i class="fa-solid fa-play me-1"></i>Bắt đầu
-                                </button>
+                                var session = t.ActiveSession;
+                                if (session == null) continue;
+                                var remainingSec = IndexModel.GetRemainingSeconds(session);
+                                var endIso = IndexModel.GetEndUtc(session).ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+                                var timerText = IndexModel.FormatTimer(remainingSec);
+                                var timerClass = remainingSec <= 0 ? "text-danger fw-bold pulse-danger" : remainingSec < 900 ? "text-warning fw-bold" : "text-primary fw-bold";
+
+                                <div class="col-12 col-md-6 col-xl-4" id="session-card-@session.Id" data-table-id="@t.Id">
+                                    <div class="card border border-light-subtle rounded-4 h-100 hover-shadow transition">
+                                        <div class="card-body p-4">
+                                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                                <div>
+                                                    <h5 class="fw-bold mb-0 text-dark">@t.TableName</h5>
+                                                    <span class="badge bg-light text-muted border border-light-subtle small mt-1">@t.TableType</span>
+                                                </div>
+                                                <span class="badge bg-primary px-2.5 py-1.5 rounded-3 fw-medium">
+                                                    <i class="fa-solid fa-spinner fa-spin me-1.5"></i>Đang chơi
+                                                </span>
+                                            </div>
+
+                                            <div class="row g-2 border-top border-bottom border-light-subtle py-3 my-3">
+                                                <div class="col-6">
+                                                    <span class="text-muted small d-block">Giờ bắt đầu</span>
+                                                    <span class="fw-semibold text-dark">@session.StartTime.ToLocalTime().ToString("HH:mm")</span>
+                                                </div>
+                                                <div class="col-6 text-end">
+                                                    <span class="text-muted small d-block">Thời gian còn lại</span>
+                                                    <span class="session-timer @timerClass" id="timer-@t.Id" data-end="@endIso" data-remaining="@remainingSec">@timerText</span>
+                                                </div>
+                                            </div>
+
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <span class="text-muted small">Tạm tính (Bàn + DV)</span>
+                                                <span class="fw-bold text-success fs-5" id="current-total-@session.Id">@session.CurrentTotal.ToString("N0") đ</span>
+                                            </div>
+
+                                            <!-- Order items display -->
+                                            <div class="mb-3">
+                                                <span class="text-muted small d-block mb-1">Dịch vụ đã gọi:</span>
+                                                <div class="bg-light p-2 rounded-3 text-muted small" style="max-height: 80px; overflow-y: auto;">
+                                                    @if (session.OrderLines.Any())
+                                                    {
+                                                        <ul class="list-unstyled mb-0">
+                                                            @foreach (var line in session.OrderLines)
+                                                            {
+                                                                <li class="d-flex justify-content-between">
+                                                                    <span>@line.ProductName</span>
+                                                                    <span>x@(line.Quantity)</span>
+                                                                </li>
+                                                            }
+                                                        </ul>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>Chưa có dịch vụ nào</span>
+                                                    }
+                                                </div>
+                                            </div>
+
+                                            <div class="d-flex gap-2">
+                                                <button type="button" class="btn btn-outline-teal btn-sm flex-fill py-2 rounded-3 btn-order-drinks" data-session-id="@session.Id" data-table-id="@t.Id" data-table-name="@t.TableName">
+                                                    <i class="fa-solid fa-mug-hot me-1"></i>Gọi dịch vụ
+                                                </button>
+                                                <button type="button" class="btn btn-outline-primary btn-sm flex-fill py-2 rounded-3 btn-extend-session" data-session-id="@session.Id" data-table-name="@t.TableName">
+                                                    <i class="fa-solid fa-clock me-1"></i>Gia hạn
+                                                </button>
+                                                <button type="button" class="btn btn-danger btn-sm flex-fill py-2 rounded-3 btn-end-session" data-session-id="@session.Id" data-table-name="@t.TableName">
+                                                    <i class="fa-solid fa-stop me-1"></i>Trả bàn
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             }
-                            @if (session != null)
+                            @if (!Model.MyActiveSessions.Any())
                             {
-                                <button type="button" class="btn btn-sm btn-info text-white btn-order-drinks" data-session-id="@session.Id" data-table-id="@t.Id" data-table-name="@t.TableName">
-                                    <i class="fa-solid fa-mug-hot me-1"></i>Order nước
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-primary btn-extend-session" data-session-id="@session.Id" data-table-name="@t.TableName">
-                                    <i class="fa-solid fa-clock me-1"></i>Gia hạn
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-danger btn-end-session" data-session-id="@session.Id" data-table-name="@t.TableName">
-                                    <i class="fa-solid fa-stop me-1"></i>Kết thúc
-                                </button>
-                            }
-                            @if (t.Status != 4 && session == null)
-                            {
-                                <div class="dropdown d-inline-block">
-                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Trạng thái</button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item btn-set-status" href="#" data-table-id="@t.Id" data-status="Available">Trống bàn</a></li>
-                                        <li><a class="dropdown-item btn-set-status" href="#" data-table-id="@t.Id" data-status="Reserved">Đặt trước</a></li>
-                                    </ul>
+                                <div class="col-12 py-5 text-center text-muted">
+                                    <div class="mb-3"><i class="fa-regular fa-folder-open fs-1 text-light-emphasis"></i></div>
+                                    <p class="mb-0">Bạn hiện không quản lý bàn nào đang hoạt động.</p>
+                                    <button type="button" class="btn btn-teal btn-sm mt-3 px-4 py-2 rounded-3 btn-start-new-session-modal">
+                                        <i class="fa-solid fa-plus me-1.5"></i>Bắt đầu phiên chơi mới
+                                    </button>
                                 </div>
                             }
                         </div>
                     </div>
                 </div>
-            }
-        </div>
-        @if (!Model.TableDashboard.Any())
-        {
-            <p class="text-muted text-center py-4">Không có bàn nào</p>
-        }
-    </div>
-</div>
 
-<!-- Recent tables & products (realtime) -->
-<div class="row g-4 mb-4">
-    <div class="col-12 col-lg-6">
-        <div class="card-panel">
-            <div class="panel-header d-flex justify-content-between align-items-center">
-                <h5 class="panel-title mb-0"><i class="fa-solid fa-table-cells me-2"></i>Bàn mới</h5>
-                <a href="/Staff/Tables/Index" class="btn btn-sm btn-outline-primary">Quản lý bàn</a>
-            </div>
-            <div class="panel-body">
-                <ul class="list-group list-group-flush" id="recent-tables-list">
-                    @foreach (var t in Model.TableDashboard.Take(5))
-                    {
-                        <li class="list-group-item px-0 d-flex justify-content-between" data-table-id="@t.Id">
-                            <span><strong>@t.TableName</strong> <span class="text-muted small">@t.TableType</span></span>
-                            <span class="badge bg-secondary">@t.HourlyRate.ToString("N0") đ/h</span>
-                        </li>
-                    }
-                    @if (!Model.TableDashboard.Any())
-                    {
-                        <li class="list-group-item text-muted">Chưa có bàn</li>
-                    }
-                </ul>
-            </div>
-        </div>
-    </div>
-    <div class="col-12 col-lg-6">
-        <div class="card-panel">
-            <div class="panel-header d-flex justify-content-between align-items-center">
-                <h5 class="panel-title mb-0"><i class="fa-solid fa-box-open me-2"></i>Sản phẩm mới</h5>
-                <a href="/Staff/Products/Index" class="btn btn-sm btn-outline-primary">Tất cả SP</a>
-            </div>
-            <div class="panel-body">
-                <ul class="list-group list-group-flush" id="recent-products-list">
-                    @foreach (var p in Model.Products.Take(5))
-                    {
-                        <li class="list-group-item px-0 d-flex justify-content-between" data-product-id="@p.Id">
-                            <span>@p.Name <span class="text-muted small">@p.Category</span></span>
-                            <span class="text-primary fw-600">@p.Price.ToString("N0") đ</span>
-                        </li>
-                    }
-                    @if (!Model.Products.Any())
-                    {
-                        <li class="list-group-item text-muted">Chưa có sản phẩm</li>
-                    }
-                </ul>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Today Invoices -->
-<div class="row g-4">
-    <div class="col-12">
-        <div class="card-panel">
-            <div class="panel-header d-flex justify-content-between align-items-center">
-                <h5 class="panel-title"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Hóa đơn hôm nay</h5>
-                <a href="/Staff/Invoices/Index" class="btn btn-staff-primary btn-sm">Xem tất cả</a>
-            </div>
-            <div class="panel-body p-0">
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
-                            <tr><th>#</th><th>Session ID</th><th>Tổng tiền</th><th>Thanh toán</th><th>Trạng thái</th></tr>
-                        </thead>
-                        <tbody>
-                            @{int idx = 1;}
-                            @foreach (var inv in Model.TodayInvoices.Take(5))
-                            {
-                                <tr>
-                                    <td>@(idx++)</td>
-                                    <td><code>@inv.SessionId.ToString().Substring(0,8)...</code></td>
-                                    <td class="fw-600">@inv.Total.ToString("N0") đ</td>
-                                    <td>@(inv.PaymentMethod == 0 ? "Tiền mặt" : inv.PaymentMethod == 1 ? "Thẻ" : "Chuyển khoản")</td>
-                                    <td>
-                                        @if (inv.IsPaid) { <span class="badge bg-success">Đã thanh toán</span> }
-                                        else { <span class="badge bg-warning text-dark">Chờ thanh toán</span> }
-                                    </td>
-                                </tr>
-                            }
-                            @if (!Model.TodayInvoices.Any())
-                            {
-                                <tr><td colspan="5" class="text-center py-4 text-muted">Chưa có hóa đơn</td></tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Start Session Modal -->
-<div class="modal fade" id="startSessionModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fa-solid fa-play me-2 text-success"></i>Bắt đầu chơi — <span id="startModalTableName"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-muted small mb-3">Chọn số giờ khách muốn chơi:</p>
-                <div class="d-grid gap-2 hour-options">
-                    @for (int h = 1; h <= 4; h++)
-                    {
-                        <button type="button" class="btn btn-outline-success btn-hour-option" data-hours="@h">@h giờ</button>
-                    }
-                </div>
-                <hr />
-                <label class="form-label small">Custom giờ (1–24)</label>
-                <div class="input-group">
-                    <input type="number" class="form-control" id="customHoursInput" min="1" max="24" value="1" />
-                    <button type="button" class="btn btn-success" id="btnCustomStart">Bắt đầu</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Extend Session Modal -->
-<div class="modal fade" id="extendSessionModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fa-solid fa-clock me-2"></i>Gia hạn — <span id="extendModalTableName"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body d-grid gap-2">
-                <button type="button" class="btn btn-outline-primary btn-extend-option" data-minutes="30">+ 30 phút</button>
-                <button type="button" class="btn btn-outline-primary btn-extend-option" data-minutes="60">+ 1 giờ</button>
-                <button type="button" class="btn btn-outline-primary btn-extend-option" data-minutes="120">+ 2 giờ</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Order Drinks Modal -->
-<div class="modal fade" id="orderModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fa-solid fa-mug-hot me-2 text-info"></i>Order nước — <span id="orderModalTableName"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row g-2" id="orderProductList">
-                    @foreach (var p in Model.Products)
-                    {
-                        <div class="col-6 col-md-4">
-                            <div class="order-product-item border rounded p-2 h-100" data-product-id="@p.Id" data-price="@p.Price" data-name="@p.Name">
-                                <div class="fw-600 small">@p.Name</div>
-                                <div class="text-muted small mb-2">@p.Category · @p.Price.ToString("N0") đ</div>
-                                <div class="input-group input-group-sm">
-                                    <button type="button" class="btn btn-outline-secondary btn-qty-minus">−</button>
-                                    <input type="number" class="form-control text-center order-qty" value="0" min="0" max="@p.Stock" />
-                                    <button type="button" class="btn btn-outline-secondary btn-qty-plus">+</button>
+                <!-- Quick Actions -->
+                <div class="row g-4 mb-4">
+                    <div class="col-12">
+                        <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+                            <h5 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-bolt me-2 text-warning"></i>Thao tác nhanh</h5>
+                            <div class="row g-3">
+                                <div class="col-6 col-md-3">
+                                    <button class="btn btn-teal w-100 py-3 rounded-4 shadow-sm fw-semibold text-white btn-start-new-session-modal">
+                                        <i class="fa-solid fa-circle-plus fs-3 d-block mb-2"></i>Bắt đầu chơi
+                                    </button>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <a href="/Staff/Sessions/Index" class="btn btn-primary w-100 py-3 rounded-4 shadow-sm fw-semibold text-white">
+                                        <i class="fa-solid fa-clipboard-list fs-3 d-block mb-2"></i>Quản lý Phiên
+                                    </a>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <a href="/Staff/Revenue/Index" class="btn btn-success w-100 py-3 rounded-4 shadow-sm fw-semibold text-white">
+                                        <i class="fa-solid fa-chart-line fs-3 d-block mb-2"></i>Doanh thu của tôi
+                                    </a>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <a href="/Staff/Tables/Index" class="btn btn-dark w-100 py-3 rounded-4 shadow-sm fw-semibold text-white">
+                                        <i class="fa-solid fa-network-wired fs-3 d-block mb-2"></i>Xem sơ đồ bàn
+                                    </a>
                                 </div>
                             </div>
                         </div>
-                    }
+                    </div>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-info text-white" id="btnSubmitOrder">
-                    <i class="fa-solid fa-check me-1"></i>Xác nhận order
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- End Session Modal -->
-<div class="modal fade" id="endSessionModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title text-danger"><i class="fa-solid fa-stop me-2"></i>Kết thúc bàn — <span id="endModalTableName"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Hệ thống sẽ kết thúc phiên, trả bàn về trống và tạo hóa đơn (giờ chơi + đồ uống).</p>
-                <div class="mb-3">
-                    <label class="form-label">Giảm giá (đ)</label>
-                    <input type="number" class="form-control" id="endDiscountInput" min="0" value="0" />
+                <!-- Today's Performance & Recent Activity -->
+                <div class="row g-4 mb-4">
+                    <!-- Performance chart -->
+                    <div class="col-12 col-lg-7">
+                        <div class="card shadow-sm border-0 rounded-4 p-4 bg-white h-100">
+                            <h5 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-chart-area me-2 text-success"></i>Doanh thu hôm nay theo giờ</h5>
+                            <div class="chart-container" style="position: relative; height:280px; width:100%">
+                                <canvas id="revenueTrendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Recent Activity -->
+                    <div class="col-12 col-lg-5">
+                        <div class="card shadow-sm border-0 rounded-4 p-4 bg-white h-100">
+                            <h5 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>Hoạt động gần đây của bạn</h5>
+                            <div class="activity-stream overflow-auto" style="max-height: 280px; padding-right: 5px;">
+                                @foreach (var act in Model.RecentActivities)
+                                {
+                                    <div class="d-flex align-items-start mb-3">
+                                        <div class="activity-badge rounded-circle p-2 d-flex align-items-center justify-content-center me-3 @act.BadgeClass" style="width: 38px; height: 38px; flex-shrink:0;">
+                                            <i class="fa-solid @act.Icon small"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <p class="mb-0 text-dark small fw-medium">@act.Action</p>
+                                            <span class="text-muted small opacity-75">@act.Time.ToString("HH:mm · dd/MM/yyyy")</span>
+                                        </div>
+                                    </div>
+                                }
+                                @if (!Model.RecentActivities.Any())
+                                {
+                                    <div class="text-center py-5 text-muted small">Chưa có hoạt động nào trong ca hôm nay</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Thanh toán</label>
-                    <select class="form-select" id="endPaymentSelect">
-                        <option value="0">Tiền mặt</option>
-                        <option value="1">Thẻ</option>
-                        <option value="2">Chuyển khoản</option>
-                    </select>
-                </div>
-                <button type="button" class="btn btn-danger w-100" id="btnConfirmEnd">Xác nhận kết thúc</button>
-            </div>
-        </div>
-    </div>
-</div>
 
             </main>
             <footer class="staff-footer">
@@ -483,60 +409,521 @@
             </footer>
         </div>
     </div>
-    <div id="loading-overlay">
-        <div class="loading-spinner">
-            <div class="spinner-ring"></div>
-            <p class="mt-3 text-white">Đang tải...</p>
+
+    <!-- Start New Session Modal -->
+    <div class="modal fade" id="startNewSessionModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark"><i class="fa-solid fa-play me-2 text-success"></i>Bắt đầu phiên chơi mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark small">Chọn bàn chơi</label>
+                        <select class="form-select rounded-3 py-2 border-light-subtle" id="startNewSessionTableSelect">
+                            <option value="">-- Chọn bàn trống --</option>
+                            @foreach (var t in Model.TableDashboard.Where(tb => tb.Status == 1 || tb.Status == 3))
+                            {
+                                <option value="@t.Id">@t.TableName (@t.TableType) - @t.HourlyRate.ToString("N0")đ/h</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark small">Chọn thời gian chơi</label>
+                        <div class="d-grid gap-2 hour-options-new mb-3" style="grid-template-columns: repeat(4, 1fr); display: grid;">
+                            @for (int h = 1; h <= 4; h++)
+                            {
+                                <button type="button" class="btn btn-outline-success py-2 rounded-3 btn-new-hour-option" data-hours="@h">@h giờ</button>
+                            }
+                        </div>
+                        <label class="form-label fw-semibold text-dark small">Hoặc nhập giờ tùy chỉnh (1-24)</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control rounded-start-3 border-light-subtle" id="customHoursNewInput" min="1" max="24" value="1" />
+                            <button type="button" class="btn btn-success rounded-end-3" id="btnConfirmStartNewSession">Bắt đầu chơi</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- Extend Session Modal -->
+    <div class="modal fade" id="extendSessionModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark"><i class="fa-solid fa-clock me-2 text-primary"></i>Gia hạn — <span id="extendModalTableName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 d-grid gap-2">
+                    <button type="button" class="btn btn-outline-primary py-2 rounded-3 btn-extend-option" data-minutes="30">+ 30 phút</button>
+                    <button type="button" class="btn btn-outline-primary py-2 rounded-3 btn-extend-option" data-minutes="60">+ 1 giờ</button>
+                    <button type="button" class="btn btn-outline-primary py-2 rounded-3 btn-extend-option" data-minutes="120">+ 2 giờ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Drinks Modal -->
+    <div class="modal fade" id="orderModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark"><i class="fa-solid fa-mug-hot me-2 text-teal"></i>Order dịch vụ — <span id="orderModalTableName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <input type="text" class="form-control rounded-3 py-2 border-light-subtle" id="searchProductInput" placeholder="🔍 Tìm kiếm đồ ăn, đồ uống..." />
+                    </div>
+                    <div class="row g-3" id="orderProductList">
+                        @foreach (var p in Model.Products)
+                        {
+                            <div class="col-6 col-md-4 product-card-item" data-product-name="@p.Name.ToLower()">
+                                <div class="order-product-item border border-light-subtle rounded-3 p-3 h-100 d-flex flex-column justify-content-between" data-product-id="@p.Id" data-price="@p.Price" data-name="@p.Name">
+                                    <div>
+                                        <div class="fw-bold text-dark small">@p.Name</div>
+                                        <div class="text-muted small mb-2">@p.Category · <strong class="text-teal">@p.Price.ToString("N0") đ</strong></div>
+                                    </div>
+                                    <div class="input-group input-group-sm mt-2">
+                                        <button type="button" class="btn btn-outline-secondary btn-qty-minus">−</button>
+                                        <input type="number" class="form-control text-center order-qty border-light-subtle" value="0" min="0" max="@p.Stock" readonly />
+                                        <button type="button" class="btn btn-outline-secondary btn-qty-plus">+</button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light py-2 px-4 rounded-3" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-teal py-2 px-4 rounded-3" id="btnSubmitOrder">
+                        <i class="fa-solid fa-check me-1.5"></i>Xác nhận order
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- End Session Modal -->
+    <div class="modal fade" id="endSessionModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-danger"><i class="fa-solid fa-stop me-2"></i>Thanh toán & Trả bàn — <span id="endModalTableName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small">Hệ thống sẽ kết thúc phiên chơi, trả bàn về trạng thái trống và tạo hóa đơn thanh toán.</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark small">Giảm giá (đ)</label>
+                        <input type="number" class="form-control rounded-3 border-light-subtle py-2" id="endDiscountInput" min="0" value="0" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark small">Phương thức thanh toán</label>
+                        <select class="form-select rounded-3 border-light-subtle py-2" id="endPaymentSelect">
+                            <option value="0">Tiền mặt</option>
+                            <option value="1">Thẻ</option>
+                            <option value="2">Chuyển khoản</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-danger w-100 py-2.5 rounded-3 fw-semibold" id="btnConfirmEnd">
+                        <i class="fa-solid fa-file-invoice-dollar me-1.5"></i>Xác nhận & Tạo hóa đơn
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-overlay" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
+        <div class="loading-spinner text-center">
+            <div class="spinner-ring spinner-border text-teal" style="width: 3rem; height: 3rem;" role="status"></div>
+            <p class="mt-3 text-white fw-medium">Đang tải...</p>
+        </div>
+    </div>
+
     <script src="/lib/jquery/dist/jquery.min.js"></script>
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/staff.js" asp-append-version="true"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
-    <script src="~/js/table-status.js" asp-append-version="true"></script>
+
     <script>
         window.STAFF_DASHBOARD = {
             apiBase: 'https://localhost:5001/api/',
             token: '@(HttpContext.Session.GetString("JWToken") ?? "")',
-            hubBase: document.querySelector('meta[name="hub-base-url"]')?.content || 'https://localhost:5001'
+            hubBase: 'https://localhost:5001'
+        };
+
+        toastr.options = {
+            "closeButton": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "timeOut": "4000"
         };
     </script>
-    <script src="~/js/create-entity.js" asp-append-version="true"></script>
-    <script src="~/js/staff-dashboard.js" asp-append-version="true"></script>
-    <script>
-        if (window.signalR) {
-            const hubBase = document.querySelector('meta[name="hub-base-url"]')?.content || 'https://localhost:5001';
-            const tableConn = new signalR.HubConnectionBuilder().withUrl(hubBase + '/hubs/table').withAutomaticReconnect().build();
-            tableConn.on('TableCreated', function (p) {
-                const list = document.getElementById('recent-tables-list');
-                if (!list) return;
-                const id = p.id || p.Id;
-                if (list.querySelector('[data-table-id="' + id + '"]')) return;
-                const li = document.createElement('li');
-                li.className = 'list-group-item px-0 d-flex justify-content-between';
-                li.dataset.tableId = id;
-                li.innerHTML = '<span><strong>' + (p.tableName || p.TableName) + '</strong> <span class="text-muted small">' + (p.tableType || p.TableType) + '</span></span><span class="badge bg-success">Mới</span>';
-                list.prepend(li);
-                const kpi = document.getElementById('kpi-total');
-                if (kpi) kpi.textContent = (parseInt(kpi.textContent, 10) || 0) + 1;
-            });
-            tableConn.start().catch(console.warn);
 
-            connectProductHub({
-                onProductCreated: function (p) {
-                    const list = document.getElementById('recent-products-list');
-                    if (!list) return;
-                    const id = p.id || p.Id;
-                    if (list.querySelector('[data-product-id="' + id + '"]')) return;
-                    const li = document.createElement('li');
-                    li.className = 'list-group-item px-0 d-flex justify-content-between';
-                    li.dataset.productId = id;
-                    li.innerHTML = '<span>' + (p.name || p.Name) + '</span><span class="text-primary fw-600">' + (p.price || p.Price || 0).toLocaleString('vi-VN') + ' đ</span>';
-                    list.prepend(li);
+    <script>
+        $(document).ready(function () {
+            // Clock
+            function updateClock() {
+                const now = new Date();
+                const time = now.toTimeString().split(' ')[0];
+                $('#clockDisplay').text(time);
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
+
+            // Setup chart
+            const ctx = document.getElementById('revenueTrendChart').getContext('2d');
+            const hourlyData = @Html.Raw(Json.Serialize(Model.HourlyRevenueData));
+            const hoursLabels = Array.from({ length: 24 }, (_, i) => `${i}h`);
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+            gradient.addColorStop(0, 'rgba(13, 148, 136, 0.4)');
+            gradient.addColorStop(1, 'rgba(13, 148, 136, 0.0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: hoursLabels,
+                    datasets: [{
+                        label: 'Doanh thu (đ)',
+                        data: hourlyData,
+                        borderColor: '#0d9488',
+                        borderWidth: 3,
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#0d9488',
+                        pointBorderColor: '#fff',
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f1f5f9' },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('vi-VN') + ' đ';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
                 }
             });
-        }
+
+            // Countdown Timer logic
+            function updateTimers() {
+                $('.session-timer').each(function () {
+                    const el = $(this);
+                    let rem = parseInt(el.attr('data-remaining'), 10);
+                    if (isNaN(rem)) return;
+
+                    if (rem > 0) {
+                        rem--;
+                        el.attr('data-remaining', rem);
+                        
+                        const h = Math.floor(rem / 3600);
+                        const m = Math.floor((rem % 3600) / 60);
+                        const s = rem % 60;
+                        const formatted = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                        el.text(formatted);
+
+                        if (rem <= 0) {
+                            el.removeClass('text-primary text-warning').addClass('text-danger fw-bold pulse-danger');
+                            toastr.error('Thời gian chơi của một bàn đã kết thúc!');
+                        } else if (rem < 900) {
+                            el.removeClass('text-primary text-danger').addClass('text-warning fw-bold');
+                        }
+                    } else {
+                        el.text('00:00:00');
+                        el.removeClass('text-primary text-warning').addClass('text-danger fw-bold pulse-danger');
+                    }
+                });
+            }
+            setInterval(updateTimers, 1000);
+
+            // Modals & API Calls
+            let activeSessionId = null;
+            let activeTableId = null;
+            let selectedHours = 1;
+
+            // Start Session Popup (Quick Action)
+            $('.btn-start-new-session-modal').on('click', function () {
+                $('#startNewSessionTableSelect').val('');
+                $('.btn-new-hour-option').removeClass('btn-success text-white').addClass('btn-outline-success');
+                $('[data-hours="1"]').removeClass('btn-outline-success').addClass('btn-success text-white');
+                selectedHours = 1;
+                $('#customHoursNewInput').val(1);
+                $('#startNewSessionModal').modal('show');
+            });
+
+            $('.btn-new-hour-option').on('click', function () {
+                $('.btn-new-hour-option').removeClass('btn-success text-white').addClass('btn-outline-success');
+                $(this).removeClass('btn-outline-success').addClass('btn-success text-white');
+                selectedHours = parseInt($(this).attr('data-hours'), 10);
+                $('#customHoursNewInput').val(selectedHours);
+            });
+
+            $('#btnConfirmStartNewSession').on('click', async function () {
+                const tableId = $('#startNewSessionTableSelect').val();
+                const hours = parseInt($('#customHoursNewInput').val(), 10);
+                
+                if (!tableId) {
+                    toastr.warning('Vui lòng chọn một bàn chơi.');
+                    return;
+                }
+                if (isNaN(hours) || hours < 1 || hours > 24) {
+                    toastr.warning('Thời gian phải từ 1 đến 24 giờ.');
+                    return;
+                }
+
+                $('#loading-overlay').css('display', 'flex');
+                try {
+                    const response = await fetch(`${window.STAFF_DASHBOARD.apiBase}table-sessions/start`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${window.STAFF_DASHBOARD.token}`
+                        },
+                        body: JSON.stringify({ tableId: tableId, durationHours: hours })
+                    });
+                    const resData = await response.json();
+                    if (response.ok && resData.success) {
+                        toastr.success('Khởi tạo phiên chơi thành công!');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        toastr.error(resData.message || 'Có lỗi xảy ra.');
+                    }
+                } catch (e) {
+                    toastr.error('Lỗi kết nối máy chủ.');
+                } finally {
+                    $('#loading-overlay').hide();
+                }
+            });
+
+            // Extend Session
+            $('.btn-extend-session').on('click', function () {
+                activeSessionId = $(this).attr('data-session-id');
+                $('#extendModalTableName').text($(this).attr('data-table-name'));
+                $('#extendSessionModal').modal('show');
+            });
+
+            $('.btn-extend-option').on('click', async function () {
+                const mins = parseInt($(this).attr('data-minutes'), 10);
+                $('#extendSessionModal').modal('hide');
+                $('#loading-overlay').css('display', 'flex');
+
+                try {
+                    const response = await fetch(`${window.STAFF_DASHBOARD.apiBase}table-sessions/extend/${activeSessionId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${window.STAFF_DASHBOARD.token}`
+                        },
+                        body: JSON.stringify({ additionalMinutes: mins })
+                    });
+                    const resData = await response.json();
+                    if (response.ok && resData.success) {
+                        toastr.success('Gia hạn phiên chơi thành công!');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        toastr.error(resData.message || 'Gia hạn thất bại.');
+                    }
+                } catch (e) {
+                    toastr.error('Lỗi kết nối máy chủ.');
+                } finally {
+                    $('#loading-overlay').hide();
+                }
+            });
+
+            // Quick Order Modal
+            $('.btn-order-drinks').on('click', function () {
+                activeSessionId = $(this).attr('data-session-id');
+                activeTableId = $(this).attr('data-table-id');
+                $('#orderModalTableName').text($(this).attr('data-table-name'));
+                $('.order-qty').val(0);
+                $('.order-product-item').removeClass('selected');
+                $('#searchProductInput').val('');
+                $('.product-card-item').show();
+                $('#orderModal').modal('show');
+            });
+
+            // Product quantity controls
+            $('.btn-qty-minus').on('click', function () {
+                const input = $(this).siblings('.order-qty');
+                let val = parseInt(input.val(), 10);
+                if (val > 0) {
+                    input.val(val - 1);
+                    if (val - 1 === 0) {
+                        $(this).closest('.order-product-item').removeClass('selected');
+                    }
+                }
+            });
+
+            $('.btn-qty-plus').on('click', function () {
+                const input = $(this).siblings('.order-qty');
+                let val = parseInt(input.val(), 10);
+                const max = parseInt(input.attr('max'), 10);
+                if (val < max) {
+                    input.val(val + 1);
+                    $(this).closest('.order-product-item').addClass('selected');
+                } else {
+                    toastr.warning('Đã đạt số lượng tồn kho tối đa!');
+                }
+            });
+
+            // Product Search
+            $('#searchProductInput').on('keyup', function () {
+                const term = $(this).val().toLowerCase().trim();
+                $('.product-card-item').each(function () {
+                    const name = $(this).attr('data-product-name');
+                    if (name.includes(term)) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            });
+
+            $('#btnSubmitOrder').on('click', async function () {
+                const items = [];
+                $('.order-product-item').each(function () {
+                    const qty = parseInt($(this).find('.order-qty').val(), 10);
+                    if (qty > 0) {
+                        items.push({
+                            productId: $(this).attr('data-product-id'),
+                            quantity: qty
+                        });
+                    }
+                });
+
+                if (items.length === 0) {
+                    toastr.warning('Vui lòng chọn ít nhất một sản phẩm.');
+                    return;
+                }
+
+                $('#orderModal').modal('hide');
+                $('#loading-overlay').css('display', 'flex');
+
+                try {
+                    const response = await fetch(`${window.STAFF_DASHBOARD.apiBase}orders`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${window.STAFF_DASHBOARD.token}`
+                        },
+                        body: JSON.stringify({ sessionId: activeSessionId, items: items })
+                    });
+                    const resData = await response.json();
+                    if (response.ok && resData.success) {
+                        toastr.success('Gọi dịch vụ thành công!');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        toastr.error(resData.message || 'Không thể tạo order.');
+                    }
+                } catch (e) {
+                    toastr.error('Lỗi kết nối máy chủ.');
+                } finally {
+                    $('#loading-overlay').hide();
+                }
+            });
+
+            // End Session
+            $('.btn-end-session').on('click', function () {
+                activeSessionId = $(this).attr('data-session-id');
+                $('#endModalTableName').text($(this).attr('data-table-name'));
+                $('#endDiscountInput').val(0);
+                $('#endPaymentSelect').val(0);
+                $('#endSessionModal').modal('show');
+            });
+
+            $('#btnConfirmEnd').on('click', async function () {
+                const discount = parseFloat($('#endDiscountInput').val());
+                const payment = parseInt($('#endPaymentSelect').val(), 10);
+                
+                if (isNaN(discount) || discount < 0) {
+                    toastr.warning('Giảm giá không hợp lệ.');
+                    return;
+                }
+
+                $('#endSessionModal').modal('hide');
+                $('#loading-overlay').css('display', 'flex');
+
+                try {
+                    const response = await fetch(`${window.STAFF_DASHBOARD.apiBase}table-sessions/end/${activeSessionId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${window.STAFF_DASHBOARD.token}`
+                        },
+                        body: JSON.stringify({ discount: discount, paymentMethod: payment })
+                    });
+                    const resData = await response.json();
+                    if (response.ok && resData.success) {
+                        toastr.success('Kết thúc phiên chơi và thanh toán thành công!');
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        toastr.error(resData.message || 'Không thể kết thúc phiên.');
+                    }
+                } catch (e) {
+                    toastr.error('Lỗi kết nối máy chủ.');
+                } finally {
+                    $('#loading-overlay').hide();
+                }
+            });
+
+            // SignalR Connection
+            if (window.signalR && window.STAFF_DASHBOARD.token) {
+                const hubBase = window.STAFF_DASHBOARD.hubBase;
+                const connection = new signalR.HubConnectionBuilder()
+                    .withUrl(`${hubBase}/hubs/table`, {
+                        accessTokenFactory: () => window.STAFF_DASHBOARD.token
+                    })
+                    .withAutomaticReconnect()
+                    .build();
+
+                connection.on('SessionUpdated', function (realtime) {
+                    // Update remaining seconds and amounts in real-time
+                    const card = $(`#session-card-${realtime.sessionId}`);
+                    if (card.length > 0) {
+                        const timer = card.find('.session-timer');
+                        timer.attr('data-remaining', realtime.remainingSeconds);
+                        timer.attr('data-end', realtime.endTime);
+                        
+                        $(`#current-total-${realtime.sessionId}`).text(realtime.currentTotal.toLocaleString('vi-VN') + ' đ');
+
+                        if (realtime.remainingMinutes < 15 && realtime.remainingSeconds > 0) {
+                            toastr.warning(`Bàn ${realtime.tableName} còn lại ít hơn 15 phút!`);
+                        }
+                    }
+                });
+
+                connection.on('ReceiveTableUpdate', function (eventName) {
+                    console.log('SignalR update:', eventName);
+                    // Soft reload if relevant change happened to keep dashboard accurate
+                    if (eventName === 'SessionStarted' || eventName === 'SessionEnded' || eventName === 'OrderCreated') {
+                        toastr.info('Có cập nhật trạng thái bàn chơi từ hệ thống.');
+                        setTimeout(() => location.reload(), 1500);
+                    }
+                });
+
+                connection.start().catch(err => console.warn('SignalR Hub Connection error:', err));
+            }
+        });
     </script>
 </body>
 </html>

@@ -52,6 +52,7 @@ namespace BilliardManagement.Web.Pages.Auth
                     var roleName = response.User.Role == 1 ? "Admin" : "Staff";
                     HttpContext.Session.SetString("UserRole", roleName);
                     HttpContext.Session.SetString("FullName", response.User.FullName);
+                    HttpContext.Session.SetString("UserId", response.User.Id.ToString());
                     HttpContext.Session.SetString("LastActivity", DateTime.UtcNow.ToString("o"));
                     TempData["SuccessMessage"] = "Đăng nhập thành công!";
 
