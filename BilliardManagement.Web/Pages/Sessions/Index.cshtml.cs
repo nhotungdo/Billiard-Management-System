@@ -84,7 +84,7 @@ namespace BilliardManagement.Web.Pages.Sessions
             _logger.LogInformation("OnPostEnd called: sessionId={SessionId}", sessionId);
             try
             {
-                // Step 1: End the session
+                // Step 1: End the session (this automatically triggers bill/invoice creation in the backend)
                 var session = await _sessionService.EndSessionAsync(sessionId);
                 if (session == null)
                 {
@@ -96,35 +96,8 @@ namespace BilliardManagement.Web.Pages.Sessions
                 _logger.LogInformation("Session ended successfully: sessionId={SessionId}, totalPrice={TotalPrice}",
                     session.Id, session.TotalPrice);
 
-                // Step 2: Auto-generate invoice with 0 discount and Cash payment
-                try
-                {
-                    var createInvoiceDto = new CreateInvoiceDto
-                    {
-                        Discount = 0,
-                        PaymentMethod = 0 // Cash
-                    };
-                    var invoice = await _invoiceService.GenerateInvoiceAsync(sessionId, createInvoiceDto);
-                    if (invoice != null)
-                    {
-                        _logger.LogInformation("Invoice generated successfully: invoiceId={InvoiceId}", invoice.Id);
-                        TempData["SuccessMessage"] = $"✅ Kết thúc bàn thành công! Hóa đơn #{invoice.Id.ToString()[..8].ToUpper()} đã được tạo.";
-                        return RedirectToPage("/Invoices/Index");
-                    }
-                    else
-                    {
-                        _logger.LogWarning("GenerateInvoice returned null for sessionId={SessionId}", sessionId);
-                        TempData["SuccessMessage"] = "Kết thúc phiên chơi thành công, nhưng không thể tạo hóa đơn tự động.";
-                    }
-                }
-                catch (Exception invoiceEx)
-                {
-                    _logger.LogError(invoiceEx, "GenerateInvoice failed for sessionId={SessionId}: {Message}",
-                        sessionId, invoiceEx.Message);
-                    // Session đã ended thành công, chỉ báo lỗi tạo invoice
-                    TempData["SuccessMessage"] = "Kết thúc phiên chơi thành công.";
-                    TempData["ErrorMessage"] = $"Lưu ý: Không thể tạo hóa đơn tự động ({invoiceEx.Message}). Vui lòng tạo thủ công.";
-                }
+                TempData["SuccessMessage"] = "✅ Kết thúc phiên chơi thành công! Hóa đơn đã được tự động tạo.";
+                return RedirectToPage("/Invoices/Index");
             }
             catch (Exception ex)
             {

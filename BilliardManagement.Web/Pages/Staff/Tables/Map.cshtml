@@ -1444,6 +1444,9 @@
             const hoursInputId = this.id === 'btnDetailsStartSession' ? '#modalStartHoursInput' : '#customHoursInput';
             const hours = parseInt($(hoursInputId).val()) || 2;
 
+            const buttons = $('#btnConfirmStart, #btnDetailsStartSession');
+            buttons.prop('disabled', true);
+
             toggleLoading(true);
             try {
                 const session = await makeApiCall('table-sessions/start', 'POST', {
@@ -1455,6 +1458,7 @@
                 showNotification('Mở bàn chơi thành công!', 'success');
             } catch (err) {
                 showNotification('Lỗi mở bàn chơi', 'error', err.message);
+                buttons.prop('disabled', false);
             } finally {
                 toggleLoading(false);
             }
@@ -1465,6 +1469,9 @@
             if (!selectedSessionId) return;
             const mins = parseInt($(this).data('minutes')) || 30;
 
+            const buttons = $('.btn-extend-option');
+            buttons.prop('disabled', true);
+
             toggleLoading(true);
             try {
                 await makeApiCall(`table-sessions/extend/${selectedSessionId}`, 'POST', {
@@ -1474,6 +1481,7 @@
                 showNotification(`Gia hạn thêm ${mins} phút thành công!`, 'success');
             } catch (err) {
                 showNotification('Lỗi gia hạn bàn', 'error', err.message);
+                buttons.prop('disabled', false);
             } finally {
                 toggleLoading(false);
             }
@@ -1552,6 +1560,9 @@
                 return;
             }
 
+            const btn = $(this);
+            btn.prop('disabled', true);
+
             toggleLoading(true);
             try {
                 await makeApiCall('orders', 'POST', {
@@ -1562,6 +1573,7 @@
                 showNotification('Gọi món thành công!', 'success');
             } catch (err) {
                 showNotification('Lỗi gọi món', 'error', err.message);
+                btn.prop('disabled', false);
             } finally {
                 toggleLoading(false);
             }
@@ -1574,6 +1586,9 @@
             const discount = parseFloat($('#endDiscountInput').val()) || 0;
             const payMethod = parseInt($('#endPaymentSelect').val()) || 0;
 
+            const btn = $(this);
+            btn.prop('disabled', true);
+
             toggleLoading(true);
             try {
                 await makeApiCall(`table-sessions/end/${selectedSessionId}`, 'POST', {
@@ -1584,6 +1599,7 @@
                 showNotification('Đã thanh toán hóa đơn và đóng bàn thành công!', 'success');
             } catch (err) {
                 showNotification('Lỗi thanh toán', 'error', err.message);
+                btn.prop('disabled', false);
             } finally {
                 toggleLoading(false);
             }

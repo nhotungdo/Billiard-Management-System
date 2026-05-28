@@ -221,7 +221,8 @@
                         }
                         else
                         {
-                            <form method="post" asp-page-handler="Start" asp-route-tableId="@table.Id">
+                            <form method="post" asp-page-handler="Start" asp-route-tableId="@table.Id"
+                                  onsubmit="return confirmStartSession(this);">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" id="btn-start-@table.Id"
                                         class="btn btn-sm btn-success w-100 py-2 font-weight-bold">
@@ -258,6 +259,20 @@
         function confirmEndSession(form, tableName, sessionId) {
             var confirmed = confirm('Bạn có chắc muốn KẾT THÚC bàn "' + tableName + '" và tạo hóa đơn không?');
             if (!confirmed) return false;
+
+            window.isFormSubmitting = true;
+
+            // Disable button to prevent double submit
+            var btn = form.querySelector('button[type="submit"]');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Đang xử lý...';
+            }
+            return true;
+        }
+
+        function confirmStartSession(form) {
+            window.isFormSubmitting = true;
 
             // Disable button to prevent double submit
             var btn = form.querySelector('button[type="submit"]');
@@ -311,12 +326,16 @@
 
             tableConnection.on("TableStatusChanged", function (payload) {
                 console.log("Table status changed: ", payload);
-                window.location.reload();
+                if (!window.isFormSubmitting) {
+                    window.location.reload();
+                }
             });
 
             tableConnection.on("ReceiveTableUpdate", function (message) {
                 console.log("Realtime table status update: ", message);
-                window.location.reload();
+                if (!window.isFormSubmitting) {
+                    window.location.reload();
+                }
             });
 
             tableConnection.start()
@@ -331,7 +350,9 @@
 
             orderConnection.on("ReceiveOrderUpdate", function (message) {
                 console.log("Realtime order status update: ", message);
-                window.location.reload();
+                if (!window.isFormSubmitting) {
+                    window.location.reload();
+                }
             });
 
             orderConnection.start()
