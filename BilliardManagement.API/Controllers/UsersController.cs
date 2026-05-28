@@ -148,6 +148,34 @@ namespace BilliardManagement.API.Controllers
             }
         }
 
+        // POST: api/users/{id}/reset-password
+        [HttpPost("{id}/reset-password")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ResetPassword(Guid id, [FromBody] ResetPasswordForUserDto dto)
+        {
+            try
+            {
+                var adminUsername = User.FindFirst(ClaimTypes.Name)?.Value ?? "Admin";
+
+                if (string.IsNullOrWhiteSpace(dto.NewPassword))
+                {
+                    return BadRequest(ApiResponse<object>.Fail("Mật khẩu mới không được để trống."));
+                }
+
+                var newPassword = await _userService.ResetUserPasswordAsync(id, dto.NewPassword);
+                
+                _logger.LogInformation("Admin user {AdminUsername} reset password for user ID {UserId} at {Time}", 
+                    adminUsername, id, DateTime.UtcNow);
+
+                return Ok(ApiResponse<string>.Ok(newPassword, "Mật khẩu đã được đặt lại thành công."));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi reset mật khẩu cho user ID {UserId}", id);
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
+        }
+
         private Guid? GetUserId()
         {
             var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

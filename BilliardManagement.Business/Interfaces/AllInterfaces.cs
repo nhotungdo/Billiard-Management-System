@@ -21,6 +21,7 @@ namespace BilliardManagement.Business.Interfaces
         Task<UserDeletionResultDto> DeleteUserAsync(Guid id);
         Task<UserDto> UpdateProfileAsync(Guid id, UpdateProfileDto dto);
         Task<bool> ChangePasswordAsync(Guid id, ChangePasswordDto dto);
+        Task<string> ResetUserPasswordAsync(Guid userId, string newPassword);
     }
 
     public interface ITableService

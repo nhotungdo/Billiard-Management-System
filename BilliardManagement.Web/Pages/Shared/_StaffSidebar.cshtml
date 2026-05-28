@@ -1,6 +1,9 @@
 @{
     var currentPath = Context.Request.Path.Value?.ToLower() ?? "";
-    string IsActive(string path) => currentPath.StartsWith(path.ToLower()) ? "active" : "";
+    string IsActive(string path) {
+        if (path.ToLower() == "/staff/tables" && currentPath.StartsWith("/staff/tables/map")) return "";
+        return currentPath.StartsWith(path.ToLower()) ? "active" : "";
+    }
 }
 
 <nav id="staff-sidebar">
@@ -27,6 +30,12 @@
             </a>
         </li>
         <li class="nav-item">
+            <a class="nav-link @IsActive("/staff/tables/map")" href="/Staff/Tables/Map">
+                <span class="nav-icon"><i class="fa-solid fa-map-location-dot"></i></span>
+                <span class="nav-text">Sơ đồ bàn</span>
+            </a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link @IsActive("/staff/tables")" href="/Staff/Tables/Index">
                 <span class="nav-icon"><i class="fa-solid fa-table-cells"></i></span>
                 <span class="nav-text">Quản lý Bàn</span>
@@ -36,12 +45,6 @@
             <a class="nav-link @IsActive("/staff/products")" href="/Staff/Products/Index">
                 <span class="nav-icon"><i class="fa-solid fa-box-open"></i></span>
                 <span class="nav-text">Sản phẩm</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @IsActive("/staff/sessions")" href="/Staff/Sessions/Index">
-                <span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
-                <span class="nav-text">Phiên chơi</span>
             </a>
         </li>
         <li class="nav-item">
