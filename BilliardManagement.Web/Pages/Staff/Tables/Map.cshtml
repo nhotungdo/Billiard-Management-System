@@ -52,9 +52,9 @@
     @if (!string.IsNullOrEmpty(apiToken))
     {
         <meta name="api-token" content="@apiToken" />
-        <meta name="api-base-url" content="https://localhost:5001/api/" />
-        <meta name="api-origin" content="https://localhost:5001" />
-        <meta name="hub-base-url" content="https://localhost:5001" />
+        <meta name="api-base-url" content="http://localhost:8080/api/" />
+        <meta name="api-origin" content="http://localhost:8080" />
+        <meta name="hub-base-url" content="http://localhost:8080" />
     }
     <style>
         /* Modern Premium Aesthetic Style Modifications */
@@ -968,7 +968,7 @@
     <script>
         // Store in-memory representation of table and session states
         let tablesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TableDashboard));
-        const apiBaseUrl = '@(apiToken != null ? "https://localhost:5001/api/" : "")';
+        const apiBaseUrl = '@(apiToken != null ? "http://localhost:8080/api/" : "")';
         const apiToken = '@(HttpContext.Session.GetString("JWToken") ?? "")';
 
         // Modals Instances
@@ -1010,7 +1010,7 @@
             };
             if (payload) config.body = JSON.stringify(payload);
 
-            const res = await fetch('https://localhost:5001/api/' + endpoint, config);
+            const res = await fetch('http://localhost:8080/api/' + endpoint, config);
             let json;
             try {
                 json = await res.json();

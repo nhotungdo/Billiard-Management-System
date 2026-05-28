@@ -32,9 +32,9 @@
     @if (!string.IsNullOrEmpty(apiToken))
     {
         <meta name="api-token" content="@apiToken" />
-        <meta name="api-base-url" content="https://localhost:5001/api/" />
-        <meta name="api-origin" content="https://localhost:5001" />
-        <meta name="hub-base-url" content="https://localhost:5001" />
+        <meta name="api-base-url" content="http://localhost:8080/api/" />
+        <meta name="api-origin" content="http://localhost:8080" />
+        <meta name="hub-base-url" content="http://localhost:8080" />
     }
 </head>
 <body class="@bodyClass">
@@ -305,7 +305,7 @@
 
             // SignalR Connection for Realtime Table updates
             const tableConnection = new signalR.HubConnectionBuilder()
-                .withUrl("https://localhost:5001/hubs/table")
+                .withUrl("http://localhost:8080/hubs/table")
                 .withAutomaticReconnect()
                 .build();
 
@@ -325,7 +325,7 @@
 
             // SignalR Connection for Realtime Order updates
             const orderConnection = new signalR.HubConnectionBuilder()
-                .withUrl("https://localhost:5001/hubs/order")
+                .withUrl("http://localhost:8080/hubs/order")
                 .withAutomaticReconnect()
                 .build();
 

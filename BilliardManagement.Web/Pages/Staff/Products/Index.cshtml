@@ -1,6 +1,6 @@
 @page
 @model BilliardManagement.Web.Pages.Staff.Products.IndexModel
-@{ Layout = null; var apiOrigin = "https://localhost:5001"; }
+@{ Layout = null; var apiOrigin = "http://localhost:8080"; }
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -18,9 +18,9 @@
     @if (!string.IsNullOrEmpty(apiToken))
     {
         <meta name="api-token" content="@apiToken" />
-        <meta name="api-base-url" content="https://localhost:5001/api/" />
-        <meta name="api-origin" content="https://localhost:5001" />
-        <meta name="hub-base-url" content="https://localhost:5001" />
+        <meta name="api-base-url" content="http://localhost:8080/api/" />
+        <meta name="api-origin" content="http://localhost:8080" />
+        <meta name="hub-base-url" content="http://localhost:8080" />
     }
 </head>
 <body class="staff-body">
@@ -188,7 +188,7 @@
             if (!confirm('Bạn có chắc muốn xóa sản phẩm này?')) return;
             
             try {
-                const API_BASE = document.querySelector('meta[name="api-base-url"]')?.content || 'https://localhost:5001/api/';
+                const API_BASE = document.querySelector('meta[name="api-base-url"]')?.content || 'http://localhost:8080/api/';
                 const API_TOKEN = document.querySelector('meta[name="api-token"]')?.content || '';
                 
                 const res = await fetch(API_BASE + 'products/' + id, {
