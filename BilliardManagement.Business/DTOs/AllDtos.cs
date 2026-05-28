@@ -40,6 +40,11 @@ namespace BilliardManagement.Business.DTOs
         public string ConfirmNewPassword { get; set; } = string.Empty;
     }
 
+    public class ResetPasswordForUserDto
+    {
+        public string NewPassword { get; set; } = string.Empty;
+    }
+
     public class TableDto
     {
         public Guid Id { get; set; }

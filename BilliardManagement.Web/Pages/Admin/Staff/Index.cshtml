@@ -149,6 +149,11 @@
                                 { <span class="status-dot inactive"><i class="fa-solid fa-circle"></i> Ngừng</span> }
                             </td>
                             <td>
+                                <button type="button" class="btn btn-sm btn-outline-warning btn-reset-pw-modal me-1" 
+                                        data-id="@s.Id" data-fullname="@s.FullName" data-username="@s.Username" 
+                                        data-role="@(s.Role == 1 ? "Admin" : "Staff")" title="Đặt lại mật khẩu">
+                                    <i class="fa-solid fa-key"></i>
+                                </button>
                                 <form method="post" asp-page-handler="Delete" asp-route-id="@s.Id" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa nhân viên này? Hành động này không thể hoàn tác.');">
                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa nhân viên">
                                         <i class="fa-solid fa-trash"></i>
@@ -203,6 +208,55 @@
     </div>
 </div>
 
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resetPasswordModalLabel"><i class="fa-solid fa-key me-2 text-warning"></i>Đặt lại mật khẩu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="user-info-section bg-light p-3 rounded mb-3">
+                    <p class="mb-1 text-muted small">Thông tin tài khoản:</p>
+                    <div class="d-flex justify-content-between">
+                        <span class="fw-bold" id="resetUserFullName"></span>
+                        <span class="badge bg-secondary" id="resetUserRole"></span>
+                    </div>
+                    <div class="text-muted small mt-1">Username: <code id="resetUserUsername"></code></div>
+                </div>
+
+                <div class="mb-3" id="manualPasswordContainer">
+                    <label class="form-label fw-semibold">Mật khẩu mới</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="manualNewPassword" placeholder="Nhập mật khẩu mới (tối thiểu 8 ký tự)...">
+                        <button class="btn btn-outline-secondary" type="button" id="toggleManualPassword">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="form-text text-danger small mt-1" id="passwordError" style="display: none;">
+                        Mật khẩu phải chứa ít nhất 8 ký tự, bao gồm cả chữ cái và chữ số.
+                    </div>
+                </div>
+
+                <div class="bg-success-subtle p-3 rounded border border-success mb-3" id="resetResultContainer" style="display: none;">
+                    <p class="mb-1 text-success fw-bold"><i class="fa-solid fa-circle-check me-1"></i>Đặt lại mật khẩu thành công!</p>
+                    <div class="d-flex gap-2 align-items-center mt-2">
+                        <input type="text" class="form-control fw-bold border-success text-success bg-white" id="generatedPasswordDisplay" readonly>
+                        <button class="btn btn-success" type="button" id="btnCopyPassword" title="Sao chép mật khẩu">
+                            <i class="fa-solid fa-copy"></i> Sao chép
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-warning fw-semibold" id="btnConfirmReset">Xác nhận đặt lại</button>
+            </div>
+        </div>
+    </div>
+</div>
+
             </main>
             <footer class="admin-footer">
                 <div class="text-muted small">&copy; 2026 Billiard Management System &mdash; Admin Panel</div>
@@ -219,5 +273,112 @@
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/admin.js" asp-append-version="true"></script>
 
+    <script>
+        $(document).ready(function () {
+            let selectedUserId = null;
+
+            $('.btn-reset-pw-modal').on('click', function () {
+                selectedUserId = $(this).attr('data-id');
+                const fullname = $(this).attr('data-fullname');
+                const username = $(this).attr('data-username');
+                const role = $(this).attr('data-role');
+
+                $('#resetUserFullName').text(fullname);
+                $('#resetUserUsername').text(username);
+                $('#resetUserRole').text(role);
+
+                // Reset state
+                $('#manualNewPassword').val('');
+                $('#passwordError').hide();
+                $('#resetResultContainer').hide();
+                $('#generatedPasswordDisplay').val('');
+                $('#btnConfirmReset').prop('disabled', false);
+
+                $('#resetPasswordModal').modal('show');
+            });
+
+            $('#toggleManualPassword').on('click', function () {
+                const input = $('#manualNewPassword');
+                const icon = $(this).find('i');
+                if (input.attr('type') === 'password') {
+                    input.attr('type', 'text');
+                    icon.removeClass('fa-eye').addClass('fa-eye-slash');
+                } else {
+                    input.attr('type', 'password');
+                    icon.removeClass('fa-eye-slash').addClass('fa-eye');
+                }
+            });
+
+            $('#btnConfirmReset').on('click', function () {
+                const newPassword = $('#manualNewPassword').val();
+
+                // Validation
+                if (!newPassword || newPassword.length < 8) {
+                    $('#passwordError').text('Mật khẩu phải chứa ít nhất 8 ký tự.').show();
+                    return;
+                }
+                let hasLetter = false;
+                let hasDigit = false;
+                for (let i = 0; i < newPassword.length; i++) {
+                    const c = newPassword.charAt(i);
+                    if (/[a-zA-Z]/.test(c)) hasLetter = true;
+                    if (/[0-9]/.test(c)) hasDigit = true;
+                }
+                if (!hasLetter || !hasDigit) {
+                    $('#passwordError').text('Mật khẩu phải chứa cả chữ và số.').show();
+                    return;
+                }
+                $('#passwordError').hide();
+
+                $('#loading-overlay').css('display', 'flex');
+
+                const apiToken = $('meta[name="api-token"]').attr('content');
+                const apiBaseUrl = $('meta[name="api-base-url"]').attr('content') || 'https://localhost:5001/api/';
+
+                const payload = {
+                    newPassword: newPassword
+                };
+
+                fetch(`${apiBaseUrl}users/${selectedUserId}/reset-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiToken}`
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => response.json().then(data => ({ status: response.status, body: data })))
+                .then(res => {
+                    $('#loading-overlay').hide();
+                    if (res.status === 200 && res.body.success) {
+                        const generatedPw = res.body.data;
+                        $('#generatedPasswordDisplay').val(generatedPw);
+                        $('#resetResultContainer').slideDown();
+                        $('#btnConfirmReset').prop('disabled', true);
+                    } else {
+                        alert(res.body.message || 'Đặt lại mật khẩu thất bại.');
+                    }
+                })
+                .catch(err => {
+                    $('#loading-overlay').hide();
+                    alert('Lỗi kết nối máy chủ.');
+                });
+            });
+
+            $('#btnCopyPassword').on('click', function () {
+                const copyText = document.getElementById("generatedPasswordDisplay");
+                copyText.select();
+                copyText.setSelectionRange(0, 99999);
+                navigator.clipboard.writeText(copyText.value);
+
+                const btn = $(this);
+                const originalHtml = btn.html();
+                btn.html('<i class="fa-solid fa-check"></i> Đã sao chép!').removeClass('btn-success').addClass('btn-outline-success');
+                setTimeout(() => {
+                    btn.html(originalHtml).removeClass('btn-outline-success').addClass('btn-success');
+                }, 2000);
+            });
+        });
+    </script>
 </body>
 </html>

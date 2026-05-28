@@ -30,6 +30,11 @@ namespace BilliardManagement.Web.Services
             return await DeleteAsync<UserDeletionResultDto>($"users/{id}");
         }
 
+        public async Task<string?> ResetPasswordAsync(Guid id, ResetPasswordForUserDto dto)
+        {
+            return await PostAsync<ResetPasswordForUserDto, string>($"users/{id}/reset-password", dto);
+        }
+
         public async Task<List<ShiftDto>?> GetTodayShiftsAsync()
         {
             return await GetAsync<List<ShiftDto>>("shifts/today");

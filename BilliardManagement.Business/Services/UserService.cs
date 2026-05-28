@@ -134,5 +134,36 @@ namespace BilliardManagement.Business.Services
  
              return true;
          }
+
+         // Reset mật khẩu cho nhân viên
+         public async Task<string> ResetUserPasswordAsync(Guid userId, string newPassword)
+         {
+             var user = await _unitOfWork.Repository<User>().GetByIdAsync(userId);
+             if (user == null) throw new CustomException("Không tìm thấy người dùng", 404);
+
+             if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 8)
+             {
+                 throw new CustomException("Mật khẩu phải chứa ít nhất 8 ký tự.", 400);
+             }
+             bool hasLetter = false;
+             bool hasDigit = false;
+             foreach (char c in newPassword)
+             {
+                 if (char.IsLetter(c)) hasLetter = true;
+                 if (char.IsDigit(c)) hasDigit = true;
+             }
+             if (!hasLetter || !hasDigit)
+             {
+                 throw new CustomException("Mật khẩu phải chứa cả chữ và số.", 400);
+             }
+
+             // Hash new password
+             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+
+             _unitOfWork.Repository<User>().Update(user);
+             await _unitOfWork.SaveChangesAsync();
+
+             return newPassword;
+         }
      }
  }
