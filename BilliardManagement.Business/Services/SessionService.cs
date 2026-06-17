@@ -21,20 +21,23 @@ namespace BilliardManagement.Business.Services
         private readonly IMapper _mapper;
         private readonly IBillingService _billingService;
         private readonly ILogger<SessionService> _logger;
+        private readonly ICustomerService _customerService;
 
         public SessionService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             IBillingService billingService,
-            ILogger<SessionService> logger)
+            ILogger<SessionService> logger,
+            ICustomerService customerService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _billingService = billingService;
             _logger = logger;
+            _customerService = customerService;
         }
 
-        public async Task<SessionDto> StartSessionAsync(Guid tableId, Guid userId, int durationHours)
+        public async Task<SessionDto> StartSessionAsync(Guid tableId, Guid userId, int durationHours, string? customerName = null, string? customerPhone = null)
         {
             if (durationHours < 1 || durationHours > 24)
                 throw new CustomException("Duration must be between 1 and 24 hours", 400);
@@ -60,10 +63,19 @@ namespace BilliardManagement.Business.Services
             var endTime = startTime.AddHours(durationHours);
             var totalPrice = table.HourlyRate * durationHours;
 
+            CustomerDto? customerDto = null;
+            Guid? customerId = null;
+            if (!string.IsNullOrEmpty(customerPhone) && !string.IsNullOrEmpty(customerName))
+            {
+                customerDto = await _customerService.FindOrCreateCustomerAsync(customerName, customerPhone);
+                customerId = customerDto.Id;
+            }
+
             var session = new TableSession
             {
                 TableId = tableId,
                 UserId = userId,
+                CustomerId = customerId,
                 StartTime = startTime,
                 EndTime = endTime,
                 DurationHours = durationHours,
@@ -84,7 +96,13 @@ namespace BilliardManagement.Business.Services
                 "Session started: sessionId={SessionId}, tableId={TableId}, staffId={StaffId}, durationHours={Hours}, endTime={End}",
                 session.Id, tableId, userId, durationHours, endTime);
 
-            return await MapSessionDtoAsync(session, table);
+            var dto = await MapSessionDtoAsync(session, table);
+            if (customerDto != null)
+            {
+                dto.CustomerName = customerDto.FullName;
+                dto.CustomerPhone = customerDto.PhoneNumber;
+            }
+            return dto;
         }
 
         public async Task<SessionDto> ExtendSessionAsync(Guid sessionId, int additionalMinutes, Guid? staffUserId = null)
@@ -171,7 +189,7 @@ namespace BilliardManagement.Business.Services
         public async Task<IEnumerable<SessionDto>> GetActiveSessionsAsync()
         {
             var sessions = await _unitOfWork.Repository<TableSession>().GetAllAsync(
-                s => s.Status == SessionStatus.Active && !s.IsFinished, "BilliardTable,Orders");
+                s => s.Status == SessionStatus.Active && !s.IsFinished, "BilliardTable,Orders,Customer");
 
             var result = new List<SessionDto>();
             foreach (var session in sessions)
@@ -188,7 +206,7 @@ namespace BilliardManagement.Business.Services
         {
             var tables = await _unitOfWork.Repository<BilliardTable>().GetAllAsync();
             var activeSessions = await _unitOfWork.Repository<TableSession>().GetAllAsync(
-                s => s.Status == SessionStatus.Active && !s.IsFinished, "BilliardTable,Orders");
+                s => s.Status == SessionStatus.Active && !s.IsFinished, "BilliardTable,Orders,Customer");
 
             foreach (var session in activeSessions)
                 await RepairSessionIfNeededAsync(session);

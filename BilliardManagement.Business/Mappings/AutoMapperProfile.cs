@@ -25,7 +25,10 @@ namespace BilliardManagement.Business.Mappings
                 .ForMember(dest => dest.NewStatusName, opt => opt.MapFrom(src => src.NewStatus.ToString()))
                 .ForMember(dest => dest.ChangedByName, opt => opt.MapFrom(src => src.ChangedByUser != null ? src.ChangedByUser.FullName : string.Empty));
 
-            CreateMap<TableSession, SessionDto>().ReverseMap();
+            CreateMap<TableSession, SessionDto>()
+                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Customer != null ? src.Customer.FullName : null))
+                .ForMember(dest => dest.CustomerPhone, opt => opt.MapFrom(src => src.Customer != null ? src.Customer.PhoneNumber : null))
+                .ReverseMap();
 
             CreateMap<Category, CategoryDto>().ReverseMap();
             CreateMap<CreateCategoryDto, Category>();
@@ -74,6 +77,10 @@ namespace BilliardManagement.Business.Mappings
                 .ForMember(dest => dest.StartTime, opt => opt.MapFrom(src => src.CheckIn))
                 .ForMember(dest => dest.EndTime, opt => opt.MapFrom(src => src.CheckOut))
                 .ForMember(dest => dest.TotalRevenue, opt => opt.MapFrom(src => src.Revenue));
+
+            CreateMap<Customer, CustomerDto>().ReverseMap();
+            CreateMap<CustomerCreateDto, Customer>();
+            CreateMap<CustomerUpdateDto, Customer>();
         }
     }
 }

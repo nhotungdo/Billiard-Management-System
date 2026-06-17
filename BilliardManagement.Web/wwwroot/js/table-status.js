@@ -44,7 +44,7 @@ window.updateTableStatusStats = function (tables) {
 };
 
 window.connectTableStatusHub = function (options) {
-    const hubUrl = (document.querySelector('meta[name="hub-base-url"]')?.content || 'https://localhost:5001') + '/hubs/table';
+    const hubUrl = (document.querySelector('meta[name="hub-base-url"]')?.content || 'http://localhost:8080') + '/hubs/table';
     if (!window.signalR) {
         console.warn('SignalR library not loaded');
         return null;

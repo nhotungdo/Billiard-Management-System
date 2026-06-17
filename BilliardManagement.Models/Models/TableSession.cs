@@ -41,6 +41,11 @@ namespace BilliardManagement.Models.Models
         [ForeignKey("UserId")]
         public virtual User? User { get; set; }
 
+        public Guid? CustomerId { get; set; }
+        
+        [ForeignKey("CustomerId")]
+        public virtual Customer? Customer { get; set; }
+
         public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
         public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
     }

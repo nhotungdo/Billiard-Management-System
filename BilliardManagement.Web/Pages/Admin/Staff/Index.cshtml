@@ -18,9 +18,9 @@
     @if (!string.IsNullOrEmpty(apiToken))
     {
         <meta name="api-token" content="@apiToken" />
-        <meta name="api-base-url" content="https://localhost:5001/api/" />
-        <meta name="api-origin" content="https://localhost:5001" />
-        <meta name="hub-base-url" content="https://localhost:5001" />
+        <meta name="api-base-url" content="http://localhost:8080/api/" />
+        <meta name="api-origin" content="http://localhost:8080" />
+        <meta name="hub-base-url" content="http://localhost:8080" />
     }
 </head>
 <body class="admin-body">
@@ -333,7 +333,7 @@
                 $('#loading-overlay').css('display', 'flex');
 
                 const apiToken = $('meta[name="api-token"]').attr('content');
-                const apiBaseUrl = $('meta[name="api-base-url"]').attr('content') || 'https://localhost:5001/api/';
+                const apiBaseUrl = $('meta[name="api-base-url"]').attr('content') || 'http://localhost:8080/api/';
 
                 const payload = {
                     newPassword: newPassword

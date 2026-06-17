@@ -38,7 +38,7 @@ namespace BilliardManagement.Business.Interfaces
 
     public interface ISessionService
     {
-        Task<SessionDto> StartSessionAsync(Guid tableId, Guid userId, int durationHours);
+        Task<SessionDto> StartSessionAsync(Guid tableId, Guid userId, int durationHours, string? customerName = null, string? customerPhone = null);
         Task<SessionDto> ExtendSessionAsync(Guid sessionId, int additionalMinutes, Guid? staffUserId = null);
         Task<SessionDto> EndSessionAsync(Guid sessionId, GenerateBillDto? billDto = null, Guid? staffUserId = null);
         Task<IEnumerable<SessionDto>> GetActiveSessionsAsync();

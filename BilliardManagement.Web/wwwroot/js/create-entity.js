@@ -1,9 +1,9 @@
 // Shared create table / product via API + toast + loading
 (function () {
-    const API_BASE = document.querySelector('meta[name="api-base-url"]')?.content || 'https://localhost:5001/api/';
+    const API_BASE = document.querySelector('meta[name="api-base-url"]')?.content || 'http://localhost:8080/api/';
     const API_TOKEN = document.querySelector('meta[name="api-token"]')?.content || '';
-    const HUB_BASE = document.querySelector('meta[name="hub-base-url"]')?.content || 'https://localhost:5001';
-    const API_ORIGIN = document.querySelector('meta[name="api-origin"]')?.content || 'https://localhost:5001';
+    const HUB_BASE = document.querySelector('meta[name="hub-base-url"]')?.content || 'http://localhost:8080';
+    const API_ORIGIN = document.querySelector('meta[name="api-origin"]')?.content || 'http://localhost:8080';
 
     window.showAppToast = function (message, type) {
         const container = document.getElementById('app-toast-container') || document.getElementById('table-toast-container');

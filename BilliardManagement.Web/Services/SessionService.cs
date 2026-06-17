@@ -20,10 +20,13 @@ namespace BilliardManagement.Web.Services
             return await GetAsync<List<TableDashboardDto>>("table-sessions/dashboard");
         }
 
-        public async Task<SessionDto?> StartSessionAsync(Guid tableId, int durationHours)
+        public async Task<SessionDto?> StartSessionAsync(Guid tableId, int durationHours, string? customerName = null, string? customerPhone = null)
         {
-            return await PostAsync<StartSessionRequest, SessionDto>("table-sessions/start",
-                new StartSessionRequest { TableId = tableId, DurationHours = durationHours });
+            var url = $"table-sessions/start?tableId={tableId}&durationHours={durationHours}";
+            if (!string.IsNullOrEmpty(customerName)) url += $"&customerName={Uri.EscapeDataString(customerName)}";
+            if (!string.IsNullOrEmpty(customerPhone)) url += $"&customerPhone={Uri.EscapeDataString(customerPhone)}";
+            return await PostAsync<StartSessionRequest, SessionDto>(url,
+                new StartSessionRequest { TableId = tableId, DurationHours = durationHours, CustomerName = customerName, CustomerPhone = customerPhone });
         }
 
         public async Task<SessionDto?> ExtendSessionAsync(Guid sessionId, int additionalMinutes)

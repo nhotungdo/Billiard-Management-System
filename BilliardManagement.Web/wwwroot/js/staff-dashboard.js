@@ -31,7 +31,7 @@
         const cfg = window.STAFF_DASHBOARD || {};
         const headers = { 'Content-Type': 'application/json' };
         if (cfg.token) headers['Authorization'] = 'Bearer ' + cfg.token;
-        return fetch((cfg.apiBase || 'https://localhost:5001/api/') + url, {
+        return fetch((cfg.apiBase || 'http://localhost:8080/api/') + url, {
             method: method,
             headers: headers,
             body: body ? JSON.stringify(body) : undefined

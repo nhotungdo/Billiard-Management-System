@@ -68,7 +68,7 @@ namespace BilliardManagement.Web.Models
         public string? Reason { get; set; }
     }
 
-    public class StartSessionRequest { public Guid TableId { get; set; } public int DurationHours { get; set; } = 1; }
+    public class StartSessionRequest { public Guid TableId { get; set; } public int DurationHours { get; set; } = 1; public string? CustomerName { get; set; } public string? CustomerPhone { get; set; } }
     public class ExtendSessionRequest { public int AdditionalMinutes { get; set; } }
     public class EndSessionRequest { public decimal Discount { get; set; } public int PaymentMethod { get; set; } }
 
@@ -87,6 +87,8 @@ namespace BilliardManagement.Web.Models
         public Guid UserId { get; set; }
         public string? TableName { get; set; }
         public string? TableType { get; set; }
+        public string? CustomerName { get; set; }
+        public string? CustomerPhone { get; set; }
         public decimal HourlyRate { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime? EndTime { get; set; }
@@ -287,5 +289,45 @@ namespace BilliardManagement.Web.Models
         public decimal MonthRevenue { get; set; }
         public List<StaffRevenueDto> StaffRevenues { get; set; } = new();
         public List<DailyRevenueDto> DailyRevenues { get; set; } = new();
+    }
+    public class CustomerDto
+    {
+        public Guid Id { get; set; }
+        public string CustomerName { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+        public int TotalVisits { get; set; }
+        public decimal TotalPlayHours { get; set; }
+        public decimal TotalSpent { get; set; }
+        public DateTime? FirstVisitDate { get; set; }
+        public DateTime? LastVisitDate { get; set; }
+    }
+
+    public class CustomerCreateDto
+    {
+        public string CustomerName { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+    }
+
+    public class CustomerUpdateDto
+    {
+        public string CustomerName { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+    }
+
+    public class CustomerTopSpenderDto
+    {
+        public Guid Id { get; set; }
+        public string CustomerName { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+        public decimal TotalSpent { get; set; }
+        public int TotalVisits { get; set; }
+    }
+
+    public class CustomerDashboardDto
+    {
+        public int TotalCustomers { get; set; }
+        public int NewCustomersThisMonth { get; set; }
+        public int ActiveCustomersThisMonth { get; set; }
+        public decimal AverageRevenuePerCustomer { get; set; }
     }
 }

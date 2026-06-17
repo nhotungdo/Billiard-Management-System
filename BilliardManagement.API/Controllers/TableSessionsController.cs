@@ -74,7 +74,7 @@ namespace BilliardManagement.API.Controllers
                 if (userId == null)
                     return Unauthorized(ApiResponse<object>.Fail("Unauthorized"));
 
-                var session = await _sessionService.StartSessionAsync(request.TableId, userId.Value, request.DurationHours);
+                var session = await _sessionService.StartSessionAsync(request.TableId, userId.Value, request.DurationHours, request.CustomerName, request.CustomerPhone);
                 await BroadcastSessionAsync(session, "SessionStarted");
                 return Ok(ApiResponse<SessionDto>.Ok(session, "Bắt đầu phiên chơi thành công"));
             }
@@ -169,6 +169,8 @@ namespace BilliardManagement.API.Controllers
                 IsExpired = session.IsExpired,
                 IsFinished = session.IsFinished,
                 TimerLevel = session.IsExpired ? "expired" : session.RemainingMinutes < 15 ? "warning" : "ok",
+                CustomerName = session.CustomerName,
+                CustomerPhone = session.CustomerPhone,
                 OrderLines = session.OrderLines
             };
 

@@ -20,11 +20,37 @@ namespace BilliardManagement.Data
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<Shift> Shifts { get; set; }
         public DbSet<TableStatusHistory> TableStatusHistories { get; set; }
+        public DbSet<Customer> Customers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
             
+            // Customer configurations
+            modelBuilder.Entity<Customer>()
+                .HasIndex(c => c.PhoneNumber)
+                .IsUnique();
+
+            modelBuilder.Entity<Customer>()
+                .Property(c => c.TotalSpent)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Customer>()
+                .Property(c => c.TotalPlayHours)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Customer>()
+                .HasMany(c => c.TableSessions)
+                .WithOne(ts => ts.Customer)
+                .HasForeignKey(ts => ts.CustomerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Customer>()
+                .HasMany(c => c.Invoices)
+                .WithOne(i => i.Customer)
+                .HasForeignKey(i => i.CustomerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // Precision for decimal properties
             modelBuilder.Entity<BilliardTable>()
                 .HasIndex(t => t.TableName)

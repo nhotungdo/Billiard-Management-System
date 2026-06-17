@@ -1,0 +1,153 @@
+@page
+@model BilliardManagement.Web.Pages.Admin.Customers.IndexModel
+@{
+    ViewData["Title"] = "Quản Lý Khách Hàng";
+    ViewData["BreadcrumbTitle"] = "Khách Hàng";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800"><i class="fa-solid fa-users me-2 text-primary"></i>Quản Lý Khách Hàng</h1>
+    <div>
+        <a href="/Admin/Customers/Dashboard" class="btn btn-sm btn-info shadow-sm text-white">
+            <i class="fa-solid fa-chart-pie me-1"></i>Thống Kê Khách Hàng
+        </a>
+    </div>
+</div>
+
+<div class="card shadow mb-4 border-bottom-primary">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center bg-light">
+        <h6 class="m-0 font-weight-bold text-primary">Danh Sách Khách Hàng</h6>
+    </div>
+    <div class="card-body">
+        <form method="get" class="mb-4">
+            <div class="row gx-2 gy-2 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                        <input type="text" name="SearchTerm" class="form-control" placeholder="Tìm tên, SĐT..." value="@Model.SearchTerm" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select name="SortBy" class="form-select">
+                        <option value="TotalSpent" selected="@(Model.SortBy == "TotalSpent")">Tổng chi tiêu</option>
+                        <option value="TotalVisits" selected="@(Model.SortBy == "TotalVisits")">Số lần đến</option>
+                        <option value="LastVisitDate" selected="@(Model.SortBy == "LastVisitDate")">Lần truy cập cuối</option>
+                        <option value="CustomerName" selected="@(Model.SortBy == "CustomerName")">Tên khách hàng</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="IsDescending" id="IsDescending" value="true" @(Model.IsDescending ? "checked" : "") />
+                        <label class="form-check-label" for="IsDescending">Giảm dần</label>
+                    </div>
+                </div>
+                <div class="col-md-3 text-end">
+                    <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-filter me-1"></i>Lọc &amp; Sắp Xếp</button>
+                </div>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered align-middle text-center" id="customersTable" width="100%" cellspacing="0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Khách Hàng</th>
+                        <th>SĐT</th>
+                        <th>Tổng Lượt Đến</th>
+                        <th>Số Giờ Chơi</th>
+                        <th>Tổng Chi Tiêu</th>
+                        <th>Lần Cuối</th>
+                        <th>Hành Động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Customers?.Items != null && Model.Customers.Items.Any())
+                    {
+                        foreach (var item in Model.Customers.Items)
+                        {
+                            <tr>
+                                <td class="text-start font-weight-bold text-dark">@item.CustomerName</td>
+                                <td>@item.PhoneNumber</td>
+                                <td><span class="badge bg-info rounded-pill">@item.TotalVisits</span></td>
+                                <td>@item.TotalPlayHours.ToString("0.##") h</td>
+                                <td class="text-success font-weight-bold">@item.TotalSpent.ToString("N0") ₫</td>
+                                <td>@(item.LastVisitDate?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal-@item.Id" title="Sửa">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <form method="post" asp-page-handler="Delete" asp-route-id="@item.Id" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa khách hàng @item.CustomerName không? Dữ liệu thống kê của khách này sẽ bị xóa.');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+
+                            <!-- Edit Modal -->
+                            <div class="modal fade text-start" id="editModal-@item.Id" tabindex="-1" aria-labelledby="editModalLabel-@item.Id" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-primary text-white">
+                                            <h5 class="modal-title" id="editModalLabel-@item.Id"><i class="fa-solid fa-pen-to-square me-2"></i>Sửa Thông Tin: @item.CustomerName</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <form method="post" asp-page-handler="Edit" asp-route-id="@item.Id">
+                                            <div class="modal-body">
+                                                <input type="hidden" name="PageNumber" value="@Model.PageNumber" />
+                                                <input type="hidden" name="PageSize" value="@Model.PageSize" />
+                                                <input type="hidden" name="SearchTerm" value="@Model.SearchTerm" />
+                                                <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                                                <input type="hidden" name="IsDescending" value="@Model.IsDescending.ToString().ToLower()" />
+                                                
+                                                <div class="mb-3">
+                                                    <label class="form-label">Tên khách hàng</label>
+                                                    <input type="text" name="EditCustomer.CustomerName" class="form-control" value="@item.CustomerName" required />
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Số điện thoại</label>
+                                                    <input type="text" name="EditCustomer.PhoneNumber" class="form-control" value="@item.PhoneNumber" required />
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer bg-light">
+                                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                                                <button type="submit" class="btn btn-primary">Lưu Thay Đổi</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-muted text-center py-4">Không tìm thấy khách hàng nào.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (Model.Customers != null && Model.Customers.TotalPages > 1)
+        {
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-end mb-0">
+                    <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                        <a class="page-link" href="?PageNumber=@(Model.PageNumber - 1)&SearchTerm=@Model.SearchTerm&SortBy=@Model.SortBy&IsDescending=@Model.IsDescending">Trước</a>
+                    </li>
+                    @for (int i = 1; i <= Model.Customers.TotalPages; i++)
+                    {
+                        <li class="page-item @(Model.PageNumber == i ? "active" : "")">
+                            <a class="page-link" href="?PageNumber=@i&SearchTerm=@Model.SearchTerm&SortBy=@Model.SortBy&IsDescending=@Model.IsDescending">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(Model.PageNumber == Model.Customers.TotalPages ? "disabled" : "")">
+                        <a class="page-link" href="?PageNumber=@(Model.PageNumber + 1)&SearchTerm=@Model.SearchTerm&SortBy=@Model.SortBy&IsDescending=@Model.IsDescending">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    </div>
+</div>

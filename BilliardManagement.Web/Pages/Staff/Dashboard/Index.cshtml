@@ -20,9 +20,9 @@
     @if (!string.IsNullOrEmpty(apiToken))
     {
         <meta name="api-token" content="@apiToken" />
-        <meta name="api-base-url" content="https://localhost:5001/api/" />
-        <meta name="api-origin" content="https://localhost:5001" />
-        <meta name="hub-base-url" content="https://localhost:5001" />
+        <meta name="api-base-url" content="http://localhost:8080/api/" />
+        <meta name="api-origin" content="http://localhost:8080" />
+        <meta name="hub-base-url" content="http://localhost:8080" />
     }
     <style>
         .welcome-banner {
@@ -552,9 +552,9 @@
 
     <script>
         window.STAFF_DASHBOARD = {
-            apiBase: 'https://localhost:5001/api/',
+            apiBase: 'http://localhost:8080/api/',
             token: '@(HttpContext.Session.GetString("JWToken") ?? "")',
-            hubBase: 'https://localhost:5001'
+            hubBase: 'http://localhost:8080'
         };
 
         toastr.options = {
@@ -860,6 +860,10 @@
                     return;
                 }
 
+                const btn = $(this);
+                btn.prop('disabled', true);
+                window.isAjaxRequestPending = true;
+
                 $('#endSessionModal').modal('hide');
                 $('#loading-overlay').css('display', 'flex');
 
@@ -878,9 +882,13 @@
                         setTimeout(() => location.reload(), 1500);
                     } else {
                         toastr.error(resData.message || 'Không thể kết thúc phiên.');
+                        btn.prop('disabled', false);
+                        window.isAjaxRequestPending = false;
                     }
                 } catch (e) {
                     toastr.error('Lỗi kết nối máy chủ.');
+                    btn.prop('disabled', false);
+                    window.isAjaxRequestPending = false;
                 } finally {
                     $('#loading-overlay').hide();
                 }
@@ -916,8 +924,10 @@
                     console.log('SignalR update:', eventName);
                     // Soft reload if relevant change happened to keep dashboard accurate
                     if (eventName === 'SessionStarted' || eventName === 'SessionEnded' || eventName === 'OrderCreated') {
-                        toastr.info('Có cập nhật trạng thái bàn chơi từ hệ thống.');
-                        setTimeout(() => location.reload(), 1500);
+                        if (!window.isAjaxRequestPending) {
+                            toastr.info('Có cập nhật trạng thái bàn chơi từ hệ thống.');
+                            setTimeout(() => location.reload(), 1500);
+                        }
                     }
                 });
 

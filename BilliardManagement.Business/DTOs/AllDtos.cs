@@ -113,6 +113,8 @@ namespace BilliardManagement.Business.DTOs
     {
         public Guid TableId { get; set; }
         public int DurationHours { get; set; } = 1;
+        public string? CustomerName { get; set; }
+        public string? CustomerPhone { get; set; }
     }
 
     public class ExtendSessionRequest
@@ -141,6 +143,8 @@ namespace BilliardManagement.Business.DTOs
         public Guid UserId { get; set; }
         public string? TableName { get; set; }
         public string? TableType { get; set; }
+        public string? CustomerName { get; set; }
+        public string? CustomerPhone { get; set; }
         public decimal HourlyRate { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime? EndTime { get; set; }
@@ -185,6 +189,8 @@ namespace BilliardManagement.Business.DTOs
         public bool IsExpired { get; set; }
         public bool IsFinished { get; set; }
         public string TimerLevel { get; set; } = "ok";
+        public string? CustomerName { get; set; }
+        public string? CustomerPhone { get; set; }
         public List<SessionOrderLineDto> OrderLines { get; set; } = new();
     }
 

@@ -18,9 +18,9 @@
     @if (!string.IsNullOrEmpty(apiToken))
     {
         <meta name="api-token" content="@apiToken" />
-        <meta name="api-base-url" content="https://localhost:5001/api/" />
-        <meta name="api-origin" content="https://localhost:5001" />
-        <meta name="hub-base-url" content="https://localhost:5001" />
+        <meta name="api-base-url" content="http://localhost:8080/api/" />
+        <meta name="api-origin" content="http://localhost:8080" />
+        <meta name="hub-base-url" content="http://localhost:8080" />
     }
 </head>
 <body class="admin-body">
@@ -86,7 +86,7 @@
 @{
     
     ViewData["Title"] = "Sửa sản phẩm";
-    var apiOrigin = "https://localhost:5001";
+    var apiOrigin = "http://localhost:8080";
 }
 
 <div class="dashboard-header mb-4">
@@ -206,7 +206,7 @@
             const nameError = document.getElementById('productNameError');
             const productId = '@Model.Id';
 
-            const API_BASE = document.querySelector('meta[name="api-base-url"]')?.content || 'https://localhost:5001/api/';
+            const API_BASE = document.querySelector('meta[name="api-base-url"]')?.content || 'http://localhost:8080/api/';
             const API_TOKEN = document.querySelector('meta[name="api-token"]')?.content || '';
 
             if (nameInput) {

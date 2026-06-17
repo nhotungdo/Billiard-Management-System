@@ -13,7 +13,21 @@ services:
       - ConnectionStrings__DBDefault=Server=sqlserver;Database=BilliardDb;User=sa;Password=Your_password123;TrustServerCertificate=True;
       - JwtSettings__Secret=SuperSecretKeyForBilliardManagementSystem12345
     depends_on:
-      - sqlserver
+      sqlserver:
+        condition: service_healthy
+
+  billiard.web:
+    image: billiardmanagementweb
+    build:
+      context: .
+      dockerfile: Dockerfile.Web
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ApiSettings__BaseAddress=http://billiard.api:8080/api/
+    depends_on:
+      - billiard.api
 
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -22,3 +36,9 @@ services:
       - MSSQL_SA_PASSWORD=Your_password123
     ports:
       - "1433:1433"
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "Your_password123", "-Q", "SELECT 1", "-C"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
