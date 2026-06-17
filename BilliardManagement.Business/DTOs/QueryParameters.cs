@@ -44,4 +44,12 @@ namespace BilliardManagement.Business.DTOs
         public decimal? MinPrice { get; set; }
         public decimal? MaxPrice { get; set; }
     }
+
+    public class CustomerQueryParameters : BaseQueryParameters
+    {
+        public string? PhoneNumber { get; set; }
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
+        public decimal? MinTotalSpent { get; set; }
+    }
 }

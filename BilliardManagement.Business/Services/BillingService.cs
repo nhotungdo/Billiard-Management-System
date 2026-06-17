@@ -37,6 +37,7 @@ namespace BilliardManagement.Business.Services
             var invoice = new Invoice
             {
                 TableSessionId = sessionId,
+                CustomerId = session.CustomerId,
                 Subtotal = subtotal,
                 Discount = dto.Discount,
                 TotalAmount = subtotal - dto.Discount,
@@ -45,6 +46,24 @@ namespace BilliardManagement.Business.Services
             };
 
             await _unitOfWork.Repository<Invoice>().AddAsync(invoice);
+
+            if (session.CustomerId.HasValue)
+            {
+                var customer = await _unitOfWork.Repository<Customer>().GetByIdAsync(session.CustomerId.Value);
+                if (customer != null)
+                {
+                    customer.TotalVisits += 1;
+                    customer.TotalPlayHours += (decimal)session.DurationHours;
+                    customer.TotalSpent += invoice.TotalAmount;
+                    customer.LastVisitDate = DateTime.UtcNow;
+                    if (!customer.FirstVisitDate.HasValue)
+                    {
+                        customer.FirstVisitDate = DateTime.UtcNow;
+                    }
+                    _unitOfWork.Repository<Customer>().Update(customer);
+                }
+            }
+
             await _unitOfWork.SaveChangesAsync();
 
             return _mapper.Map<BillDto>(invoice);

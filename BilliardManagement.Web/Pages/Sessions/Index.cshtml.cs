@@ -53,12 +53,12 @@ namespace BilliardManagement.Web.Pages.Sessions
             }
         }
 
-        public async Task<IActionResult> OnPostStartAsync(Guid tableId)
+        public async Task<IActionResult> OnPostStartAsync(Guid tableId, [FromForm] string? customerName = null, [FromForm] string? customerPhone = null)
         {
-            _logger.LogInformation("OnPostStart called: tableId={TableId}", tableId);
+            _logger.LogInformation("OnPostStart called: tableId={TableId}, customerName={CustomerName}, customerPhone={CustomerPhone}", tableId, customerName, customerPhone);
             try
             {
-                var session = await _sessionService.StartSessionAsync(tableId, 1);
+                var session = await _sessionService.StartSessionAsync(tableId, 1, customerName, customerPhone);
                 if (session != null)
                 {
                     _logger.LogInformation("Session started successfully: sessionId={SessionId}", session.Id);

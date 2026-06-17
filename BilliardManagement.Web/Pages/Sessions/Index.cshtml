@@ -179,6 +179,13 @@
                         @if (isPlaying && activeSession != null)
                         {
                             <div class="bg-white p-3 rounded shadow-sm border mb-3">
+                                @if (!string.IsNullOrEmpty(activeSession.CustomerName) || !string.IsNullOrEmpty(activeSession.CustomerPhone))
+                                {
+                                    <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                                        <span class="text-muted small">Khách:</span>
+                                        <span class="font-weight-bold small text-primary">@activeSession.CustomerName - @activeSession.CustomerPhone</span>
+                                    </div>
+                                }
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="text-muted small">Bắt đầu:</span>
                                     <span class="font-weight-bold small text-dark">@activeSession.StartTime.ToLocalTime().ToString("HH:mm:ss dd/MM")</span>
@@ -221,14 +228,9 @@
                         }
                         else
                         {
-                            <form method="post" asp-page-handler="Start" asp-route-tableId="@table.Id"
-                                  onsubmit="return confirmStartSession(this);">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" id="btn-start-@table.Id"
-                                        class="btn btn-sm btn-success w-100 py-2 font-weight-bold">
+                                <button type="button" class="btn btn-sm btn-success w-100 py-2 font-weight-bold" data-bs-toggle="modal" data-bs-target="#startSessionModal" data-table-id="@table.Id" data-table-name="@table.TableName">
                                     <i class="fa-solid fa-play me-1"></i>Bắt Đầu Phiên Chơi
                                 </button>
-                            </form>
                         }
                     </div>
                 </div>
@@ -243,6 +245,49 @@
             </footer>
         </div>
     </div>
+
+    <!-- Modal Khởi tạo Phiên Chơi -->
+    <div class="modal fade" id="startSessionModal" tabindex="-1" aria-labelledby="startSessionModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="startSessionModalLabel"><i class="fa-solid fa-play me-2"></i>Bắt Đầu Phiên Chơi: <span id="modalTableName"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="startSessionForm" method="post" asp-page-handler="Start" onsubmit="return confirmStartSession(this);">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="tableId" id="modalTableId" value="" />
+                    <div class="modal-body">
+                        <div class="alert alert-info py-2 px-3 mb-4 border-info">
+                            <i class="fa-solid fa-circle-info me-2"></i>Nhập thông tin khách hàng để lưu lịch sử và tích điểm.
+                        </div>
+                        <div class="mb-3">
+                            <label for="customerPhone" class="form-label font-weight-bold">Số điện thoại <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fa-solid fa-phone text-muted"></i></span>
+                                <input type="tel" class="form-control border-start-0" id="customerPhone" name="customerPhone" placeholder="09xxxxxxxxx" required pattern="[0-9]{10,11}">
+                            </div>
+                            <div class="form-text">Dùng để tìm kiếm hoặc tạo mới khách hàng.</div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="customerName" class="form-label font-weight-bold">Họ và Tên <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fa-solid fa-user text-muted"></i></span>
+                                <input type="text" class="form-control border-start-0" id="customerName" name="customerName" placeholder="Nguyễn Văn A" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-outline-secondary font-weight-bold px-4" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-success font-weight-bold px-4">
+                            <i class="fa-solid fa-play me-1"></i>Bắt Đầu
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div id="loading-overlay">
         <div class="loading-spinner">
             <div class="spinner-ring"></div>
@@ -282,6 +327,29 @@
             }
             return true;
         }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var startSessionModal = document.getElementById('startSessionModal');
+            if (startSessionModal) {
+                startSessionModal.addEventListener('show.bs.modal', function (event) {
+                    var button = event.relatedTarget;
+                    var tableId = button.getAttribute('data-table-id');
+                    var tableName = button.getAttribute('data-table-name');
+                    
+                    var modalTitle = startSessionModal.querySelector('#modalTableName');
+                    var inputTableId = startSessionModal.querySelector('#modalTableId');
+                    var customerPhone = startSessionModal.querySelector('#customerPhone');
+                    var customerName = startSessionModal.querySelector('#customerName');
+                    
+                    modalTitle.textContent = tableName;
+                    inputTableId.value = tableId;
+                    
+                    // Reset fields
+                    customerPhone.value = '';
+                    customerName.value = '';
+                });
+            }
+        });
 
         function updateTimers() {
             $('.elapsed-timer').each(function() {

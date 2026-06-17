@@ -30,12 +30,14 @@ builder.Services.AddHttpClient("Api", client =>
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<TableService>();
 builder.Services.AddScoped<SessionService>();
+builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<ProductService>();
+builder.Services.AddScoped<CustomerService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<InvoiceService>();
 builder.Services.AddScoped<RevenueService>();
 builder.Services.AddScoped<StaffService>();
-builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<StaffService>();
 
 var app = builder.Build();
 
