@@ -430,6 +430,14 @@
                         </select>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark small">Tên khách hàng <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3 py-2 border-light-subtle" id="startNewSessionCustomerName" placeholder="Tên khách hàng" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark small">Số điện thoại <span class="text-danger">*</span></label>
+                        <input type="tel" class="form-control rounded-3 py-2 border-light-subtle" id="startNewSessionCustomerPhone" placeholder="Số điện thoại" required />
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label fw-semibold text-dark small">Chọn thời gian chơi</label>
                         <div class="d-grid gap-2 hour-options-new mb-3" style="grid-template-columns: repeat(4, 1fr); display: grid;">
                             @for (int h = 1; h <= 4; h++)
@@ -664,6 +672,8 @@
             // Start Session Popup (Quick Action)
             $('.btn-start-new-session-modal').on('click', function () {
                 $('#startNewSessionTableSelect').val('');
+                $('#startNewSessionCustomerName').val('');
+                $('#startNewSessionCustomerPhone').val('');
                 $('.btn-new-hour-option').removeClass('btn-success text-white').addClass('btn-outline-success');
                 $('[data-hours="1"]').removeClass('btn-outline-success').addClass('btn-success text-white');
                 selectedHours = 1;
@@ -681,9 +691,15 @@
             $('#btnConfirmStartNewSession').on('click', async function () {
                 const tableId = $('#startNewSessionTableSelect').val();
                 const hours = parseInt($('#customHoursNewInput').val(), 10);
+                const customerName = $('#startNewSessionCustomerName').val().trim();
+                const customerPhone = $('#startNewSessionCustomerPhone').val().trim();
                 
                 if (!tableId) {
                     toastr.warning('Vui lòng chọn một bàn chơi.');
+                    return;
+                }
+                if (!customerName || !customerPhone) {
+                    toastr.warning('Vui lòng nhập đầy đủ tên và số điện thoại khách hàng.');
                     return;
                 }
                 if (isNaN(hours) || hours < 1 || hours > 24) {
@@ -699,7 +715,12 @@
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${window.STAFF_DASHBOARD.token}`
                         },
-                        body: JSON.stringify({ tableId: tableId, durationHours: hours })
+                        body: JSON.stringify({ 
+                            tableId: tableId, 
+                            durationHours: hours,
+                            customerName: customerName,
+                            customerPhone: customerPhone
+                        })
                     });
                     const resData = await response.json();
                     if (response.ok && resData.success) {

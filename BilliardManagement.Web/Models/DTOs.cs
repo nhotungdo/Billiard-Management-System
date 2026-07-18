@@ -293,7 +293,7 @@ namespace BilliardManagement.Web.Models
     public class CustomerDto
     {
         public Guid Id { get; set; }
-        public string CustomerName { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
         public int TotalVisits { get; set; }
         public decimal TotalPlayHours { get; set; }
@@ -304,20 +304,20 @@ namespace BilliardManagement.Web.Models
 
     public class CustomerCreateDto
     {
-        public string CustomerName { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
     }
 
     public class CustomerUpdateDto
     {
-        public string CustomerName { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
     }
 
     public class CustomerTopSpenderDto
     {
         public Guid Id { get; set; }
-        public string CustomerName { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
         public decimal TotalSpent { get; set; }
         public int TotalVisits { get; set; }

@@ -1,0 +1,100 @@
+@using Microsoft.AspNetCore.Http
+@{
+    var userRole = Context.Session.GetString("UserRole") ?? "Admin";
+    var isStaff = userRole == "Staff";
+    var sidebarName = isStaff ? "_StaffSidebar" : "_AdminSidebar";
+    var bodyClass = isStaff ? "staff-body" : "admin-body";
+    var wrapperId = isStaff ? "staff-wrapper" : "admin-wrapper";
+    var contentWrapperId = isStaff ? "staff-content-wrapper" : "admin-content-wrapper";
+    var topbarId = isStaff ? "staff-topbar" : "admin-topbar";
+    var contentId = isStaff ? "staff-content" : "admin-content";
+    var cssFile = isStaff ? "staff.css" : "admin.css";
+    var jsFile = isStaff ? "staff.js" : "admin.js";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(ViewData["Title"] ?? "Dashboard") - Billiard Management</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="/css/@cssFile" asp-append-version="true" />
+    <link rel="stylesheet" href="/BilliardManagement.Web.styles.css" asp-append-version="true" />
+    @RenderSection("Styles", required: false)
+</head>
+<body class="@bodyClass">
+    <div id="@wrapperId">
+        <partial name="@sidebarName" />
+        <div id="@contentWrapperId">
+            <nav id="@topbarId">
+                <div class="topbar-left">
+                    <button class="sidebar-toggle-btn" id="sidebarToggle" title="Toggle Sidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="topbar-breadcrumb">
+                        <span class="breadcrumb-label">@(ViewData["BreadcrumbTitle"] ?? ViewData["Title"] ?? "Dashboard")</span>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <span class="role-badge @(isStaff ? "staff-badge" : "admin-badge")">
+                        <i class="fa-solid @(isStaff ? "fa-id-badge" : "fa-shield-halved") me-1"></i> @userRole
+                    </span>
+                    <div class="dropdown user-dropdown">
+                        <button class="btn user-avatar-btn dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="avatar-circle @(isStaff ? "staff-avatar" : "")">
+                                <i class="fa-solid @(isStaff ? "fa-user" : "fa-user-tie")"></i>
+                            </div>
+                            <span class="user-name d-none d-md-inline">@Context.Session.GetString("FullName")</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end user-menu" aria-labelledby="userDropdown">
+                            <li class="dropdown-header">
+                                <div class="user-info-header">
+                                    <div class="avatar-circle-sm @(isStaff ? "staff-avatar" : "")"><i class="fa-solid @(isStaff ? "fa-user" : "fa-user-tie")"></i></div>
+                                    <div>
+                                        <div class="fw-600">@Context.Session.GetString("FullName")</div>
+                                        <div class="text-muted small">@Context.Session.GetString("Username")</div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <a class="dropdown-item" href="/Auth/Logout">
+                                    <i class="fa-solid fa-right-from-bracket me-2 text-danger"></i>Đăng xuất
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+            <main id="@contentId">
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i>@TempData["ErrorMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                @RenderBody()
+            </main>
+            <footer class="@(isStaff ? "staff-footer" : "admin-footer")">
+                <div class="text-muted small">&copy; 2026 Billiard Management System &mdash; @(isStaff ? "Staff Portal" : "Admin Panel")</div>
+            </footer>
+        </div>
+    </div>
+
+    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/@jsFile" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -650,12 +650,12 @@
                             
                             <div class="row g-2 mb-3">
                                 <div class="col-12 col-md-6">
-                                    <label class="form-label fw-bold small text-secondary">Tên khách hàng</label>
-                                    <input type="text" class="form-control" id="detailsCustomerName" placeholder="Tên khách (tuỳ chọn)" />
+                                    <label class="form-label fw-bold small text-secondary">Tên khách hàng <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="detailsCustomerName" placeholder="Tên khách hàng" required />
                                 </div>
                                 <div class="col-12 col-md-6">
-                                    <label class="form-label fw-bold small text-secondary">Số điện thoại</label>
-                                    <input type="tel" class="form-control" id="detailsCustomerPhone" placeholder="SĐT (tuỳ chọn)" />
+                                    <label class="form-label fw-bold small text-secondary">Số điện thoại <span class="text-danger">*</span></label>
+                                    <input type="tel" class="form-control" id="detailsCustomerPhone" placeholder="Số điện thoại" required />
                                 </div>
                             </div>
 
@@ -823,12 +823,12 @@
                     
                     <div class="row g-2 mb-3">
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-bold small text-secondary">Tên khách hàng</label>
-                            <input type="text" class="form-control" id="startCustomerName" placeholder="Tên khách (tuỳ chọn)" />
+                            <label class="form-label fw-bold small text-secondary">Tên khách hàng <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="startCustomerName" placeholder="Tên khách hàng" required />
                         </div>
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-bold small text-secondary">Số điện thoại</label>
-                            <input type="tel" class="form-control" id="startCustomerPhone" placeholder="SĐT (tuỳ chọn)" />
+                            <label class="form-label fw-bold small text-secondary">Số điện thoại <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" id="startCustomerPhone" placeholder="Số điện thoại" required />
                         </div>
                     </div>
 
@@ -1531,6 +1531,11 @@
             
             const customerName = $(isDetails ? '#detailsCustomerName' : '#startCustomerName').val();
             const customerPhone = $(isDetails ? '#detailsCustomerPhone' : '#startCustomerPhone').val();
+
+            if (!customerName || !customerPhone || customerName.trim() === '' || customerPhone.trim() === '') {
+                showNotification('Thiếu thông tin', 'warning', 'Vui lòng nhập đầy đủ tên và số điện thoại khách hàng.');
+                return;
+            }
 
             const buttons = $('#btnConfirmStart, #btnDetailsStartSession');
             buttons.prop('disabled', true);

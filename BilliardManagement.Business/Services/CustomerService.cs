@@ -190,8 +190,15 @@ namespace BilliardManagement.Business.Services
                     CreatedAt = DateTime.UtcNow
                 };
                 _context.Customers.Add(customer);
-                await _context.SaveChangesAsync();
             }
+            else if (!string.IsNullOrEmpty(fullName) && customer.FullName != fullName)
+            {
+                customer.FullName = fullName;
+                customer.UpdatedAt = DateTime.UtcNow;
+            }
+            
+            await _context.SaveChangesAsync();
+            
             return _mapper.Map<CustomerDto>(customer);
         }
     }

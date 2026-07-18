@@ -265,7 +265,9 @@ namespace BilliardManagement.Business.Services
                 CurrentTotal = session.TotalPrice + ordersTotal,
                 IsExpired = isExpired,
                 IsFinished = session.IsFinished,
-                TimerLevel = timerLevel
+                TimerLevel = timerLevel,
+                CustomerName = session.Customer?.FullName,
+                CustomerPhone = session.Customer?.PhoneNumber
             };
         }
 
@@ -290,6 +292,8 @@ namespace BilliardManagement.Business.Services
                 UserId = session.UserId,
                 TableName = table.TableName,
                 TableType = table.TableType,
+                CustomerName = session.Customer?.FullName,
+                CustomerPhone = session.Customer?.PhoneNumber,
                 HourlyRate = table.HourlyRate,
                 StartTime = AsUtc(session.StartTime),
                 EndTime = end,
@@ -441,7 +445,7 @@ namespace BilliardManagement.Business.Services
             var (items, totalCount) = await _unitOfWork.Repository<TableSession>().GetPagedAsync(
                 filters: filters,
                 orderBy: orderBy,
-                includeProperties: "BilliardTable,Orders",
+                includeProperties: "BilliardTable,Orders,Customer",
                 page: query.PageNumber,
                 pageSize: query.PageSize
             );
