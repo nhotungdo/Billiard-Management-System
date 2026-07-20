@@ -2,7 +2,7 @@
 @model BilliardManagement.Web.Pages.Staff.Dashboard.IndexModel
 @{
     Layout = null;
-    ViewData["Title"] = "Bảng điều khiển nhân viên";
+    ViewData["Title"] = "Bảng điều khiển staff";
     var apiToken = HttpContext.Session.GetString("JWToken");
 }
 <!DOCTYPE html>
@@ -107,12 +107,8 @@
                     </div>
                 </div>
                 <div class="topbar-right">
-                    <div class="realtime-clock" id="realtimeClock">
-                        <i class="fa-regular fa-clock me-1"></i>
-                        <span id="clockDisplay">--:--:--</span>
-                    </div>
                     <span class="role-badge staff-badge">
-                        <i class="fa-solid fa-id-badge me-1"></i> Nhân viên
+                        <i class="fa-solid fa-id-badge me-1"></i> staff
                     </span>
                     <div class="dropdown user-dropdown">
                         <button class="btn user-avatar-btn dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">

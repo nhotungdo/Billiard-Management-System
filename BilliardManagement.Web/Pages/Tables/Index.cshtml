@@ -51,13 +51,6 @@
                     </div>
                 </div>
                 <div class="topbar-right">
-                    @if (!isAdmin)
-                    {
-                        <div class="realtime-clock" id="realtimeClock">
-                            <i class="fa-regular fa-clock me-1"></i>
-                            <span id="clockDisplay">--:--:--</span>
-                        </div>
-                    }
                     <span class="role-badge @(isAdmin ? "admin-badge" : "staff-badge")">
                         <i class="fa-solid @(isAdmin ? "fa-shield-halved" : "fa-id-badge") me-1"></i> @userRole
                     </span>

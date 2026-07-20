@@ -370,10 +370,6 @@
                     </div>
                 </div>
                 <div class="topbar-right">
-                    <div class="realtime-clock" id="realtimeClock">
-                        <i class="fa-regular fa-clock me-1"></i>
-                        <span id="clockDisplay">--:--:--</span>
-                    </div>
                     <span class="role-badge staff-badge">
                         <i class="fa-solid fa-id-badge me-1"></i> Staff
                     </span>
@@ -714,7 +710,7 @@
                         <div class="bg-primary bg-opacity-10 text-primary p-2 rounded mb-3 d-flex align-items-center" id="playingCustomerInfo" style="display:none;">
                             <i class="fa-solid fa-user-circle fs-4 me-2"></i>
                             <div>
-                                <div class="fw-bold" id="playingCustomerName">Khách vãng lai</div>
+                                <div class="fw-bold" id="playingCustomerName"></div>
                                 <div class="small" id="playingCustomerPhone"></div>
                             </div>
                         </div>
@@ -1331,7 +1327,7 @@
                     const cName = session.CustomerName || session.customerName;
                     const cPhone = session.CustomerPhone || session.customerPhone;
                     if (cName || cPhone) {
-                        $('#playingCustomerName').text(cName || 'Khách vãng lai');
+                        $('#playingCustomerName').text(cName || '');
                         $('#playingCustomerPhone').text(cPhone || '');
                         $('#playingCustomerInfo').show();
                     } else {
@@ -1920,3 +1916,4 @@
     </script>
 </body>
 </html>
+
