@@ -22,6 +22,8 @@ namespace BilliardManagement.Business.Interfaces
         Task<IEnumerable<DailyRevenueDto>> GetDailyRevenueAsync(int days);
         Task<IEnumerable<DailyRevenueDto>> GetRevenueReportAsync(DateTime startDate, DateTime endDate, string groupType);
         Task<object> GetDashboardAnalyticsAsync();
+        Task<byte[]> ExportRevenueToExcelAsync(DateTime startDate, DateTime endDate, string groupType);
+        Task<byte[]> ExportRevenueToPdfAsync(DateTime startDate, DateTime endDate, string groupType);
     }
 
     public interface IShiftService

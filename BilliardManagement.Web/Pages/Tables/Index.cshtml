@@ -103,41 +103,42 @@
 }
 
 <div class="d-sm-flex align-items-center justify-content-between mb-4">
-    <h1 class="h3 mb-0 text-gray-800"><i class="fa-solid fa-table me-2 text-primary"></i>Tables Management</h1>
-    <a href="/Tables/Create" class="btn btn-primary btn-icon-split shadow-sm">
+    <h1 class="h3 mb-0 text-gray-800"><i class="fa-solid fa-table me-2 text-primary"></i>Quản lý Bàn chơi</h1>
+    <a href="/Tables/Create" class="btn btn-primary btn-icon-split shadow-sm rounded-3">
         <span class="icon text-white-50"><i class="fas fa-plus"></i></span>
-        <span class="text">Create New Table</span>
+        <span class="text fw-bold">Tạo bàn chơi mới</span>
     </a>
 </div>
 
 @if (Model.ErrorMessage != null)
 {
-    <div class="alert alert-danger" role="alert">
+    <div class="alert alert-danger rounded-3" role="alert">
         <i class="fa-solid fa-circle-exclamation me-2"></i>@Model.ErrorMessage
     </div>
 }
 
-<div class="card shadow mb-4">
-    <div class="card-header py-3" style="background-color: #f8f9fc;">
-        <h6 class="m-0 font-weight-bold text-primary">List of Tables</h6>
+<div class="card shadow-sm border-0 rounded-4 mb-4">
+    <div class="card-header py-3 bg-white border-bottom d-flex align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary"><i class="fa-solid fa-list-check me-2"></i>Danh sách tất cả Bàn chơi</h6>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1.5 rounded-pill">Tổng số: @Model.Tables.Count bàn</span>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">Table Name</th>
-                        <th>Type</th>
-                        <th>Hourly Rate</th>
-                        <th>Status</th>
-                        <th class="text-end pe-4">Actions</th>
+                    <tr class="text-uppercase text-secondary small fw-bold" style="letter-spacing: 0.5px;">
+                        <th class="ps-4 py-3" style="min-width: 260px;">Tên bàn & Mô tả chi tiết</th>
+                        <th class="py-3" style="min-width: 150px;">Loại bàn</th>
+                        <th class="py-3" style="min-width: 150px;">Giá thuê / giờ</th>
+                        <th class="py-3" style="min-width: 170px;">Trạng thái</th>
+                        <th class="text-end pe-4 py-3" style="min-width: 180px;">Thao tác xử lý</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (Model.Tables.Count == 0)
                     {
                         <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">No tables found. Add a table to get started.</td>
+                            <td colspan="5" class="text-center py-5 text-muted"><i class="fa-solid fa-inbox fa-3x mb-3 text-secondary opacity-50 d-block"></i><div class="fw-semibold">Chưa có bàn nào trong hệ thống</div></td>
                         </tr>
                     }
                     else
@@ -145,44 +146,88 @@
                         foreach (var table in Model.Tables)
                         {
                             <tr>
-                                <td class="ps-4 font-weight-bold">@table.TableName</td>
-                                <td><span class="badge bg-secondary">@table.TableType</span></td>
-                                <td>@string.Format("{0:N0} đ/giờ", table.PricePerHour)</td>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-start gap-3 py-1">
+                                        <div class="avatar-circle-sm bg-primary-subtle text-primary fw-bold flex-shrink-0 mt-1" style="width: 38px; height: 38px; font-size: 1rem;"><i class="fa-solid fa-bowling-ball"></i></div>
+                                        <div>
+                                            <div class="fw-bold text-dark fs-6 d-flex align-items-center gap-2">
+                                                @table.TableName
+                                                <span class="badge bg-light text-muted border font-monospace fw-normal" style="font-size: 0.72rem;">#@table.Id.ToString().Substring(0, 6)</span>
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(table.Description))
+                                            {
+                                                <div class="small text-secondary mt-1" style="font-size: 0.8rem; max-width: 320px;">
+                                                    <i class="fa-regular fa-note-sticky text-primary me-1"></i>@table.Description
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="small text-muted fst-italic mt-1" style="font-size: 0.78rem;">
+                                                    <i class="fa-regular fa-circle-question text-muted me-1"></i>Chưa có mô tả chi tiết
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (table.TableType.Contains("VIP", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1.5 rounded-2 fw-semibold"><i class="fa-solid fa-crown me-1 text-warning"></i>@table.TableType</span>
+                                    }
+                                    else if (table.TableType.Contains("thi đấu", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 rounded-2 fw-semibold"><i class="fa-solid fa-trophy me-1"></i>@table.TableType</span>
+                                    }
+                                    else if (table.TableType.Contains("Pool", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 rounded-2 fw-semibold"><i class="fa-solid fa-circle me-1"></i>@table.TableType</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-dark border px-2.5 py-1.5 rounded-2 fw-semibold"><i class="fa-solid fa-layer-group me-1 text-secondary"></i>@table.TableType</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div>
+                                        <span class="fw-bold text-success fs-6">@table.PricePerHour.ToString("N0") đ</span>
+                                        <span class="text-muted small">/ giờ</span>
+                                    </div>
+                                </td>
                                 <td>
                                     @switch (table.Status)
                                     {
                                         case 1:
-                                            <span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i>Còn trống</span>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-semibold"><i class="fa-solid fa-circle-check me-1"></i>Còn trống</span>
                                             break;
                                         case 2:
-                                            <span class="badge bg-danger"><i class="fa-solid fa-circle-play me-1"></i>Đang chơi</span>
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1.5 rounded-pill fw-semibold"><i class="fa-solid fa-circle-play me-1"></i>Đang chơi</span>
                                             break;
                                         case 3:
-                                            <span class="badge bg-info text-white"><i class="fa-solid fa-circle-info me-1"></i>Đã đặt trước</span>
+                                            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-3 py-1.5 rounded-pill fw-semibold"><i class="fa-solid fa-circle-info me-1"></i>Đã đặt trước</span>
                                             break;
                                         case 4:
-                                            <span class="badge bg-warning text-dark"><i class="fa-solid fa-screwdriver-wrench me-1"></i>Đang bảo trì</span>
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-1.5 rounded-pill fw-semibold"><i class="fa-solid fa-screwdriver-wrench me-1"></i>Đang bảo trì</span>
                                             break;
                                         default:
-                                            <span class="badge bg-dark">Unknown</span>
+                                            <span class="badge bg-secondary px-3 py-1.5 rounded-pill">Không xác định</span>
                                             break;
                                     }
                                 </td>
                                 <td class="text-end pe-4">
                                     <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-sm btn-outline-primary edit-table-btn"
+                                        <button type="button" class="btn btn-sm btn-outline-primary edit-table-btn rounded-start-2"
                                                 data-id="@table.Id"
                                                 data-tablename="@table.TableName"
                                                 data-tabletype="@table.TableType"
                                                 data-priceperhour="@table.PricePerHour"
                                                 data-status="@(table.Status switch { 1 => "Available", 2 => "Playing", 3 => "Reserved", 4 => "Maintenance", _ => "Available" })"
                                                 data-description="@table.Description"
-                                                title="Cập nhật">
-                                            <i class="fa-solid fa-pen-to-square"></i> Update
+                                                title="Chỉnh sửa bàn">
+                                            <i class="fa-solid fa-pen-to-square me-1"></i> Sửa
                                         </button>
                                         <form method="post" asp-page-handler="Delete" asp-route-id="@table.Id" onsubmit="return confirm('Bạn có chắc muốn xóa bàn này?');" style="display:inline;">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa bàn">
-                                                <i class="fa-solid fa-trash"></i> Delete
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-end-2" title="Xóa bàn">
+                                                <i class="fa-solid fa-trash me-1"></i> Xóa
                                             </button>
                                         </form>
                                     </div>

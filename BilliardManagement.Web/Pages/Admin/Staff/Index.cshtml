@@ -183,20 +183,24 @@
             <form method="post" asp-page-handler="Create">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Họ và tên</label>
+                        <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" asp-for="NewStaff.FullName" required placeholder="Nhập họ và tên..." />
+                        <span asp-validation-for="NewStaff.FullName" class="text-danger small mt-1 d-block"></span>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Tên đăng nhập</label>
+                        <label class="form-label">Tên đăng nhập <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" asp-for="NewStaff.Username" required placeholder="Tên tài khoản để đăng nhập..." />
+                        <span asp-validation-for="NewStaff.Username" class="text-danger small mt-1 d-block"></span>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Mật khẩu</label>
-                        <input type="password" class="form-control" asp-for="NewStaff.Password" required placeholder="Nhập mật khẩu..." />
+                        <label class="form-label">Mật khẩu <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" asp-for="NewStaff.Password" required minlength="6" placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)..." />
+                        <span asp-validation-for="NewStaff.Password" class="text-danger small mt-1 d-block"></span>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Số điện thoại</label>
-                        <input type="text" class="form-control" asp-for="NewStaff.PhoneNumber" placeholder="Nhập số điện thoại (tuỳ chọn)..." />
+                        <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                        <input type="tel" class="form-control" asp-for="NewStaff.PhoneNumber" required pattern="0[0-9]{9}" maxlength="10" title="Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0" placeholder="Nhập số điện thoại (ví dụ: 0912345678)..." />
+                        <span asp-validation-for="NewStaff.PhoneNumber" class="text-danger small mt-1 d-block"></span>
                     </div>
                 </div>
                 <div class="modal-footer">

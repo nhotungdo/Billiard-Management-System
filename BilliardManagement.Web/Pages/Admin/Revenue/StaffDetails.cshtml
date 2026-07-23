@@ -180,7 +180,6 @@
                                         <th>Thời gian chơi</th>
                                         <th class="text-end">Tiền giờ</th>
                                         <th class="text-end">Dịch vụ</th>
-                                        <th class="text-end">Giảm giá</th>
                                         <th class="text-end">Thành tiền</th>
                                         <th>Thanh toán</th>
                                         <th>Thời điểm</th>
@@ -243,7 +242,7 @@
             tbody.innerHTML = '';
             
             if (filteredInvoices.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted"><i class="fa-solid fa-inbox fa-2x mb-2 d-block"></i>Không tìm thấy hóa đơn</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted"><i class="fa-solid fa-inbox fa-2x mb-2 d-block"></i>Không tìm thấy hóa đơn</td></tr>`;
                 document.getElementById('tableInfo').textContent = 'Hiển thị 0 - 0 của 0 hóa đơn';
                 document.getElementById('tablePagination').innerHTML = '';
                 return;
@@ -266,7 +265,6 @@
                     <td class="small text-muted">${playTimeDesc}</td>
                     <td class="text-end">${item.PlayingFee.toLocaleString('vi-VN')} đ</td>
                     <td class="text-end">${item.ServiceFee.toLocaleString('vi-VN')} đ</td>
-                    <td class="text-end text-danger">-${item.Discount.toLocaleString('vi-VN')} đ</td>
                     <td class="text-end text-success fw-bold">${item.TotalAmount.toLocaleString('vi-VN')} đ</td>
                     <td>
                         <span class="badge ${item.PaymentMethod === 'Cash' ? 'bg-light-success' : 'bg-light-info'}">

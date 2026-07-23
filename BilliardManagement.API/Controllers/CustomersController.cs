@@ -79,7 +79,7 @@ namespace BilliardManagement.API.Controllers
         {
             var result = await _customerService.DeleteCustomerAsync(id);
             if (!result) return NotFound(ApiResponse<object>.Fail("Customer not found."));
-            return Ok(ApiResponse<object>.Ok(null));
+            return Ok(ApiResponse<object?>.Ok(null, "Xóa khách hàng thành công"));
         }
 
         [HttpGet("top-spending")]

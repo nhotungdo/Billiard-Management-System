@@ -369,8 +369,7 @@ namespace BilliardManagement.Data
 
                     // Invoice
                     var subtotal = sessionPast.TotalPrice + orderPast.TotalAmount;
-                    var discount = d % 3 == 0 ? 10000 : 0;
-                    var total = subtotal - discount;
+                    var total = subtotal;
 
                     var invoicePast = new Invoice
                     {
@@ -378,7 +377,6 @@ namespace BilliardManagement.Data
                         TableSessionId = sessionPast.Id,
                         OrderId = orderPast.Id,
                         Subtotal = subtotal,
-                        Discount = discount,
                         TotalAmount = total,
                         PaymentMethod = (d % 2 == 0) ? PaymentMethod.Cash : PaymentMethod.Transfer,
                         CreatedAt = sessionTimeEnd
@@ -422,8 +420,7 @@ namespace BilliardManagement.Data
 
                     // VIP Invoice
                     var subtotalVip = sessionPastVip.TotalPrice + orderPastVip.TotalAmount;
-                    var discountVip = 20000;
-                    var totalVip = subtotalVip - discountVip;
+                    var totalVip = subtotalVip;
 
                     var invoicePastVip = new Invoice
                     {
@@ -431,7 +428,6 @@ namespace BilliardManagement.Data
                         TableSessionId = sessionPastVip.Id,
                         OrderId = orderPastVip.Id,
                         Subtotal = subtotalVip,
-                        Discount = discountVip,
                         TotalAmount = totalVip,
                         PaymentMethod = PaymentMethod.Transfer,
                         CreatedAt = sessionVipEnd

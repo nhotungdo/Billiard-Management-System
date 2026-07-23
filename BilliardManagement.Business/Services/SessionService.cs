@@ -37,7 +37,7 @@ namespace BilliardManagement.Business.Services
             _customerService = customerService;
         }
 
-        public async Task<SessionDto> StartSessionAsync(Guid tableId, Guid userId, int durationHours, string? customerName = null, string? customerPhone = null)
+        public async Task<SessionDto> StartSessionAsync(Guid tableId, Guid userId, int durationHours, string? customerName = null, string? customerPhone = null, int paymentMethod = 0)
         {
             if (durationHours < 1 || durationHours > 24)
                 throw new CustomException("Duration must be between 1 and 24 hours", 400);
@@ -65,10 +65,19 @@ namespace BilliardManagement.Business.Services
 
             CustomerDto? customerDto = null;
             Guid? customerId = null;
-            if (!string.IsNullOrEmpty(customerPhone) && !string.IsNullOrEmpty(customerName))
+            if (!string.IsNullOrWhiteSpace(customerPhone))
             {
-                customerDto = await _customerService.FindOrCreateCustomerAsync(customerName, customerPhone);
-                customerId = customerDto.Id;
+                var cleanedPhone = customerPhone.Trim();
+                if (!System.Text.RegularExpressions.Regex.IsMatch(cleanedPhone, @"^0\d{9}$"))
+                {
+                    throw new CustomException("Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678).", 400);
+                }
+
+                if (!string.IsNullOrWhiteSpace(customerName))
+                {
+                    customerDto = await _customerService.FindOrCreateCustomerAsync(customerName.Trim(), cleanedPhone);
+                    customerId = customerDto.Id;
+                }
             }
 
             var session = new TableSession
@@ -92,9 +101,44 @@ namespace BilliardManagement.Business.Services
             _unitOfWork.Repository<BilliardTable>().Update(table);
             await _unitOfWork.SaveChangesAsync();
 
+            var enumPaymentMethod = Enum.IsDefined(typeof(PaymentMethod), paymentMethod) 
+                ? (PaymentMethod)paymentMethod 
+                : PaymentMethod.Cash;
+
+            var prepaidInvoice = new Invoice
+            {
+                TableSessionId = session.Id,
+                CustomerId = customerId,
+                Subtotal = totalPrice,
+                TotalAmount = totalPrice,
+                PaymentMethod = enumPaymentMethod,
+                IsPaid = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            if (customerId.HasValue)
+            {
+                var customer = await _unitOfWork.Repository<Customer>().GetByIdAsync(customerId.Value);
+                if (customer != null)
+                {
+                    customer.TotalVisits += 1;
+                    customer.TotalPlayHours += (decimal)durationHours;
+                    customer.TotalSpent += totalPrice;
+                    customer.LastVisitDate = DateTime.UtcNow;
+                    if (!customer.FirstVisitDate.HasValue)
+                    {
+                        customer.FirstVisitDate = DateTime.UtcNow;
+                    }
+                    _unitOfWork.Repository<Customer>().Update(customer);
+                }
+            }
+
+            await _unitOfWork.Repository<Invoice>().AddAsync(prepaidInvoice);
+            await _unitOfWork.SaveChangesAsync();
+
             _logger.LogInformation(
-                "Session started: sessionId={SessionId}, tableId={TableId}, staffId={StaffId}, durationHours={Hours}, endTime={End}",
-                session.Id, tableId, userId, durationHours, endTime);
+                "Prepaid session started & paid: sessionId={SessionId}, tableId={TableId}, staffId={StaffId}, durationHours={Hours}, totalPrice={TotalPrice}, paymentMethod={PaymentMethod}",
+                session.Id, tableId, userId, durationHours, totalPrice, enumPaymentMethod);
 
             var dto = await MapSessionDtoAsync(session, table);
             if (customerDto != null)
@@ -176,7 +220,7 @@ namespace BilliardManagement.Business.Services
             _unitOfWork.Repository<BilliardTable>().Update(table);
             await _unitOfWork.SaveChangesAsync();
 
-            var generateDto = billDto ?? new GenerateBillDto { Discount = 0, PaymentMethod = PaymentMethod.Cash };
+            var generateDto = billDto ?? new GenerateBillDto { PaymentMethod = PaymentMethod.Cash };
             await _billingService.GenerateBillAsync(sessionId, generateDto);
 
             _logger.LogInformation(

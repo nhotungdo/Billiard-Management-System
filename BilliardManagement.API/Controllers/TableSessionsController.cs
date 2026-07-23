@@ -70,11 +70,14 @@ namespace BilliardManagement.API.Controllers
                 if (request == null || request.TableId == Guid.Empty)
                     return BadRequest(ApiResponse<object>.Fail("TableId is required"));
 
+                if (string.IsNullOrWhiteSpace(request.CustomerPhone) || !System.Text.RegularExpressions.Regex.IsMatch(request.CustomerPhone.Trim(), @"^0\d{9}$"))
+                    return BadRequest(ApiResponse<object>.Fail("Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678)."));
+
                 var userId = GetUserId();
                 if (userId == null)
                     return Unauthorized(ApiResponse<object>.Fail("Unauthorized"));
 
-                var session = await _sessionService.StartSessionAsync(request.TableId, userId.Value, request.DurationHours, request.CustomerName, request.CustomerPhone);
+                var session = await _sessionService.StartSessionAsync(request.TableId, userId.Value, request.DurationHours, request.CustomerName, request.CustomerPhone, request.PaymentMethod);
                 await BroadcastSessionAsync(session, "SessionStarted");
                 return Ok(ApiResponse<SessionDto>.Ok(session, "Bắt đầu phiên chơi thành công"));
             }
@@ -116,7 +119,6 @@ namespace BilliardManagement.API.Controllers
                 {
                     billDto = new GenerateBillDto
                     {
-                        Discount = request.Discount,
                         PaymentMethod = request.PaymentMethod
                     };
                 }

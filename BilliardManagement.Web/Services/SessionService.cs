@@ -20,13 +20,18 @@ namespace BilliardManagement.Web.Services
             return await GetAsync<List<TableDashboardDto>>("table-sessions/dashboard");
         }
 
-        public async Task<SessionDto?> StartSessionAsync(Guid tableId, int durationHours, string? customerName = null, string? customerPhone = null)
+        public async Task<SessionDto?> StartSessionAsync(Guid tableId, int durationHours, string? customerName = null, string? customerPhone = null, int paymentMethod = 0)
         {
-            var url = $"table-sessions/start?tableId={tableId}&durationHours={durationHours}";
-            if (!string.IsNullOrEmpty(customerName)) url += $"&customerName={Uri.EscapeDataString(customerName)}";
-            if (!string.IsNullOrEmpty(customerPhone)) url += $"&customerPhone={Uri.EscapeDataString(customerPhone)}";
+            var url = "table-sessions/start";
             return await PostAsync<StartSessionRequest, SessionDto>(url,
-                new StartSessionRequest { TableId = tableId, DurationHours = durationHours, CustomerName = customerName, CustomerPhone = customerPhone });
+                new StartSessionRequest 
+                { 
+                    TableId = tableId, 
+                    DurationHours = durationHours, 
+                    CustomerName = customerName, 
+                    CustomerPhone = customerPhone,
+                    PaymentMethod = paymentMethod
+                });
         }
 
         public async Task<SessionDto?> ExtendSessionAsync(Guid sessionId, int additionalMinutes)
@@ -35,10 +40,10 @@ namespace BilliardManagement.Web.Services
                 new ExtendSessionRequest { AdditionalMinutes = additionalMinutes });
         }
 
-        public async Task<SessionDto?> EndSessionAsync(Guid sessionId, decimal discount = 0, int paymentMethod = 0)
+        public async Task<SessionDto?> EndSessionAsync(Guid sessionId, int paymentMethod = 0)
         {
             return await PostAsync<EndSessionRequest, SessionDto>($"table-sessions/end/{sessionId}",
-                new EndSessionRequest { Discount = discount, PaymentMethod = paymentMethod });
+                new EndSessionRequest { PaymentMethod = paymentMethod });
         }
 
         public async Task<PagedResult<SessionDto>?> GetPagedSessionsAsync(int pageNumber, int pageSize, int? status = null, Guid? tableId = null, bool? isFinished = null, string? sortBy = null, bool isDescending = false)

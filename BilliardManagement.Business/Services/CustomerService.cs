@@ -180,7 +180,13 @@ namespace BilliardManagement.Business.Services
 
         public async Task<CustomerDto> FindOrCreateCustomerAsync(string fullName, string phoneNumber)
         {
-            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.PhoneNumber == phoneNumber);
+            if (string.IsNullOrWhiteSpace(phoneNumber) || !System.Text.RegularExpressions.Regex.IsMatch(phoneNumber.Trim(), @"^0\d{9}$"))
+            {
+                throw new BilliardManagement.Common.Exceptions.CustomException("Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678).", 400);
+            }
+
+            var cleanPhone = phoneNumber.Trim();
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.PhoneNumber == cleanPhone);
             if (customer == null)
             {
                 customer = new Customer

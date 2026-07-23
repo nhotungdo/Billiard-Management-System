@@ -115,6 +115,7 @@ namespace BilliardManagement.Business.DTOs
         public int DurationHours { get; set; } = 1;
         public string? CustomerName { get; set; }
         public string? CustomerPhone { get; set; }
+        public int PaymentMethod { get; set; } = 0;
     }
 
     public class ExtendSessionRequest
@@ -124,7 +125,6 @@ namespace BilliardManagement.Business.DTOs
 
     public class EndSessionRequest
     {
-        public decimal Discount { get; set; }
         public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
     }
 
@@ -258,7 +258,6 @@ namespace BilliardManagement.Business.DTOs
         public Guid SessionId { get; set; }
         public Guid? StaffId { get; set; }
         public decimal Subtotal { get; set; }
-        public decimal Discount { get; set; }
         public decimal Total { get; set; }
         public PaymentMethod PaymentMethod { get; set; }
         public bool IsPaid { get; set; }
@@ -269,7 +268,7 @@ namespace BilliardManagement.Business.DTOs
         public decimal PlayingFee { get; set; }
         public decimal ServiceFee { get; set; }
     }
-    public class GenerateBillDto { public decimal Discount { get; set; } public PaymentMethod PaymentMethod { get; set; } }
+    public class GenerateBillDto { public PaymentMethod PaymentMethod { get; set; } }
     
     public class ShiftDto { public Guid Id { get; set; } public Guid UserId { get; set; } public DateTime CheckIn { get; set; } public DateTime? CheckOut { get; set; } public decimal Revenue { get; set; } }
     
@@ -281,7 +280,6 @@ namespace BilliardManagement.Business.DTOs
         public string TableName { get; set; } = string.Empty;
         public DateTime PaidAt { get; set; }
         public decimal Subtotal { get; set; }
-        public decimal Discount { get; set; }
         public decimal TotalAmount { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
         public DateTime StartTime { get; set; }

@@ -39,8 +39,7 @@ namespace BilliardManagement.Business.Services
                 TableSessionId = sessionId,
                 CustomerId = session.CustomerId,
                 Subtotal = subtotal,
-                Discount = dto.Discount,
-                TotalAmount = subtotal - dto.Discount,
+                TotalAmount = subtotal,
                 PaymentMethod = dto.PaymentMethod,
                 IsPaid = false
             };
@@ -121,10 +120,6 @@ namespace BilliardManagement.Business.Services
                 if (query.SortBy.Equals("TotalAmount", StringComparison.OrdinalIgnoreCase))
                 {
                     orderBy = q => query.IsDescending ? q.OrderByDescending(i => i.TotalAmount) : q.OrderBy(i => i.TotalAmount);
-                }
-                else if (query.SortBy.Equals("Discount", StringComparison.OrdinalIgnoreCase))
-                {
-                    orderBy = q => query.IsDescending ? q.OrderByDescending(i => i.Discount) : q.OrderBy(i => i.Discount);
                 }
                 else if (query.SortBy.Equals("Subtotal", StringComparison.OrdinalIgnoreCase))
                 {

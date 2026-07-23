@@ -56,6 +56,12 @@ namespace BilliardManagement.Web.Pages.Sessions
         public async Task<IActionResult> OnPostStartAsync(Guid tableId, [FromForm] string? customerName = null, [FromForm] string? customerPhone = null)
         {
             _logger.LogInformation("OnPostStart called: tableId={TableId}, customerName={CustomerName}, customerPhone={CustomerPhone}", tableId, customerName, customerPhone);
+            if (string.IsNullOrWhiteSpace(customerPhone) || !System.Text.RegularExpressions.Regex.IsMatch(customerPhone.Trim(), @"^0\d{9}$"))
+            {
+                TempData["ErrorMessage"] = "Số điện thoại không hợp lệ. Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678).";
+                return RedirectToPage();
+            }
+
             try
             {
                 var session = await _sessionService.StartSessionAsync(tableId, 1, customerName, customerPhone);

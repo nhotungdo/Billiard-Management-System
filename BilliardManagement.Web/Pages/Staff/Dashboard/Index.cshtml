@@ -421,7 +421,7 @@
                             <option value="">-- Chọn bàn trống --</option>
                             @foreach (var t in Model.TableDashboard.Where(tb => tb.Status == 1 || tb.Status == 3))
                             {
-                                <option value="@t.Id">@t.TableName (@t.TableType) - @t.HourlyRate.ToString("N0")đ/h</option>
+                                <option value="@t.Id" data-rate="@t.HourlyRate">@t.TableName (@t.TableType) - @t.HourlyRate.ToString("N0")đ/h</option>
                             }
                         </select>
                     </div>
@@ -431,7 +431,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold text-dark small">Số điện thoại <span class="text-danger">*</span></label>
-                        <input type="tel" class="form-control rounded-3 py-2 border-light-subtle" id="startNewSessionCustomerPhone" placeholder="Số điện thoại" required />
+                        <input type="tel" class="form-control rounded-3 py-2 border-light-subtle" id="startNewSessionCustomerPhone" placeholder="Số điện thoại (0912345678)" required pattern="0[0-9]{9}" maxlength="10" title="Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold text-dark small">Chọn thời gian chơi</label>
@@ -441,11 +441,60 @@
                                 <button type="button" class="btn btn-outline-success py-2 rounded-3 btn-new-hour-option" data-hours="@h">@h giờ</button>
                             }
                         </div>
-                        <label class="form-label fw-semibold text-dark small">Hoặc nhập giờ tùy chỉnh (1-24)</label>
-                        <div class="input-group">
-                            <input type="number" class="form-control rounded-start-3 border-light-subtle" id="customHoursNewInput" min="1" max="24" value="1" />
-                            <button type="button" class="btn btn-success rounded-end-3" id="btnConfirmStartNewSession">Bắt đầu chơi</button>
+                        <label class="form-label fw-semibold text-dark small">Nhập giờ tùy chỉnh (1-24)</label>
+                        <input type="number" class="form-control rounded-3 border-light-subtle mb-3" id="customHoursNewInput" min="1" max="24" value="1" />
+
+                        <div class="mb-3 border-top pt-3">
+                            <label class="form-label fw-semibold text-dark small d-block">Gọi món nhanh (Tuỳ chọn)</label>
+                            <div style="max-height: 120px; overflow-y: auto;" class="pe-2">
+                                @foreach (var p in Model.Products)
+                                {
+                                    <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-1">
+                                        <div>
+                                            <span class="small fw-semibold text-dark">@p.Name</span>
+                                            <span class="small text-primary fw-bold ms-2">@p.Price.ToString("N0") đ</span>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-qty-minus-dash py-0 px-2" data-target="dash-quick-qty-@p.Id">-</button>
+                                            <input type="number" class="form-control form-control-sm quick-qty-input-dash" id="dash-quick-qty-@p.Id" data-product-id="@p.Id" data-price="@p.Price" value="0" min="0" max="@p.Stock" style="width: 45px; text-align: center;">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-qty-plus-dash py-0 px-2" data-target="dash-quick-qty-@p.Id" data-max="@p.Stock">+</button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
                         </div>
+
+                        <div class="d-flex justify-content-between align-items-center p-3 mb-3 bg-white rounded-3 border">
+                            <span class="fw-bold text-dark small">Tổng tiền thanh toán:</span>
+                            <span class="fw-bold fs-5 text-success" id="startNewSessionTotalAmount">0 đ</span>
+                        </div>
+
+                        <div class="p-3 bg-light rounded-3 border mb-3">
+                            <label class="form-label fw-bold small text-dark mb-1">Phương thức thanh toán <span class="text-danger">*</span></label>
+                            <select class="form-select form-select-sm mb-2" id="startNewSessionPaymentMethod">
+                                <option value="0" selected>💵 Tiền mặt</option>
+                                <option value="2">📲 Chuyển khoản QR</option>
+                            </select>
+
+                            <div class="qr-payment-container text-center mt-2 p-2 bg-white rounded border border-success" id="startNewSessionQrContainer" style="display: none;">
+                                <div class="badge bg-success-subtle text-success fw-bold px-2 py-1 rounded-pill mb-1 small">
+                                    <i class="fa-solid fa-qrcode me-1"></i>Mã QR VietQR BIDV
+                                </div>
+                                <div>
+                                    <img src="https://img.vietqr.io/image/BIDV-113366668888-print.png" alt="Mã QR Thanh toán BIDV" class="img-fluid rounded border shadow-sm my-1" style="max-width: 220px;" />
+                                </div>
+                                <div class="small text-muted" style="font-size: 0.75rem;">
+                                    BIDV | STK: <strong>113366668888</strong>
+                                </div>
+                                <div class="small text-success fw-bold mt-1" style="font-size: 0.75rem;">
+                                    Quét mã QR để chuyển khoản. Sau khi nhận tiền, bấm <strong>Duyệt thanh toán</strong>.
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-success w-100 py-2.5 rounded-3 fw-bold fs-6" id="btnConfirmStartNewSession">
+                            <i class="fa-solid fa-credit-card me-2"></i>Thanh toán & Bắt đầu chơi
+                        </button>
                     </div>
                 </div>
             </div>
@@ -519,21 +568,11 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <p class="text-muted small">Hệ thống sẽ kết thúc phiên chơi, trả bàn về trạng thái trống và tạo hóa đơn thanh toán.</p>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold text-dark small">Giảm giá (đ)</label>
-                        <input type="number" class="form-control rounded-3 border-light-subtle py-2" id="endDiscountInput" min="0" value="0" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold text-dark small">Phương thức thanh toán</label>
-                        <select class="form-select rounded-3 border-light-subtle py-2" id="endPaymentSelect">
-                            <option value="0">Tiền mặt</option>
-                            <option value="1">Thẻ</option>
-                            <option value="2">Chuyển khoản</option>
-                        </select>
+                    <div class="alert alert-info border-0 rounded-3 small mb-3">
+                        <i class="fa-solid fa-circle-check me-2 text-success"></i>Phiên chơi này đã được thanh toán trả trước khi mở bàn. Xác nhận kết thúc bàn chơi và trả bàn về trạng thái Trống?
                     </div>
                     <button type="button" class="btn btn-danger w-100 py-2.5 rounded-3 fw-semibold" id="btnConfirmEnd">
-                        <i class="fa-solid fa-file-invoice-dollar me-1.5"></i>Xác nhận & Tạo hóa đơn
+                        <i class="fa-solid fa-stop me-1.5"></i>Xác nhận kết thúc bàn
                     </button>
                 </div>
             </div>
@@ -670,11 +709,50 @@
                 $('#startNewSessionTableSelect').val('');
                 $('#startNewSessionCustomerName').val('');
                 $('#startNewSessionCustomerPhone').val('');
+                $('.quick-qty-input-dash').val(0);
                 $('.btn-new-hour-option').removeClass('btn-success text-white').addClass('btn-outline-success');
                 $('[data-hours="1"]').removeClass('btn-outline-success').addClass('btn-success text-white');
                 selectedHours = 1;
                 $('#customHoursNewInput').val(1);
+                calculateDashboardStartTotal();
                 $('#startNewSessionModal').modal('show');
+            });
+
+            function calculateDashboardStartTotal() {
+                const selectedOpt = $('#startNewSessionTableSelect option:selected');
+                const rate = parseFloat(selectedOpt.attr('data-rate')) || 0;
+                const hours = parseInt($('#customHoursNewInput').val(), 10) || 1;
+                let quickFee = 0;
+                $('.quick-qty-input-dash').each(function() {
+                    const qty = parseInt($(this).val(), 10) || 0;
+                    const price = parseFloat($(this).data('price')) || 0;
+                    if (qty > 0) {
+                        quickFee += qty * price;
+                    }
+                });
+                const total = (rate * hours) + quickFee;
+                $('#startNewSessionTotalAmount').text(total.toLocaleString('vi-VN') + ' đ');
+            }
+
+            $(document).on('change input', '#startNewSessionTableSelect, #customHoursNewInput, .quick-qty-input-dash', calculateDashboardStartTotal);
+
+            $(document).on('click', '.btn-quick-qty-minus-dash', function () {
+                const targetId = $(this).data('target');
+                const input = $('#' + targetId);
+                let val = parseInt(input.val(), 10) || 0;
+                if (val > 0) {
+                    input.val(val - 1).trigger('change');
+                }
+            });
+
+            $(document).on('click', '.btn-quick-qty-plus-dash', function () {
+                const targetId = $(this).data('target');
+                const maxVal = $(this).data('max');
+                const input = $('#' + targetId);
+                let val = parseInt(input.val(), 10) || 0;
+                if (val < maxVal) {
+                    input.val(val + 1).trigger('change');
+                }
             });
 
             $('.btn-new-hour-option').on('click', function () {
@@ -682,6 +760,17 @@
                 $(this).removeClass('btn-outline-success').addClass('btn-success text-white');
                 selectedHours = parseInt($(this).attr('data-hours'), 10);
                 $('#customHoursNewInput').val(selectedHours);
+                calculateDashboardStartTotal();
+            });
+
+            $('#startNewSessionPaymentMethod').on('change', function() {
+                if ($(this).val() === '2') {
+                    $('#startNewSessionQrContainer').slideDown();
+                    $('#btnConfirmStartNewSession').html('<i class="fa-solid fa-circle-check me-2"></i>Duyệt thanh toán & Bắt đầu');
+                } else {
+                    $('#startNewSessionQrContainer').slideUp();
+                    $('#btnConfirmStartNewSession').html('<i class="fa-solid fa-credit-card me-2"></i>Thanh toán & Bắt đầu');
+                }
             });
 
             $('#btnConfirmStartNewSession').on('click', async function () {
@@ -689,6 +778,7 @@
                 const hours = parseInt($('#customHoursNewInput').val(), 10);
                 const customerName = $('#startNewSessionCustomerName').val().trim();
                 const customerPhone = $('#startNewSessionCustomerPhone').val().trim();
+                const paymentMethod = parseInt($('#startNewSessionPaymentMethod').val(), 10) || 0;
                 
                 if (!tableId) {
                     toastr.warning('Vui lòng chọn một bàn chơi.');
@@ -696,6 +786,11 @@
                 }
                 if (!customerName || !customerPhone) {
                     toastr.warning('Vui lòng nhập đầy đủ tên và số điện thoại khách hàng.');
+                    return;
+                }
+                const phoneRegex = /^0\d{9}$/;
+                if (!phoneRegex.test(customerPhone)) {
+                    toastr.warning('Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678).');
                     return;
                 }
                 if (isNaN(hours) || hours < 1 || hours > 24) {
@@ -715,11 +810,38 @@
                             tableId: tableId, 
                             durationHours: hours,
                             customerName: customerName,
-                            customerPhone: customerPhone
+                            customerPhone: customerPhone,
+                            paymentMethod: paymentMethod
                         })
                     });
                     const resData = await response.json();
                     if (response.ok && resData.success) {
+                        const newSession = resData.data;
+                        const sId = newSession ? (newSession.id || newSession.Id) : null;
+                        
+                        // Place quick order if items selected
+                        const quickItems = [];
+                        $('.quick-qty-input-dash').each(function () {
+                            const qty = parseInt($(this).val(), 10) || 0;
+                            const pId = $(this).data('product-id');
+                            if (qty > 0 && pId) {
+                                quickItems.push({ productId: pId, quantity: qty });
+                            }
+                        });
+
+                        if (quickItems.length > 0 && sId) {
+                            try {
+                                await fetch(`${window.STAFF_DASHBOARD.apiBase}orders`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${window.STAFF_DASHBOARD.token}`
+                                    },
+                                    body: JSON.stringify({ sessionId: sId, items: quickItems })
+                                });
+                            } catch (e) { }
+                        }
+
                         toastr.success('Khởi tạo phiên chơi thành công!');
                         setTimeout(() => location.reload(), 1000);
                     } else {
@@ -863,19 +985,11 @@
             $('.btn-end-session').on('click', function () {
                 activeSessionId = $(this).attr('data-session-id');
                 $('#endModalTableName').text($(this).attr('data-table-name'));
-                $('#endDiscountInput').val(0);
-                $('#endPaymentSelect').val(0);
                 $('#endSessionModal').modal('show');
             });
 
             $('#btnConfirmEnd').on('click', async function () {
-                const discount = parseFloat($('#endDiscountInput').val());
-                const payment = parseInt($('#endPaymentSelect').val(), 10);
-                
-                if (isNaN(discount) || discount < 0) {
-                    toastr.warning('Giảm giá không hợp lệ.');
-                    return;
-                }
+                const payment = 0;
 
                 const btn = $(this);
                 btn.prop('disabled', true);
@@ -891,7 +1005,7 @@
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${window.STAFF_DASHBOARD.token}`
                         },
-                        body: JSON.stringify({ discount: discount, paymentMethod: payment })
+                        body: JSON.stringify({ paymentMethod: payment })
                     });
                     const resData = await response.json();
                     if (response.ok && resData.success) {

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using BilliardManagement.Web.Json;
 
@@ -17,12 +18,48 @@ namespace BilliardManagement.Web.Models
         public string? Email { get; set; }
         public string? ProfilePictureUrl { get; set; }
     }
-    public class LoginRequest { public string Username { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; }
-    public class RegisterRequest { public string FullName { get; set; } = string.Empty; public string Username { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; public string? PhoneNumber { get; set; } }
-    public class LoginResponse { public string Token { get; set; } = string.Empty; public UserDto User { get; set; } = default!; }
+
+    public class LoginRequest
+    {
+        [Required(ErrorMessage = "Vui lòng nhập Email hoặc Tên đăng nhập.")]
+        [StringLength(100, ErrorMessage = "Tên đăng nhập không quá 100 ký tự.")]
+        public string Username { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng nhập Mật khẩu.")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+    }
+
+    public class RegisterRequest
+    {
+        [Required(ErrorMessage = "Vui lòng nhập Tên cơ sở / Câu lạc bộ.")]
+        [StringLength(150, ErrorMessage = "Tên cơ sở không quá 150 ký tự.")]
+        public string FullName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng nhập Email.")]
+        [EmailAddress(ErrorMessage = "Định dạng Email không hợp lệ.")]
+        public string Username { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng nhập Mật khẩu.")]
+        [MinLength(6, ErrorMessage = "Mật khẩu tối thiểu 6 ký tự.")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng nhập Số điện thoại.")]
+        [RegularExpression(@"^0\d{9}$", ErrorMessage = "Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678).")]
+        public string? PhoneNumber { get; set; }
+    }
+
+    public class LoginResponse
+    {
+        public string Token { get; set; } = string.Empty;
+        public UserDto User { get; set; } = default!;
+    }
 
     public class ResetPasswordForUserDto
     {
+        [Required(ErrorMessage = "Vui lòng nhập mật khẩu mới.")]
+        [MinLength(6, ErrorMessage = "Mật khẩu mới tối thiểu 6 ký tự.")]
         public string NewPassword { get; set; } = string.Empty;
     }
 
@@ -38,16 +75,32 @@ namespace BilliardManagement.Web.Models
 
     public class CreateTableDto
     {
+        [Required(ErrorMessage = "Tên bàn không được để trống.")]
+        [StringLength(50, ErrorMessage = "Tên bàn tối đa 50 ký tự.")]
         public string TableName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng chọn loại bàn.")]
         public string TableType { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng nhập giá mỗi giờ.")]
+        [Range(0, 10000000, ErrorMessage = "Giá mỗi giờ từ 0 đ đến 10.000.000 đ.")]
         public decimal PricePerHour { get; set; }
+
         public string Status { get; set; } = "Available";
+
+        [StringLength(250, ErrorMessage = "Mô tả tối đa 250 ký tự.")]
         public string? Description { get; set; }
     }
-    public class UpdateTableStatusRequest { public string Status { get; set; } = string.Empty; }
+
+    public class UpdateTableStatusRequest
+    {
+        [Required(ErrorMessage = "Vui lòng chọn trạng thái.")]
+        public string Status { get; set; } = string.Empty;
+    }
 
     public class TableStatusUpdateDto
     {
+        [Required(ErrorMessage = "Trạng thái không được để trống.")]
         public string Status { get; set; } = string.Empty;
         public string? Reason { get; set; }
         public bool Force { get; set; } = false;
@@ -68,9 +121,36 @@ namespace BilliardManagement.Web.Models
         public string? Reason { get; set; }
     }
 
-    public class StartSessionRequest { public Guid TableId { get; set; } public int DurationHours { get; set; } = 1; public string? CustomerName { get; set; } public string? CustomerPhone { get; set; } }
-    public class ExtendSessionRequest { public int AdditionalMinutes { get; set; } }
-    public class EndSessionRequest { public decimal Discount { get; set; } public int PaymentMethod { get; set; } }
+    public class StartSessionRequest
+    {
+        [Required(ErrorMessage = "Vui lòng chọn bàn.")]
+        public Guid TableId { get; set; }
+
+        [Range(1, 24, ErrorMessage = "Thời gian từ 1 đến 24 giờ.")]
+        public int DurationHours { get; set; } = 1;
+
+        [Required(ErrorMessage = "Vui lòng nhập tên khách hàng.")]
+        [StringLength(100, ErrorMessage = "Tên khách hàng tối đa 100 ký tự.")]
+        public string? CustomerName { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng nhập số điện thoại khách hàng.")]
+        [RegularExpression(@"^0\d{9}$", ErrorMessage = "Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678).")]
+        public string? CustomerPhone { get; set; }
+
+        [Range(0, 2, ErrorMessage = "Phương thức thanh toán không hợp lệ.")]
+        public int PaymentMethod { get; set; } = 0;
+    }
+
+    public class ExtendSessionRequest
+    {
+        [Range(1, 1440, ErrorMessage = "Thời gian gia hạn từ 1 đến 1440 phút.")]
+        public int AdditionalMinutes { get; set; }
+    }
+
+    public class EndSessionRequest
+    {
+        public int PaymentMethod { get; set; }
+    }
 
     public class SessionOrderLineDto
     {
@@ -130,31 +210,64 @@ namespace BilliardManagement.Web.Models
 
     public class CreateProductDto
     {
+        [Required(ErrorMessage = "Vui lòng nhập tên sản phẩm.")]
+        [StringLength(100, ErrorMessage = "Tên sản phẩm tối đa 100 ký tự.")]
         public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng nhập giá sản phẩm.")]
+        [Range(0, 100000000, ErrorMessage = "Giá sản phẩm phải từ 0 đ.")]
         public decimal Price { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng chọn danh mục sản phẩm.")]
         public Guid CategoryId { get; set; }
+
+        [Range(0, 100000, ErrorMessage = "Tồn kho từ 0 đến 100.000.")]
         public int Stock { get; set; }
+
         public string? ImageUrl { get; set; }
         public string? Description { get; set; }
         public bool IsAvailable { get; set; } = true;
     }
 
-    public class OrderDto { public Guid Id { get; set; } public Guid SessionId { get; set; } public Guid UserId { get; set; } public decimal TotalAmount { get; set; } public int Status { get; set; } public DateTime OrderTime { get; set; } }
-    public class OrderItemDto { public Guid Id { get; set; } public Guid ProductId { get; set; } public int Quantity { get; set; } public decimal UnitPrice { get; set; } }
+    public class OrderDto
+    {
+        public Guid Id { get; set; }
+        public Guid SessionId { get; set; }
+        public Guid UserId { get; set; }
+        public decimal TotalAmount { get; set; }
+        public int Status { get; set; }
+        public DateTime OrderTime { get; set; }
+    }
+
+    public class OrderItemDto
+    {
+        public Guid Id { get; set; }
+        public Guid ProductId { get; set; }
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+    }
+
     public class CreateOrderDto
     {
+        [Required(ErrorMessage = "Session ID không được để trống.")]
         public Guid SessionId { get; set; }
         public Guid TableSessionId { get => SessionId; set => SessionId = value; }
         public List<CreateOrderItemDto> Items { get; set; } = new();
     }
-    public class CreateOrderItemDto { public Guid ProductId { get; set; } public int Quantity { get; set; } }
+
+    public class CreateOrderItemDto
+    {
+        public Guid ProductId { get; set; }
+
+        [Range(1, 1000, ErrorMessage = "Số lượng order từ 1 đến 1000.")]
+        public int Quantity { get; set; }
+    }
 
     public class InvoiceDto
     {
         public Guid Id { get; set; }
         public Guid SessionId { get; set; }
         public decimal Subtotal { get; set; }
-        public decimal Discount { get; set; }
         public decimal Total { get; set; }
         public int PaymentMethod { get; set; }
         public bool IsPaid { get; set; }
@@ -165,7 +278,11 @@ namespace BilliardManagement.Web.Models
         public decimal PlayingFee { get; set; }
         public decimal ServiceFee { get; set; }
     }
-    public class CreateInvoiceDto { public decimal Discount { get; set; } public int PaymentMethod { get; set; } }
+
+    public class CreateInvoiceDto
+    {
+        public int PaymentMethod { get; set; }
+    }
 
     public class StaffDto
     {
@@ -182,8 +299,18 @@ namespace BilliardManagement.Web.Models
 
     public class ChangePasswordRequest
     {
+        [Required(ErrorMessage = "Vui lòng nhập mật khẩu hiện tại.")]
+        [DataType(DataType.Password)]
         public string CurrentPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng nhập mật khẩu mới.")]
+        [MinLength(6, ErrorMessage = "Mật khẩu mới phải từ 6 ký tự trở lên.")]
+        [DataType(DataType.Password)]
         public string NewPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng xác nhận mật khẩu mới.")]
+        [Compare("NewPassword", ErrorMessage = "Xác nhận mật khẩu mới không khớp.")]
+        [DataType(DataType.Password)]
         public string ConfirmNewPassword { get; set; } = string.Empty;
     }
 
@@ -228,7 +355,11 @@ namespace BilliardManagement.Web.Models
 
     public class CreateCategoryDto
     {
+        [Required(ErrorMessage = "Vui lòng nhập tên danh mục.")]
+        [StringLength(50, ErrorMessage = "Tên danh mục tối đa 50 ký tự.")]
         public string CategoryName { get; set; } = string.Empty;
+
+        [StringLength(250, ErrorMessage = "Mô tả tối đa 250 ký tự.")]
         public string? Description { get; set; }
     }
 
@@ -249,7 +380,6 @@ namespace BilliardManagement.Web.Models
         public string TableName { get; set; } = string.Empty;
         public DateTime PaidAt { get; set; }
         public decimal Subtotal { get; set; }
-        public decimal Discount { get; set; }
         public decimal TotalAmount { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
         public DateTime StartTime { get; set; }
@@ -290,6 +420,7 @@ namespace BilliardManagement.Web.Models
         public List<StaffRevenueDto> StaffRevenues { get; set; } = new();
         public List<DailyRevenueDto> DailyRevenues { get; set; } = new();
     }
+
     public class CustomerDto
     {
         public Guid Id { get; set; }
@@ -304,13 +435,23 @@ namespace BilliardManagement.Web.Models
 
     public class CustomerCreateDto
     {
+        [Required(ErrorMessage = "Vui lòng nhập họ và tên khách hàng.")]
+        [StringLength(100, ErrorMessage = "Họ tên tối đa 100 ký tự.")]
         public string FullName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng nhập số điện thoại.")]
+        [RegularExpression(@"^0\d{9}$", ErrorMessage = "Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678).")]
         public string PhoneNumber { get; set; } = string.Empty;
     }
 
     public class CustomerUpdateDto
     {
+        [Required(ErrorMessage = "Vui lòng nhập họ và tên khách hàng.")]
+        [StringLength(100, ErrorMessage = "Họ tên tối đa 100 ký tự.")]
         public string FullName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng nhập số điện thoại.")]
+        [RegularExpression(@"^0\d{9}$", ErrorMessage = "Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678).")]
         public string PhoneNumber { get; set; } = string.Empty;
     }
 

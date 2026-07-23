@@ -45,5 +45,33 @@ namespace BilliardManagement.API.Controllers
             var data = await _reportService.GetRevenueReportAsync(start, end, groupType);
             return Ok(ApiResponse<object>.Ok(data));
         }
+
+        // Xuất báo cáo doanh thu ra file Excel
+        [HttpGet("export/excel")]
+        public async Task<IActionResult> ExportExcel(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string groupType = "day")
+        {
+            var start = startDate ?? DateTime.UtcNow.Date.AddDays(-30);
+            var end = endDate ?? DateTime.UtcNow;
+            var fileBytes = await _reportService.ExportRevenueToExcelAsync(start, end, groupType);
+            var fileName = $"BaoCaoDoanhThu_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
+            return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+        }
+
+        // Xuất báo cáo doanh thu ra file PDF
+        [HttpGet("export/pdf")]
+        public async Task<IActionResult> ExportPdf(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string groupType = "day")
+        {
+            var start = startDate ?? DateTime.UtcNow.Date.AddDays(-30);
+            var end = endDate ?? DateTime.UtcNow;
+            var fileBytes = await _reportService.ExportRevenueToPdfAsync(start, end, groupType);
+            var fileName = $"BaoCaoDoanhThu_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
+            return File(fileBytes, "application/pdf", fileName);
+        }
     }
 }

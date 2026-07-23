@@ -1,5 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
 html {
-  font-size: 14px;
+  font-size: 15px;
+  scroll-behavior: smooth;
 }
 
 @media (min-width: 768px) {
@@ -8,15 +11,80 @@ html {
   }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
-}
-
 body {
-  margin-bottom: 60px;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #0f172a;
+  background-color: #f8fafc;
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6, .fw-bold-heading {
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Focus styles */
+.btn:focus, .btn:active:focus, .form-control:focus, .form-select:focus {
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25) !important;
+  border-color: #10b981 !important;
+}
+
+/* Modern Rounded Modals */
+.modal-content {
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25) !important;
+  overflow: hidden;
+}
+
+.modal-header {
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding: 1.25rem 1.75rem !important;
+}
+
+.modal-footer {
+  border-top: 1px solid #f1f5f9 !important;
+  padding: 1rem 1.75rem !important;
+}
+
+/* Micro Animations */
+@keyframes timerPulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.65; }
+  100% { opacity: 1; }
+}
+
+.timer-blink {
+  animation: timerPulse 1.2s infinite;
+}
+
+/* Table Card Enhancements */
+.billiard-table-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 16px !important;
+}
+
+.billiard-table-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 30px -10px rgba(15, 23, 42, 0.12) !important;
 }

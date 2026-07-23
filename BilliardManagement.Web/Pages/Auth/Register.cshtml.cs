@@ -95,8 +95,8 @@ namespace BilliardManagement.Web.Pages.Auth
         [Required(ErrorMessage = "Xác nhận mật khẩu là bắt buộc")]
         public string ConfirmPassword { get; set; } = string.Empty;
 
-        [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
         [Required(ErrorMessage = "Số điện thoại là bắt buộc")]
+        [RegularExpression(@"^0\d{9}$", ErrorMessage = "Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678).")]
         public string PhoneNumber { get; set; } = string.Empty;
     }
 }

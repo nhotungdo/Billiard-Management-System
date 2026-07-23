@@ -303,9 +303,8 @@
 
     document.getElementById('btnConfirmEnd')?.addEventListener('click', function () {
         if (!pendingSessionId) return;
-        const discount = parseFloat(document.getElementById('endDiscountInput')?.value || '0');
         const paymentMethod = parseInt(document.getElementById('endPaymentSelect')?.value || '0', 10);
-        apiFetch('table-sessions/end/' + pendingSessionId, 'POST', { discount: discount, paymentMethod: paymentMethod })
+        apiFetch('table-sessions/end/' + pendingSessionId, 'POST', { paymentMethod: paymentMethod })
             .then(function (res) {
                 if (!res.ok || !apiSuccess(res.data)) {
                     showToast(apiMessage(res.data), 'danger');

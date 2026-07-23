@@ -104,6 +104,14 @@
 
 <div class="d-sm-flex align-items-center justify-content-between mb-4">
     <h1 class="h3 mb-0 text-gray-800"><i class="fa-solid fa-chart-line me-2 text-primary"></i>Revenue Analytics</h1>
+    <div>
+        <button id="btnExportExcel" class="btn btn-success me-2 shadow-sm">
+            <i class="fa-solid fa-file-excel me-1"></i> Xuất Báo Cáo Excel
+        </button>
+        <button id="btnExportPdf" class="btn btn-danger shadow-sm">
+            <i class="fa-solid fa-file-pdf me-1"></i> Xuất Báo Cáo PDF
+        </button>
+    </div>
 </div>
 
 @if (Model.ErrorMessage != null)
@@ -329,6 +337,56 @@
                 $(this).addClass('active');
                 $('#btnDailyChart').removeClass('active');
                 initChart(monthlyLabels, monthlyData, 'Monthly Revenue (VND)');
+            });
+
+            // Export Excel Event
+            $('#btnExportExcel').on('click', function() {
+                var token = $('meta[name="api-token"]').attr('content');
+                var apiBaseUrl = $('meta[name="api-base-url"]').attr('content') || 'http://localhost:8080/api/';
+                var downloadUrl = apiBaseUrl + 'reports/export/excel';
+
+                fetch(downloadUrl, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Không thể tải file báo cáo.');
+                    return response.blob();
+                })
+                .then(blob => {
+                    var url = window.URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'BaoCaoDoanhThu_' + new Date().toISOString().slice(0,10) + '.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                })
+                .catch(err => alert('Lỗi xuất file Excel: ' + err.message));
+            });
+
+            // Export PDF Event
+            $('#btnExportPdf').on('click', function() {
+                var token = $('meta[name="api-token"]').attr('content');
+                var apiBaseUrl = $('meta[name="api-base-url"]').attr('content') || 'http://localhost:8080/api/';
+                var downloadUrl = apiBaseUrl + 'reports/export/pdf';
+
+                fetch(downloadUrl, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Không thể tải file báo cáo.');
+                    return response.blob();
+                })
+                .then(blob => {
+                    var url = window.URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'BaoCaoDoanhThu_' + new Date().toISOString().slice(0,10) + '.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                })
+                .catch(err => alert('Lỗi xuất file PDF: ' + err.message));
             });
         });
     </script>
