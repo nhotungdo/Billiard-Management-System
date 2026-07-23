@@ -45,6 +45,26 @@ namespace BilliardManagement.Web.Pages.Admin.Customers
         }
 
         [BindProperty]
+        public CustomerCreateDto NewCustomer { get; set; } = new();
+
+        public async Task<IActionResult> OnPostCreateAsync()
+        {
+            try
+            {
+                var result = await _customerService.CreateCustomerAsync(NewCustomer);
+                if (result != null)
+                {
+                    TempData["SuccessMessage"] = "Thêm khách hàng thành công.";
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Lỗi khi thêm khách hàng: {ex.Message}";
+            }
+            return RedirectToPage(new { PageNumber, PageSize, SearchTerm, SortBy, IsDescending });
+        }
+
+        [BindProperty]
         public CustomerUpdateDto EditCustomer { get; set; } = new();
 
         public async Task<IActionResult> OnPostEditAsync(Guid id)

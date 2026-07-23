@@ -51,13 +51,6 @@
                     </div>
                 </div>
                 <div class="topbar-right">
-                    @if (!isAdmin)
-                    {
-                        <div class="realtime-clock" id="realtimeClock">
-                            <i class="fa-regular fa-clock me-1"></i>
-                            <span id="clockDisplay">--:--:--</span>
-                        </div>
-                    }
                     <span class="role-badge @(isAdmin ? "admin-badge" : "staff-badge")">
                         <i class="fa-solid @(isAdmin ? "fa-shield-halved" : "fa-id-badge") me-1"></i> @userRole
                     </span>
@@ -228,7 +221,7 @@
                         }
                         else
                         {
-                                <button type="button" class="btn btn-sm btn-success w-100 py-2 font-weight-bold" data-bs-toggle="modal" data-bs-target="#startSessionModal" data-table-id="@table.Id" data-table-name="@table.TableName">
+                                <button type="button" class="btn btn-sm btn-success w-100 py-2 font-weight-bold" data-bs-toggle="modal" data-bs-target="#startSessionModal" data-table-id="@table.Id" data-table-name="@table.TableName" data-table-price="@table.PricePerHour">
                                     <i class="fa-solid fa-play me-1"></i>Bắt Đầu Phiên Chơi
                                 </button>
                         }
@@ -265,22 +258,47 @@
                             <label for="customerPhone" class="form-label font-weight-bold">Số điện thoại <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light"><i class="fa-solid fa-phone text-muted"></i></span>
-                                <input type="tel" class="form-control border-start-0" id="customerPhone" name="customerPhone" placeholder="09xxxxxxxxx" required pattern="[0-9]{10,11}">
+                                <input type="tel" class="form-control border-start-0" id="customerPhone" name="customerPhone" placeholder="Ví dụ: 0912345678" required pattern="0[0-9]{9}" maxlength="10" title="Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678)">
                             </div>
                             <div class="form-text">Dùng để tìm kiếm hoặc tạo mới khách hàng.</div>
                         </div>
-                        <div class="mb-4">
+                        <div class="mb-3">
                             <label for="customerName" class="form-label font-weight-bold">Họ và Tên <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light"><i class="fa-solid fa-user text-muted"></i></span>
                                 <input type="text" class="form-control border-start-0" id="customerName" name="customerName" placeholder="Nguyễn Văn A" required>
                             </div>
                         </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded border">
+                            <span class="font-weight-bold text-dark">Tổng tiền thanh toán:</span>
+                            <span class="font-weight-bold text-success fs-5" id="sessionsModalTotalPrice">0 đ</span>
+                        </div>
+                        <div class="mb-3">
+                            <label for="paymentMethodSelect" class="form-label font-weight-bold">Phương thức thanh toán <span class="text-danger">*</span></label>
+                            <select class="form-select" id="paymentMethodSelect" name="paymentMethod">
+                                <option value="0" selected>💵 Tiền mặt</option>
+                                <option value="2">📲 Chuyển khoản QR</option>
+                            </select>
+                        </div>
+                        <div class="qr-payment-container text-center mt-3 p-3 bg-white rounded border border-success" id="sessionsQrContainer" style="display: none;">
+                            <div class="badge bg-success-subtle text-success fw-bold px-3 py-2 rounded-pill mb-2">
+                                <i class="fa-solid fa-qrcode me-1"></i>Quét mã QR Chuyển khoản VietQR
+                            </div>
+                            <div>
+                                <img src="https://img.vietqr.io/image/BIDV-113366668888-print.png" alt="Mã QR Thanh toán BIDV" class="img-fluid rounded border shadow-sm my-2" style="max-width: 240px; width: 100%;" />
+                            </div>
+                            <div class="small text-muted mt-1">
+                                Ngân hàng: <strong>BIDV</strong> | STK: <strong>113366668888</strong>
+                            </div>
+                            <div class="small text-success fw-bold mt-1">
+                                Vui lòng quét mã QR trên để chuyển khoản. Sau khi nhận được tiền, bấm nút <strong>Duyệt thanh toán</strong> bên dưới.
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer bg-light">
                         <button type="button" class="btn btn-outline-secondary font-weight-bold px-4" data-bs-dismiss="modal">Hủy</button>
-                        <button type="submit" class="btn btn-success font-weight-bold px-4">
-                            <i class="fa-solid fa-play me-1"></i>Bắt Đầu
+                        <button type="submit" class="btn btn-success font-weight-bold px-4" id="btnStartSubmit">
+                            <i class="fa-solid fa-credit-card me-1"></i>Thanh toán & Bắt đầu
                         </button>
                     </div>
                 </form>
@@ -317,6 +335,16 @@
         }
 
         function confirmStartSession(form) {
+            var phoneInput = form.querySelector('#customerPhone');
+            if (phoneInput) {
+                var phoneVal = phoneInput.value.trim();
+                var phoneRegex = /^0\d{9}$/;
+                if (!phoneRegex.test(phoneVal)) {
+                    alert('Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678).');
+                    return false;
+                }
+            }
+
             window.isFormSubmitting = true;
 
             // Disable button to prevent double submit
@@ -335,20 +363,34 @@
                     var button = event.relatedTarget;
                     var tableId = button.getAttribute('data-table-id');
                     var tableName = button.getAttribute('data-table-name');
+                    var tablePrice = parseFloat(button.getAttribute('data-table-price')) || 0;
                     
                     var modalTitle = startSessionModal.querySelector('#modalTableName');
                     var inputTableId = startSessionModal.querySelector('#modalTableId');
                     var customerPhone = startSessionModal.querySelector('#customerPhone');
                     var customerName = startSessionModal.querySelector('#customerName');
+                    var modalTotal = startSessionModal.querySelector('#sessionsModalTotalPrice');
                     
                     modalTitle.textContent = tableName;
                     inputTableId.value = tableId;
+                    if (modalTotal) modalTotal.textContent = tablePrice.toLocaleString('vi-VN') + ' đ';
                     
                     // Reset fields
                     customerPhone.value = '';
                     customerName.value = '';
+                    $('#paymentMethodSelect').val('0').trigger('change');
                 });
             }
+
+            $('#paymentMethodSelect').on('change', function() {
+                if ($(this).val() === '2') {
+                    $('#sessionsQrContainer').slideDown();
+                    $('#btnStartSubmit').html('<i class="fa-solid fa-circle-check me-1"></i>Duyệt thanh toán & Bắt đầu');
+                } else {
+                    $('#sessionsQrContainer').slideUp();
+                    $('#btnStartSubmit').html('<i class="fa-solid fa-credit-card me-1"></i>Thanh toán & Bắt đầu');
+                }
+            });
         });
 
         function updateTimers() {

@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using BilliardManagement.Business.Interfaces;
 using BilliardManagement.Business.DTOs;
 using BilliardManagement.Common.Exceptions;
+using BilliardManagement.Common.Responses;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BilliardManagement.API.Controllers
 {
@@ -22,7 +25,7 @@ namespace BilliardManagement.API.Controllers
         public async Task<IActionResult> GetPagedCustomers([FromQuery] CustomerQueryParameters query)
         {
             var result = await _customerService.GetPagedCustomersAsync(query);
-            return Ok(result);
+            return Ok(ApiResponse<PagedResult<CustomerDto>>.Ok(result));
         }
 
         [HttpGet("{id}")]
@@ -31,11 +34,11 @@ namespace BilliardManagement.API.Controllers
             try
             {
                 var customer = await _customerService.GetCustomerByIdAsync(id);
-                return Ok(customer);
+                return Ok(ApiResponse<CustomerDto>.Ok(customer));
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { message = ex.Message });
+                return NotFound(ApiResponse<object>.Fail(ex.Message));
             }
         }
 
@@ -45,11 +48,11 @@ namespace BilliardManagement.API.Controllers
             try
             {
                 var customer = await _customerService.CreateCustomerAsync(dto);
-                return CreatedAtAction(nameof(GetCustomerById), new { id = customer.Id }, customer);
+                return Ok(ApiResponse<CustomerDto>.Ok(customer));
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
         }
 
@@ -59,15 +62,15 @@ namespace BilliardManagement.API.Controllers
             try
             {
                 var customer = await _customerService.UpdateCustomerAsync(id, dto);
-                return Ok(customer);
+                return Ok(ApiResponse<CustomerDto>.Ok(customer));
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { message = ex.Message });
+                return NotFound(ApiResponse<object>.Fail(ex.Message));
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
         }
 
@@ -75,22 +78,24 @@ namespace BilliardManagement.API.Controllers
         public async Task<IActionResult> DeleteCustomer(Guid id)
         {
             var result = await _customerService.DeleteCustomerAsync(id);
-            if (!result) return NotFound(new { message = "Customer not found." });
-            return NoContent();
+            if (!result) return NotFound(ApiResponse<object>.Fail("Customer not found."));
+            return Ok(ApiResponse<object?>.Ok(null, "Xóa khách hàng thành công"));
         }
 
         [HttpGet("top-spending")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetTopSpendingCustomers([FromQuery] int top = 10)
         {
             var result = await _customerService.GetTopSpendersAsync(top);
-            return Ok(result);
+            return Ok(ApiResponse<IEnumerable<CustomerTopSpenderDto>>.Ok(result));
         }
 
         [HttpGet("dashboard")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetCustomerDashboard()
         {
             var result = await _customerService.GetCustomerDashboardAsync();
-            return Ok(result);
+            return Ok(ApiResponse<CustomerDashboardDto>.Ok(result));
         }
     }
 }

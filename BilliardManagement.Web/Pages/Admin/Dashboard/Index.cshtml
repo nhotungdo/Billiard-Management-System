@@ -512,7 +512,6 @@
                                                                     data-playing-fee="@invoice.PlayingFee"
                                                                     data-service-fee="@invoice.ServiceFee"
                                                                     data-subtotal="@invoice.Subtotal"
-                                                                    data-discount="@invoice.Discount"
                                                                     data-payment-method="@invoice.PaymentMethod">
                                                                 <i class="fa-solid fa-circle-info"></i> Xem
                                                             </button>
@@ -716,9 +715,6 @@
                         
                         <div class="col-8 text-muted">Tổng phụ</div>
                         <div class="col-4 text-end text-dark fw-bold" id="detail-subtotal">0 đ</div>
-                        
-                        <div class="col-8 text-danger">Giảm giá</div>
-                        <div class="col-4 text-end text-danger fw-bold" id="detail-discount">-0 đ</div>
                     </div>
                     
                     <div class="divider mb-4"></div>
@@ -1122,7 +1118,6 @@
                                                 data-playing-fee="${invoice.playingFee}"
                                                 data-service-fee="${invoice.serviceFee}"
                                                 data-subtotal="${invoice.subtotal}"
-                                                data-discount="${invoice.discount}"
                                                 data-payment-method="${invoice.paymentMethod}">
                                             <i class="fa-solid fa-circle-info"></i> Xem
                                         </button>
@@ -1167,7 +1162,6 @@
             $('#detail-playing-fee').text(formatVnd(parseFloat(btn.data('playing-fee'))));
             $('#detail-service-fee').text(formatVnd(parseFloat(btn.data('service-fee'))));
             $('#detail-subtotal').text(formatVnd(parseFloat(btn.data('subtotal'))));
-            $('#detail-discount').text('-' + formatVnd(parseFloat(btn.data('discount'))));
             
             // Payment method mapping
             const paymentMethodInt = parseInt(btn.data('payment-method'));

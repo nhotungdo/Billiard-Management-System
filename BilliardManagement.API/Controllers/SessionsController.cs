@@ -23,12 +23,17 @@ namespace BilliardManagement.API.Controllers
 
         // Bắt đầu phiên chơi cho một bàn
         [HttpPost("start/{tableId}")]
-        public async Task<IActionResult> StartSession(Guid tableId, [FromQuery] int durationHours = 2, [FromQuery] string? customerName = null, [FromQuery] string? customerPhone = null)
+        public async Task<IActionResult> StartSession(Guid tableId, [FromQuery] int durationHours = 2, [FromQuery] string? customerName = null, [FromQuery] string? customerPhone = null, [FromQuery] int paymentMethod = 0)
         {
             try
             {
                 var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 _logger.LogInformation("bắt đầu phiên chơi: tableId={TableId}, userId={UserId}, customerName={CustomerName}, customerPhone={CustomerPhone}", tableId, userIdStr, customerName, customerPhone);
+
+                if (string.IsNullOrWhiteSpace(customerPhone) || !System.Text.RegularExpressions.Regex.IsMatch(customerPhone.Trim(), @"^0\d{9}$"))
+                {
+                    return BadRequest(ApiResponse<object>.Fail("Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678)."));
+                }
 
                 if (!Guid.TryParse(userIdStr, out var userId))
                 {
@@ -36,7 +41,7 @@ namespace BilliardManagement.API.Controllers
                     return Unauthorized(ApiResponse<object>.Fail("Unauthorized: invalid user token"));
                 }
 
-                var session = await _sessionService.StartSessionAsync(tableId, userId, durationHours, customerName, customerPhone);
+                var session = await _sessionService.StartSessionAsync(tableId, userId, durationHours, customerName, customerPhone, paymentMethod);
                 _logger.LogInformation("bắt đầu phiên chơi thành công: sessionId={SessionId}", session.Id);
                 return Ok(ApiResponse<SessionDto>.Ok(session, "bắt đầu phiên chơi thành công"));
             }

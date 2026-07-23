@@ -89,10 +89,6 @@ namespace BilliardManagement.Data
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<Invoice>()
-                .Property(i => i.Discount)
-                .HasPrecision(18, 2);
-
-            modelBuilder.Entity<Invoice>()
                 .Property(i => i.TotalAmount)
                 .HasPrecision(18, 2);
 

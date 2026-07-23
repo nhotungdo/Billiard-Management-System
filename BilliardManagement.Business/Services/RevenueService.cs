@@ -57,7 +57,6 @@ namespace BilliardManagement.Business.Services
                     TableName = i.TableSession?.BilliardTable?.TableName ?? "Unknown",
                     PaidAt = i.CreatedAt,
                     Subtotal = i.Subtotal,
-                    Discount = i.Discount,
                     TotalAmount = i.TotalAmount,
                     PaymentMethod = i.PaymentMethod.ToString(),
                     StartTime = i.TableSession?.StartTime ?? DateTime.MinValue,

@@ -77,7 +77,7 @@
                     <div class="col-md-6 m-0 mt-3 mt-md-0">
                         <label asp-for="RegisterData.PhoneNumber" class="auth-label">Số điện thoại</label>
                         <div class="auth-input-wrapper">
-                            <input class="auth-input" asp-for="RegisterData.PhoneNumber" type="tel" placeholder="09xx xxx xxx" required />
+                            <input class="auth-input" asp-for="RegisterData.PhoneNumber" type="tel" placeholder="Ví dụ: 0912345678" required pattern="0[0-9]{9}" maxlength="10" title="Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678)" />
                             <i class="fa-solid fa-phone auth-input-icon"></i>
                         </div>
                         <span asp-validation-for="RegisterData.PhoneNumber" class="text-danger small mt-1 d-block"></span>
@@ -144,9 +144,7 @@
     <script src="/lib/jquery/dist/jquery.min.js"></script>
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/site.js" asp-append-version="true"></script>
-
-<script>
-<partial name="_ValidationScriptsPartial" />
+    <partial name="_ValidationScriptsPartial" />
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const toggleButtons = document.querySelectorAll(".togglePasswordBtn");
@@ -175,6 +173,5 @@
             });
         });
     </script>
-</script>
 </body>
 </html>

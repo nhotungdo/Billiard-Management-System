@@ -370,10 +370,6 @@
                     </div>
                 </div>
                 <div class="topbar-right">
-                    <div class="realtime-clock" id="realtimeClock">
-                        <i class="fa-regular fa-clock me-1"></i>
-                        <span id="clockDisplay">--:--:--</span>
-                    </div>
                     <span class="role-badge staff-badge">
                         <i class="fa-solid fa-id-badge me-1"></i> Staff
                     </span>
@@ -650,12 +646,12 @@
                             
                             <div class="row g-2 mb-3">
                                 <div class="col-12 col-md-6">
-                                    <label class="form-label fw-bold small text-secondary">Tên khách hàng</label>
-                                    <input type="text" class="form-control" id="detailsCustomerName" placeholder="Tên khách (tuỳ chọn)" />
+                                    <label class="form-label fw-bold small text-secondary">Tên khách hàng <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="detailsCustomerName" placeholder="Tên khách hàng" required />
                                 </div>
                                 <div class="col-12 col-md-6">
-                                    <label class="form-label fw-bold small text-secondary">Số điện thoại</label>
-                                    <input type="tel" class="form-control" id="detailsCustomerPhone" placeholder="SĐT (tuỳ chọn)" />
+                                    <label class="form-label fw-bold small text-secondary">Số điện thoại <span class="text-danger">*</span></label>
+                                    <input type="tel" class="form-control" id="detailsCustomerPhone" placeholder="Số điện thoại (0912345678)" required pattern="0[0-9]{9}" maxlength="10" title="Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0" />
                                 </div>
                             </div>
 
@@ -682,7 +678,7 @@
                                             </div>
                                             <div class="d-flex align-items-center gap-1">
                                                 <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-qty-minus py-0 px-2" data-target="details-quick-qty-@p.Id">-</button>
-                                                <input type="number" class="form-control form-control-sm quick-qty-input-details" id="details-quick-qty-@p.Id" data-product-id="@p.Id" value="0" min="0" max="@p.Stock" style="width: 45px; text-align: center;">
+                                                <input type="number" class="form-control form-control-sm quick-qty-input-details" id="details-quick-qty-@p.Id" data-product-id="@p.Id" data-price="@p.Price" value="0" min="0" max="@p.Stock" style="width: 45px; text-align: center;">
                                                 <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-qty-plus py-0 px-2" data-target="details-quick-qty-@p.Id" data-max="@p.Stock">+</button>
                                             </div>
                                         </div>
@@ -690,8 +686,35 @@
                                 </div>
                             </div>
 
+                            <div class="mb-3 border-top pt-3 bg-white p-3 rounded border">
+                                <div class="d-flex justify-content-between align-items-center mb-3 pt-2">
+                                    <span class="fw-bold text-dark">Tổng tiền thanh toán:</span>
+                                    <span class="fw-bold fs-5 text-success" id="detailsPrepaidTotal">0 đ</span>
+                                </div>
+                                <label class="form-label fw-bold small text-secondary">Phương thức thanh toán <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm" id="detailsPrepaidPaymentMethod">
+                                    <option value="0" selected>💵 Tiền mặt</option>
+                                    <option value="2">📲 Chuyển khoản QR</option>
+                                </select>
+
+                                <div class="qr-payment-container text-center mt-3 p-3 bg-white rounded border border-success" id="detailsQrContainer" style="display: none;">
+                                    <div class="badge bg-success-subtle text-success fw-bold px-3 py-2 rounded-pill mb-2">
+                                        <i class="fa-solid fa-qrcode me-1"></i>Quét mã QR Chuyển khoản VietQR
+                                    </div>
+                                    <div>
+                                        <img src="https://img.vietqr.io/image/BIDV-113366668888-print.png" alt="Mã QR Thanh toán BIDV" class="img-fluid rounded border shadow-sm my-2" style="max-width: 240px; width: 100%;" />
+                                    </div>
+                                    <div class="small text-muted mt-1">
+                                        Ngân hàng: <strong>BIDV</strong> | STK: <strong>113366668888</strong>
+                                    </div>
+                                    <div class="small text-success fw-bold mt-1">
+                                        Vui lòng quét mã QR trên để chuyển khoản. Sau khi xác nhận tiền đã vào tài khoản, bấm nút <strong>Duyệt thanh toán</strong> để mở bàn.
+                                    </div>
+                                </div>
+                            </div>
+
                             <button class="btn btn-success w-100 py-2.5 fw-bold" id="btnDetailsStartSession">
-                                <i class="fa-solid fa-play me-2"></i>Mở bàn ngay
+                                <i class="fa-solid fa-credit-card me-2"></i>Thanh toán & Mở bàn ngay
                             </button>
                         </div>
 
@@ -714,7 +737,7 @@
                         <div class="bg-primary bg-opacity-10 text-primary p-2 rounded mb-3 d-flex align-items-center" id="playingCustomerInfo" style="display:none;">
                             <i class="fa-solid fa-user-circle fs-4 me-2"></i>
                             <div>
-                                <div class="fw-bold" id="playingCustomerName">Khách vãng lai</div>
+                                <div class="fw-bold" id="playingCustomerName"></div>
                                 <div class="small" id="playingCustomerPhone"></div>
                             </div>
                         </div>
@@ -823,12 +846,12 @@
                     
                     <div class="row g-2 mb-3">
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-bold small text-secondary">Tên khách hàng</label>
-                            <input type="text" class="form-control" id="startCustomerName" placeholder="Tên khách (tuỳ chọn)" />
+                            <label class="form-label fw-bold small text-secondary">Tên khách hàng <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="startCustomerName" placeholder="Tên khách hàng" required />
                         </div>
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-bold small text-secondary">Số điện thoại</label>
-                            <input type="tel" class="form-control" id="startCustomerPhone" placeholder="SĐT (tuỳ chọn)" />
+                            <label class="form-label fw-bold small text-secondary">Số điện thoại <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" id="startCustomerPhone" placeholder="Số điện thoại (0912345678)" required pattern="0[0-9]{9}" maxlength="10" title="Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0" />
                         </div>
                     </div>
 
@@ -855,7 +878,7 @@
                                     </div>
                                     <div class="d-flex align-items-center gap-1">
                                         <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-qty-minus py-0 px-2" data-target="start-quick-qty-@p.Id">-</button>
-                                        <input type="number" class="form-control form-control-sm quick-qty-input-start" id="start-quick-qty-@p.Id" data-product-id="@p.Id" value="0" min="0" max="@p.Stock" style="width: 45px; text-align: center;">
+                                        <input type="number" class="form-control form-control-sm quick-qty-input-start" id="start-quick-qty-@p.Id" data-product-id="@p.Id" data-price="@p.Price" value="0" min="0" max="@p.Stock" style="width: 45px; text-align: center;">
                                         <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-qty-plus py-0 px-2" data-target="start-quick-qty-@p.Id" data-max="@p.Stock">+</button>
                                     </div>
                                 </div>
@@ -863,7 +886,36 @@
                         </div>
                     </div>
 
-                    <button type="button" class="btn btn-success w-100 fw-bold py-2" id="btnConfirmStart">Xác nhận bắt đầu</button>
+                    <div class="mb-3 border-top pt-3 bg-light p-3 rounded">
+                        <div class="d-flex justify-content-between align-items-center mb-3 pt-2">
+                            <span class="fw-bold text-dark">Tổng tiền thanh toán:</span>
+                            <span class="fw-bold fs-5 text-success" id="startPrepaidTotal">0 đ</span>
+                        </div>
+                        <label class="form-label fw-bold small text-secondary">Phương thức thanh toán <span class="text-danger">*</span></label>
+                        <select class="form-select form-select-sm" id="startPrepaidPaymentMethod">
+                            <option value="0" selected>💵 Tiền mặt</option>
+                            <option value="2">📲 Chuyển khoản QR</option>
+                        </select>
+
+                        <div class="qr-payment-container text-center mt-3 p-3 bg-white rounded border border-success" id="startQrContainer" style="display: none;">
+                            <div class="badge bg-success-subtle text-success fw-bold px-3 py-2 rounded-pill mb-2">
+                                <i class="fa-solid fa-qrcode me-1"></i>Quét mã QR Chuyển khoản VietQR
+                            </div>
+                            <div>
+                                <img src="https://img.vietqr.io/image/BIDV-113366668888-print.png" alt="Mã QR Thanh toán BIDV" class="img-fluid rounded border shadow-sm my-2" style="max-width: 240px; width: 100%;" />
+                            </div>
+                            <div class="small text-muted mt-1">
+                                Ngân hàng: <strong>BIDV</strong> | STK: <strong>113366668888</strong>
+                            </div>
+                            <div class="small text-success fw-bold mt-1">
+                                Vui lòng quét mã QR trên để chuyển khoản. Sau khi xác nhận tiền đã vào tài khoản, bấm nút <strong>Duyệt thanh toán</strong> bên dưới để mở bàn.
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-success w-100 fw-bold py-2.5 fs-6" id="btnConfirmStart">
+                        <i class="fa-solid fa-credit-card me-2"></i>Thanh toán & Mở bàn
+                    </button>
                 </div>
             </div>
         </div>
@@ -997,28 +1049,13 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small text-secondary">Giảm giá (đ)</label>
-                        <input type="number" class="form-control" id="endDiscountInput" min="0" value="0" placeholder="Số tiền được giảm giá" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small text-secondary">Phương thức thanh toán</label>
-                        <select class="form-select" id="endPaymentSelect">
-                            <option value="0">Tiền mặt</option>
-                            <option value="1">Thẻ ngân hàng</option>
-                            <option value="2">Chuyển khoản QR</option>
-                        </select>
-                    </div>
-
-                    <div class="border-top pt-3 mt-3 d-flex justify-content-between align-items-center">
-                        <span class="fw-bold fs-5 text-dark">Tổng khách phải trả:</span>
-                        <span class="fw-bold fs-4 text-danger" id="modalGrandTotalFee">0 đ</span>
+                    <div class="alert alert-info border-0 rounded-3 small mb-3">
+                        <i class="fa-solid fa-circle-check me-2 text-success"></i>Phiên chơi này đã được thanh toán trả trước khi mở bàn. Xác nhận kết thúc bàn chơi và trả bàn về trạng thái Trống?
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Quay lại</button>
-                    <button type="button" class="btn btn-danger fw-bold" id="btnConfirmEnd">Xác nhận thanh toán</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-danger fw-bold" id="btnConfirmEnd"><i class="fa-solid fa-stop me-1"></i>Xác nhận kết thúc bàn</button>
                 </div>
             </div>
         </div>
@@ -1320,6 +1357,7 @@
                 $('#modalStartHoursInput').val(2);
                 $('.btn-hour-preset').removeClass('active');
                 $(`.btn-hour-preset[data-hours="2"]`).addClass('active');
+                updatePrepaidTotals();
                 $('#op-available-view').show();
             } else if (statusVal === 2) {
                 // Playing View
@@ -1331,7 +1369,7 @@
                     const cName = session.CustomerName || session.customerName;
                     const cPhone = session.CustomerPhone || session.customerPhone;
                     if (cName || cPhone) {
-                        $('#playingCustomerName').text(cName || 'Khách vãng lai');
+                        $('#playingCustomerName').text(cName || '');
                         $('#playingCustomerPhone').text(cPhone || '');
                         $('#playingCustomerInfo').show();
                     } else {
@@ -1428,19 +1466,86 @@
             if (!table) return;
 
             $('#startModalTableName').text(table.TableName || table.tableName);
+            $('#startCustomerName').val('');
+            $('#startCustomerPhone').val('');
+            $('.quick-qty-input-start').val(0);
             $('#customHoursInput').val(2);
             $('.btn-hour-preset-direct').removeClass('active');
             $(`.btn-hour-preset-direct[data-hours="2"]`).addClass('active');
+            updatePrepaidTotals();
             startModal.show();
         }
+
+        function updatePrepaidTotals() {
+            const table = tablesData.find(t => t.Id === selectedTableId || t.id === selectedTableId);
+            const hourlyRate = table ? (table.PricePerHour || table.pricePerHour || 0) : 0;
+
+            const modalHours = parseInt($('#customHoursInput').val()) || 1;
+            let modalQuickOrdersFee = 0;
+            $('.quick-qty-input-start').each(function() {
+                const qty = parseInt($(this).val()) || 0;
+                const price = parseFloat($(this).data('price')) || 0;
+                if (qty > 0) {
+                    modalQuickOrdersFee += qty * price;
+                }
+            });
+            const modalTotal = (hourlyRate * modalHours) + modalQuickOrdersFee;
+            $('#startPrepaidTotal').text(modalTotal.toLocaleString('vi-VN') + ' đ');
+
+            const detailsHours = parseInt($('#modalStartHoursInput').val()) || 1;
+            let detailsQuickOrdersFee = 0;
+            $('.quick-qty-input-details').each(function() {
+                const qty = parseInt($(this).val()) || 0;
+                const price = parseFloat($(this).data('price')) || 0;
+                if (qty > 0) {
+                    detailsQuickOrdersFee += qty * price;
+                }
+            });
+            const detailsTotal = (hourlyRate * detailsHours) + detailsQuickOrdersFee;
+            $('#detailsPrepaidTotal').text(detailsTotal.toLocaleString('vi-VN') + ' đ');
+        }
+
+        $('#customHoursInput, #modalStartHoursInput, .quick-qty-input-start, .quick-qty-input-details').on('input change', updatePrepaidTotals);
+
+        $('#startPrepaidPaymentMethod').on('change', function() {
+            if ($(this).val() === '2') {
+                $('#startQrContainer').slideDown();
+                $('#btnConfirmStart').html('<i class="fa-solid fa-circle-check me-2"></i>Duyệt thanh toán & Mở bàn');
+            } else {
+                $('#startQrContainer').slideUp();
+                $('#btnConfirmStart').html('<i class="fa-solid fa-credit-card me-2"></i>Thanh toán & Mở bàn');
+            }
+        });
+
+        $('#detailsPrepaidPaymentMethod').on('change', function() {
+            if ($(this).val() === '2') {
+                $('#detailsQrContainer').slideDown();
+                $('#btnDetailsStartSession').html('<i class="fa-solid fa-circle-check me-2"></i>Duyệt thanh toán & Mở bàn ngay');
+            } else {
+                $('#detailsQrContainer').slideUp();
+                $('#btnDetailsStartSession').html('<i class="fa-solid fa-credit-card me-2"></i>Thanh toán & Mở bàn ngay');
+            }
+        });
+
+        $('#endPaymentSelect').on('change', function() {
+            if ($(this).val() === '2') {
+                $('#endQrContainer').slideDown();
+                $('#btnConfirmEnd').removeClass('btn-danger').addClass('btn-success').html('<i class="fa-solid fa-circle-check me-1"></i>Duyệt thanh toán & Kết thúc bàn');
+            } else {
+                $('#endQrContainer').slideUp();
+                $('#btnConfirmEnd').removeClass('btn-success').addClass('btn-danger').html('Xác nhận thanh toán');
+            }
+        });
 
         $('.btn-hour-preset-direct').on('click', function () {
             $('.btn-hour-preset-direct').removeClass('active');
             $(this).addClass('active');
             $('#customHoursInput').val($(this).data('hours'));
+            updatePrepaidTotals();
         });
         $('#customHoursInput').on('input', function() {
             $('.btn-hour-preset-direct').removeClass('active');
+            updatePrepaidTotals();
         });
 
         function openExtendSession() {
@@ -1480,26 +1585,10 @@
             $('#modalServiceFee').text(serviceFee.toLocaleString('vi-VN') + ' đ').data('val', serviceFee);
             $('#modalSubtotalFee').text(subtotal.toLocaleString('vi-VN') + ' đ').data('val', subtotal);
             
-            $('#endDiscountInput').val(0);
             $('#modalGrandTotalFee').text(subtotal.toLocaleString('vi-VN') + ' đ');
 
             endModal.show();
         }
-
-        // Live discount update in checkout modal
-        $('#endDiscountInput').on('input', function() {
-            const subtotal = $('#modalSubtotalFee').data('val') || 0;
-            let discount = parseFloat($(this).val()) || 0;
-            
-            if (discount < 0) discount = 0;
-            if (discount > subtotal) {
-                discount = subtotal;
-                $(this).val(subtotal);
-            }
-
-            const grand = subtotal - discount;
-            $('#modalGrandTotalFee').text(grand.toLocaleString('vi-VN') + ' đ');
-        });
 
         // Trigger clicks on cards
         $(document).on('click', '.billiard-table-card', function (e) {
@@ -1532,17 +1621,31 @@
             const customerName = $(isDetails ? '#detailsCustomerName' : '#startCustomerName').val();
             const customerPhone = $(isDetails ? '#detailsCustomerPhone' : '#startCustomerPhone').val();
 
+            if (!customerName || !customerPhone || customerName.trim() === '' || customerPhone.trim() === '') {
+                showNotification('Thiếu thông tin', 'warning', 'Vui lòng nhập đầy đủ tên và số điện thoại khách hàng.');
+                return;
+            }
+
+            const phoneRegex = /^0\d{9}$/;
+            if (!phoneRegex.test(customerPhone.trim())) {
+                showNotification('Lỗi thông tin', 'warning', 'Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678).');
+                return;
+            }
+
+            const paymentMethod = parseInt($(isDetails ? '#detailsPrepaidPaymentMethod' : '#startPrepaidPaymentMethod').val()) || 0;
+
             const buttons = $('#btnConfirmStart, #btnDetailsStartSession');
             buttons.prop('disabled', true);
 
             toggleLoading(true);
             try {
-                // 1. Start session
+                // 1. Start prepaid session & pay bill
                 const session = await makeApiCall('table-sessions/start', 'POST', {
                     tableId: selectedTableId,
                     durationHours: hours,
                     customerName: customerName,
-                    customerPhone: customerPhone
+                    customerPhone: customerPhone,
+                    paymentMethod: paymentMethod
                 });
                 
                 // 2. Place Quick Orders if selected
@@ -1719,7 +1822,6 @@
         $('#btnConfirmEnd').on('click', async function () {
             if (!selectedSessionId) return;
 
-            const discount = parseFloat($('#endDiscountInput').val()) || 0;
             const payMethod = parseInt($('#endPaymentSelect').val()) || 0;
 
             const btn = $(this);
@@ -1728,7 +1830,6 @@
             toggleLoading(true);
             try {
                 await makeApiCall(`table-sessions/end/${selectedSessionId}`, 'POST', {
-                    discount: discount,
                     paymentMethod: payMethod
                 });
                 endModal.hide();
@@ -1915,3 +2016,4 @@
     </script>
 </body>
 </html>
+

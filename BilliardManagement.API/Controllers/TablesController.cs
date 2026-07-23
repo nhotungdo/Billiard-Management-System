@@ -48,6 +48,43 @@ namespace BilliardManagement.API.Controllers
             return Ok(ApiResponse<TableDto>.Ok(table, "tạo bàn thành công"));
         }
 
+        // Cập nhật thông tin bàn (Admin, Staff)
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] CreateTableDto dto)
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            Guid? updatedBy = Guid.TryParse(userIdStr, out var uId) ? uId : null;
+            try
+            {
+                var table = await _tableService.UpdateTableAsync(id, dto, updatedBy);
+                await _hubContext.Clients.All.SendAsync("ReceiveTableUpdate", $"Table {table.TableName} updated.");
+                return Ok(ApiResponse<TableDto>.Ok(table, "Cập nhật bàn thành công"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
+        }
+
+        // Xóa bàn (Admin)
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            try
+            {
+                var result = await _tableService.DeleteTableAsync(id);
+                if (!result) return NotFound(ApiResponse<object>.Fail("Không tìm thấy bàn để xóa"));
+                await _hubContext.Clients.All.SendAsync("ReceiveTableUpdate", "Table deleted");
+                return Ok(ApiResponse<bool>.Ok(true, "Xóa bàn thành công"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
+        }
+
         // Cập nhật trạng thái bàn (chỉ dành cho Admin, Staff)
         [HttpPut("{id}/status")]
         [Authorize(Roles = "Admin,Staff")]

@@ -551,11 +551,11 @@
                     currentModalInvoices = json.data.revenues || [];
                     renderModalTable();
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">Không thể lấy dữ liệu doanh thu.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Không thể lấy dữ liệu doanh thu.</td></tr>`;
                 }
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">Lỗi kết nối API. Vui lòng thử lại.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Lỗi kết nối API. Vui lòng thử lại.</td></tr>`;
             }
         }
 
@@ -564,7 +564,7 @@
             tbody.innerHTML = '';
             
             if (currentModalInvoices.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">Không có hóa đơn nào</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Không có hóa đơn nào</td></tr>`;
                 return;
             }
             
@@ -575,7 +575,6 @@
                     <td class="fw-bold">${inv.tableName}</td>
                     <td>${new Date(inv.paidAt).toLocaleString('vi-VN')}</td>
                     <td class="text-end">${inv.subtotal.toLocaleString('vi-VN')} đ</td>
-                    <td class="text-end text-danger">-${inv.discount.toLocaleString('vi-VN')} đ</td>
                     <td class="text-end text-success fw-bold">${inv.totalAmount.toLocaleString('vi-VN')} đ</td>
                     <td>
                         <span class="badge bg-light-success">

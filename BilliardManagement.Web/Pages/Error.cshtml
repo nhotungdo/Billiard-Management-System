@@ -1,0 +1,29 @@
+@page
+@model BilliardManagement.Web.Pages.ErrorModel
+@{
+    ViewData["Title"] = "Đã xảy ra lỗi";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Billiard Management</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body { background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .error-container { text-align: center; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 600px; width: 90%; }
+        .error-icon { font-size: 60px; color: #dc3545; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <i class="fa-solid fa-triangle-exclamation error-icon"></i>
+        <h2 class="mb-3">Đã có lỗi xảy ra</h2>
+        <p class="text-muted mb-4">@Model.Message</p>
+        <a href="/" class="btn btn-primary"><i class="fa-solid fa-home me-2"></i>Về trang chủ</a>
+    </div>
+</body>
+</html>

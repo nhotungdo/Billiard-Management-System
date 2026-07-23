@@ -18,9 +18,6 @@ namespace BilliardManagement.Models.Models
         [Column("SubTotal")]
         public decimal Subtotal { get; set; }
 
-        [Column("DiscountAmount")]
-        public decimal Discount { get; set; } = 0;
-
         [Required]
         [Column("FinalAmount")]
         public decimal TotalAmount { get; set; }

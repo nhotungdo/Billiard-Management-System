@@ -9,7 +9,8 @@
     <title>Doanh thu cá nhân - Billiard Staff Portal</title>
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="/css/staff.css" asp-append-version="true" />
     <link rel="stylesheet" href="/BilliardManagement.Web.styles.css" asp-append-version="true" />
     @{
@@ -23,20 +24,25 @@
         <meta name="hub-base-url" content="http://localhost:8080" />
     }
     <style>
-        .page-link {
-            cursor: pointer;
-        }
+        .page-link { cursor: pointer; }
         .bg-light-success {
             background-color: #ecfdf5;
-            color: #065f46;
+            color: #047857;
+            border: 1px solid #a7f3d0;
         }
         .bg-light-info {
-            background-color: #e0f2fe;
-            color: #0369a1;
+            background-color: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
         }
-        .bg-light-warning {
-            background-color: #fef3c7;
-            color: #b45309;
+        .data-table th {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .data-table td {
+            vertical-align: middle;
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -54,10 +60,6 @@
                     </div>
                 </div>
                 <div class="topbar-right">
-                    <div class="realtime-clock" id="realtimeClock">
-                        <i class="fa-regular fa-clock me-1"></i>
-                        <span id="clockDisplay">--:--:--</span>
-                    </div>
                     <span class="role-badge staff-badge">
                         <i class="fa-solid fa-id-badge me-1"></i> Nhân viên
                     </span>
@@ -91,24 +93,26 @@
             <main id="staff-content">
                 @if (TempData["SuccessMessage"] != null)
                 {
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <div class="alert alert-success alert-dismissible fade show rounded-3" role="alert">
                         <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 }
                 @if (TempData["ErrorMessage"] != null)
                 {
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <div class="alert alert-danger alert-dismissible fade show rounded-3" role="alert">
                         <i class="fa-solid fa-triangle-exclamation me-2"></i>@TempData["ErrorMessage"]
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 }
 
-                <div class="dashboard-header mb-4">
-                    <h1 class="page-title">
-                        <i class="fa-solid fa-receipt me-2"></i>Doanh thu & Hóa đơn của tôi
-                    </h1>
-                    <p class="page-subtitle">Xem chi tiết doanh số bán hàng và hóa đơn bạn đã xử lý.</p>
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                    <div>
+                        <h1 class="page-title mb-1">
+                            <i class="fa-solid fa-chart-line text-success me-2"></i>Doanh thu & Hóa đơn cá nhân
+                        </h1>
+                        <p class="page-subtitle mb-0">Theo dõi doanh số bán hàng và lịch sử hóa đơn bạn trực tiếp phục vụ</p>
+                    </div>
                 </div>
 
                 <!-- Filter Panel -->
@@ -116,19 +120,25 @@
                     <div class="panel-body py-3">
                         <form method="get" class="row g-3 align-items-center">
                             <div class="col-12 col-md-4">
-                                <label class="form-label small text-muted mb-1">Từ ngày</label>
-                                <input type="date" asp-for="FromDate" asp-format="{0:yyyy-MM-dd}" class="form-control form-control-sm" />
+                                <label class="form-label small font-weight-bold text-dark mb-1">Từ ngày</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light border-end-0"><i class="fa-regular fa-calendar text-muted"></i></span>
+                                    <input type="date" asp-for="FromDate" asp-format="{0:yyyy-MM-dd}" class="form-control border-start-0 rounded-end-3" />
+                                </div>
                             </div>
                             <div class="col-12 col-md-4">
-                                <label class="form-label small text-muted mb-1">Đến ngày</label>
-                                <input type="date" asp-for="ToDate" asp-format="{0:yyyy-MM-dd}" class="form-control form-control-sm" />
+                                <label class="form-label small font-weight-bold text-dark mb-1">Đến ngày</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light border-end-0"><i class="fa-regular fa-calendar text-muted"></i></span>
+                                    <input type="date" asp-for="ToDate" asp-format="{0:yyyy-MM-dd}" class="form-control border-start-0 rounded-end-3" />
+                                </div>
                             </div>
                             <div class="col-12 col-md-4 d-flex align-items-end gap-2" style="margin-top: auto; padding-bottom: 2px;">
-                                <button type="submit" class="btn btn-sm btn-primary flex-grow-1">
-                                    <i class="fa-solid fa-filter"></i> Lọc báo cáo
+                                <button type="submit" class="btn btn-sm btn-staff-primary flex-grow-1 py-2 rounded-3">
+                                    <i class="fa-solid fa-filter me-1"></i> Lọc báo cáo
                                 </button>
-                                <a href="/Staff/Revenue/Index" class="btn btn-sm btn-outline-secondary flex-grow-1 text-center py-2">
-                                    Xóa lọc
+                                <a href="/Staff/Revenue/Index" class="btn btn-sm btn-outline-secondary flex-grow-1 text-center py-2 rounded-3">
+                                    Đặt lại
                                 </a>
                             </div>
                         </form>
@@ -136,37 +146,37 @@
                 </div>
 
                 <!-- KPI Cards -->
-                <div class="row g-4 mb-4">
-                    <!-- My Today Revenue -->
+                <div class="row g-3 mb-4">
+                    <!-- Today Revenue -->
                     <div class="col-12 col-md-4">
                         <div class="kpi-card kpi-staff-revenue h-100">
-                            <div class="kpi-icon"><i class="fa-solid fa-calendar-day"></i></div>
+                            <div class="kpi-icon"><i class="fa-solid fa-sun"></i></div>
                             <div class="kpi-body">
                                 <div class="kpi-label">Doanh thu Hôm nay của tôi</div>
-                                <div class="kpi-value text-nowrap">@Model.RevenueData.TodayRevenue.ToString("N0") đ</div>
-                                <div class="kpi-sub"><i class="fa-solid fa-clock me-1"></i>Hôm nay</div>
+                                <div class="kpi-value text-nowrap text-success">@Model.RevenueData.TodayRevenue.ToString("N0") đ</div>
+                                <div class="kpi-sub"><i class="fa-solid fa-clock me-1 text-muted"></i>Hôm nay</div>
                             </div>
                         </div>
                     </div>
-                    <!-- My Month Revenue -->
+                    <!-- Month Revenue -->
                     <div class="col-12 col-md-4">
                         <div class="kpi-card kpi-staff-sessions h-100">
                             <div class="kpi-icon"><i class="fa-solid fa-calendar-days"></i></div>
                             <div class="kpi-body">
                                 <div class="kpi-label">Doanh thu Tháng này của tôi</div>
                                 <div class="kpi-value text-nowrap">@Model.RevenueData.MonthRevenue.ToString("N0") đ</div>
-                                <div class="kpi-sub"><i class="fa-solid fa-calendar me-1"></i>Tháng @DateTime.Today.ToString("MM/yyyy")</div>
+                                <div class="kpi-sub"><i class="fa-solid fa-calendar me-1 text-muted"></i>Tháng @DateTime.Today.ToString("MM/yyyy")</div>
                             </div>
                         </div>
                     </div>
-                    <!-- My Total Revenue (Filtered) -->
+                    <!-- Total Revenue (Filtered) -->
                     <div class="col-12 col-md-4">
                         <div class="kpi-card kpi-staff-tables h-100">
                             <div class="kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div>
                             <div class="kpi-body">
                                 <div class="kpi-label">Doanh thu theo bộ lọc</div>
-                                <div class="kpi-value text-nowrap">@Model.RevenueData.TotalRevenue.ToString("N0") đ</div>
-                                <div class="kpi-sub"><i class="fa-solid fa-file-invoice-dollar me-1"></i>Đã xử lý: <strong>@Model.RevenueData.InvoicesCount</strong> hóa đơn</div>
+                                <div class="kpi-value text-nowrap text-primary">@Model.RevenueData.TotalRevenue.ToString("N0") đ</div>
+                                <div class="kpi-sub"><i class="fa-solid fa-file-invoice-dollar me-1 text-muted"></i>Đã xử lý: <strong>@Model.RevenueData.InvoicesCount</strong> hóa đơn</div>
                             </div>
                         </div>
                     </div>
@@ -175,39 +185,40 @@
                 <!-- Chart Row -->
                 <div class="card-panel mb-4">
                     <div class="panel-header">
-                        <h5 class="panel-title"><i class="fa-solid fa-chart-column me-2"></i>Doanh thu 7 ngày gần đây</h5>
-                        <p class="panel-sub">Biểu đồ doanh số cột hiển thị kết quả kinh doanh 7 ngày qua</p>
+                        <h5 class="panel-title"><i class="fa-solid fa-chart-column text-success me-2"></i>Biểu đồ Doanh thu 7 ngày gần đây</h5>
+                        <p class="panel-sub mb-0">Doanh số thực tế ghi nhận qua hóa đơn cá nhân xử lý</p>
                     </div>
-                    <div class="panel-body" style="position: relative; height: 300px;">
+                    <div class="panel-body" style="position: relative; height: 320px;">
                         <canvas id="personal7DaysChart"></canvas>
                     </div>
                 </div>
 
                 <!-- Invoices Log Table -->
-                <div class="card-panel">
-                    <div class="panel-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div class="card-panel shadow-sm border-0 rounded-4">
+                    <div class="panel-header d-flex flex-wrap align-items-center justify-content-between gap-3 px-4 py-3 bg-white border-bottom">
                         <div>
-                            <h5 class="panel-title"><i class="fa-solid fa-file-lines me-2"></i>Nhật ký Hóa đơn xử lý</h5>
-                            <p class="panel-sub">Xem danh sách đầy đủ các hóa đơn bạn đã tạo và thanh toán</p>
+                            <h5 class="panel-title mb-1"><i class="fa-solid fa-receipt text-success me-2"></i>Nhật ký Hóa đơn xử lý</h5>
+                            <p class="panel-sub mb-0 text-muted small">Danh sách các hóa đơn bạn đã trực tiếp phục vụ và thu tiền</p>
                         </div>
-                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                            <input type="text" id="invoiceSearchInput" class="form-control form-control-sm" placeholder="Tìm bàn, mã HĐ..." style="max-width: 220px;" />
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="input-group input-group-sm" style="max-width: 260px;">
+                                <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                                <input type="text" id="invoiceSearchInput" class="form-control border-start-0 rounded-end-3" placeholder="Tìm bàn, mã HĐ..." />
+                            </div>
                         </div>
                     </div>
                     <div class="panel-body p-0">
                         <div class="table-responsive">
-                            <table class="data-table" id="invoicesTable">
-                                <thead>
-                                    <tr>
-                                        <th>Mã HĐ</th>
-                                        <th>Bàn</th>
-                                        <th>Thời gian chơi</th>
-                                        <th class="text-end">Tiền giờ</th>
-                                        <th class="text-end">Dịch vụ</th>
-                                        <th class="text-end">Giảm giá</th>
-                                        <th class="text-end">Thành tiền</th>
-                                        <th>Thanh toán</th>
-                                        <th>Thời điểm</th>
+                            <table class="table table-hover align-middle mb-0" id="invoicesTable">
+                                <thead class="table-light">
+                                    <tr class="text-uppercase text-secondary small fw-bold" style="letter-spacing: 0.5px;">
+                                        <th class="ps-4 py-3" style="min-width: 120px;">Mã HĐ</th>
+                                        <th class="py-3" style="min-width: 240px;">Bàn & Thời gian chơi</th>
+                                        <th class="text-end py-3" style="min-width: 110px;">Tiền giờ</th>
+                                        <th class="text-end py-3" style="min-width: 110px;">Dịch vụ</th>
+                                        <th class="text-end py-3 px-3" style="min-width: 140px;">Thành tiền</th>
+                                        <th class="text-center py-3 px-3" style="min-width: 140px;">Phương thức</th>
+                                        <th class="text-end pe-4 py-3" style="min-width: 160px;">Thời điểm TT</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -215,8 +226,8 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="d-flex align-items-center justify-content-between p-3 border-top flex-wrap gap-2">
-                            <div class="text-muted small" id="tableInfo"></div>
+                        <div class="d-flex align-items-center justify-content-between p-3 border-top flex-wrap gap-2 px-4 bg-light-subtle">
+                            <div class="text-muted small fw-medium" id="tableInfo"></div>
                             <nav>
                                 <ul class="pagination pagination-sm mb-0" id="tablePagination"></ul>
                             </nav>
@@ -247,7 +258,6 @@
         // Data passed from Razor PageModel
         const rawInvoices = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RevenueData.Revenues.OrderByDescending(x => x.PaidAt)));
 
-        // Helper to format play time minutes
         function formatDuration(minutes) {
             if (minutes <= 0) return '0 phút';
             const hrs = Math.floor(minutes / 60);
@@ -258,7 +268,6 @@
             return res.trim();
         }
 
-        // 1. Pagination & Search Variables
         let currentPage = 1;
         const pageSize = 10;
         let filteredInvoices = [...rawInvoices];
@@ -268,7 +277,7 @@
             tbody.innerHTML = '';
             
             if (filteredInvoices.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted"><i class="fa-solid fa-inbox fa-2x mb-2 d-block"></i>Không tìm thấy hóa đơn</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-muted"><i class="fa-solid fa-inbox fa-3x mb-3 text-secondary opacity-50 d-block"></i><div class="fw-semibold">Không tìm thấy hóa đơn phù hợp</div></td></tr>`;
                 document.getElementById('tableInfo').textContent = 'Hiển thị 0 - 0 của 0 hóa đơn';
                 document.getElementById('tablePagination').innerHTML = '';
                 return;
@@ -283,41 +292,59 @@
                 
                 const startTimeStr = new Date(item.StartTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
                 const endTimeStr = item.EndTime ? new Date(item.EndTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Chưa xong';
-                const playTimeDesc = `${startTimeStr} - ${endTimeStr} (${formatDuration(item.PlayTimeMinutes)})`;
-                
+                const durationText = formatDuration(item.PlayTimeMinutes);
+                const isCash = item.PaymentMethod === 'Cash' || item.PaymentMethod === '0' || item.PaymentMethod === 'Tiền mặt';
+                const payMethodLabel = isCash ? '💵 Tiền mặt' : '📲 Chuyển khoản QR';
+                const payMethodBadgeClass = isCash ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle';
+
+                const paidAtFormatted = new Date(item.PaidAt).toLocaleString('vi-VN', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+
                 row.innerHTML = `
-                    <td><small class="text-muted" title="${item.InvoiceId}">${item.InvoiceId.substring(0, 8)}</small></td>
-                    <td class="fw-bold text-dark"><i class="fa-solid fa-table-cells text-muted me-1"></i>${item.TableName}</td>
-                    <td class="small text-muted">${playTimeDesc}</td>
-                    <td class="text-end">${item.PlayingFee.toLocaleString('vi-VN')} đ</td>
-                    <td class="text-end">${item.ServiceFee.toLocaleString('vi-VN')} đ</td>
-                    <td class="text-end text-danger">-${item.Discount.toLocaleString('vi-VN')} đ</td>
-                    <td class="text-end text-success fw-bold">${item.TotalAmount.toLocaleString('vi-VN')} đ</td>
+                    <td class="ps-4">
+                        <span class="badge bg-light text-dark border font-monospace px-2.5 py-1" style="font-size: 0.82rem;"><i class="fa-solid fa-hashtag text-muted me-1"></i>${item.InvoiceId.substring(0, 8)}</span>
+                    </td>
                     <td>
-                        <span class="badge ${item.PaymentMethod === 'Cash' ? 'bg-light-success' : 'bg-light-info'}">
-                            ${item.PaymentMethod}
+                        <div class="d-flex align-items-center gap-2.5">
+                            <div class="avatar-circle-sm bg-success-subtle text-success fw-bold flex-shrink-0" style="width: 34px; height: 34px; font-size: 0.85rem;"><i class="fa-solid fa-bowling-ball"></i></div>
+                            <div>
+                                <div class="fw-bold text-dark fs-6 lh-sm">${item.TableName}</div>
+                                <div class="text-muted small mt-1" style="font-size: 0.78rem;">
+                                    <i class="fa-regular fa-clock me-1 text-success"></i>${startTimeStr} &rarr; ${endTimeStr} <span class="badge bg-light text-dark border ms-1">${durationText}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="text-end fw-semibold text-secondary">${item.PlayingFee.toLocaleString('vi-VN')} đ</td>
+                    <td class="text-end fw-semibold text-secondary">${item.ServiceFee.toLocaleString('vi-VN')} đ</td>
+                    <td class="text-end px-3">
+                        <span class="fw-bold text-success fs-6">${item.TotalAmount.toLocaleString('vi-VN')} đ</span>
+                    </td>
+                    <td class="text-center px-3">
+                        <span class="badge ${payMethodBadgeClass} px-3 py-1.5 rounded-pill fw-semibold" style="font-size: 0.8rem;">
+                            ${payMethodLabel}
                         </span>
                     </td>
-                    <td class="small text-muted">${new Date(item.PaidAt).toLocaleString('vi-VN')}</td>
+                    <td class="text-end pe-4 small text-muted">
+                        <div class="fw-medium text-dark">${paidAtFormatted}</div>
+                    </td>
                 `;
                 tbody.appendChild(row);
             });
             
-            // Update Table Info
             document.getElementById('tableInfo').textContent = `Hiển thị ${startIndex + 1} - ${endIndex} của ${filteredInvoices.length} hóa đơn`;
             
-            // Update Table Pagination
             const totalPages = Math.ceil(filteredInvoices.length / pageSize);
             const pagination = document.getElementById('tablePagination');
             pagination.innerHTML = '';
             
-            // Prev
             const prevLi = document.createElement('li');
             prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
             prevLi.innerHTML = `<button class="page-link" onclick="changePage(${currentPage - 1})">&laquo;</button>`;
             pagination.appendChild(prevLi);
             
-            // Pages
             for (let i = 1; i <= totalPages; i++) {
                 const li = document.createElement('li');
                 li.className = `page-item ${currentPage === i ? 'active' : ''}`;
@@ -325,7 +352,6 @@
                 pagination.appendChild(li);
             }
             
-            // Next
             const nextLi = document.createElement('li');
             nextLi.className = `page-item ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`;
             nextLi.innerHTML = `<button class="page-link" onclick="changePage(${currentPage + 1})">&raquo;</button>`;
@@ -339,8 +365,7 @@
             renderTable();
         }
 
-        // Live search matching table name or truncated invoice id
-        document.getElementById('invoiceSearchInput').addEventListener('input', function(e) {
+        document.getElementById('invoiceSearchInput')?.addEventListener('input', function(e) {
             const query = e.target.value.toLowerCase().trim();
             filteredInvoices = rawInvoices.filter(item => 
                 item.TableName.toLowerCase().includes(query) || 
@@ -350,11 +375,9 @@
             renderTable();
         });
 
-        // 2. Personal last 7 days chart
         document.addEventListener('DOMContentLoaded', function() {
             renderTable();
 
-            // Calculate rolling 7 days based on the filter dates or today
             const filterToDate = '@(Model.ToDate?.ToString("yyyy-MM-dd"))';
             const endDate = filterToDate ? new Date(filterToDate) : new Date();
             
@@ -368,7 +391,6 @@
             const chartLabels = last7Days.map(d => d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }));
             const chartData = last7Days.map(d => {
                 const dateStr = d.toDateString();
-                // Sum all matching invoices on this calendar day
                 return rawInvoices.reduce((sum, inv) => {
                     const invDate = new Date(inv.PaidAt);
                     if (invDate.toDateString() === dateStr) {
@@ -379,6 +401,11 @@
             });
 
             const ctx = document.getElementById('personal7DaysChart').getContext('2d');
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(16, 185, 129, 0.85)');
+            gradient.addColorStop(1, 'rgba(16, 185, 129, 0.15)');
+
             new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -386,10 +413,10 @@
                     datasets: [{
                         label: 'Doanh thu cá nhân (đ)',
                         data: chartData,
-                        backgroundColor: 'rgba(20, 185, 129, 0.75)', // Success/emerald green
+                        backgroundColor: gradient,
                         borderColor: '#10b981',
-                        borderWidth: 1.5,
-                        borderRadius: 4
+                        borderWidth: 2,
+                        borderRadius: 8
                     }]
                 },
                 options: {
@@ -399,13 +426,12 @@
                         legend: { display: false }
                     },
                     scales: {
-                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(226, 232, 240, 0.6)' } },
                         x: { grid: { display: false } }
                     }
                 }
             });
 
-            // SignalR Connection
             const hubBase = document.querySelector('meta[name="hub-base-url"]')?.content || 'http://localhost:8080';
             const connection = new signalR.HubConnectionBuilder()
                 .withUrl(hubBase + "/hubs/notification")
@@ -413,7 +439,6 @@
                 .build();
 
             connection.on("ReceiveInvoiceNotification", function () {
-                // Show loading overlay and reload page to refresh data
                 const overlay = document.getElementById('loading-overlay');
                 if (overlay) overlay.style.display = 'flex';
                 setTimeout(() => {
@@ -425,7 +450,6 @@
                 console.warn("SignalR Connection failed: ", err);
             });
         });
-
     </script>
 </body>
 </html>
