@@ -73,7 +73,7 @@ namespace BilliardManagement.Web.Pages.Orders
         {
             if (!SessionId.HasValue || SessionId.Value == Guid.Empty)
             {
-                TempData["ErrorMessage"] = "Session ID is required to create an order.";
+                TempData["ErrorMessage"] = "Vui lòng chọn bàn chơi trước khi đặt món.";
                 return RedirectToPage("/Sessions/Index");
             }
 
@@ -89,7 +89,7 @@ namespace BilliardManagement.Web.Pages.Orders
 
             if (items.Count == 0)
             {
-                TempData["ErrorMessage"] = "Please select at least one item to order.";
+                TempData["ErrorMessage"] = "Vui lòng chọn số lượng lớn hơn 0 cho ít nhất một món.";
                 return RedirectToPage(new { sessionId = SessionId });
             }
 
@@ -104,12 +104,12 @@ namespace BilliardManagement.Web.Pages.Orders
                 var order = await _orderService.CreateOrderAsync(createOrderDto);
                 if (order != null)
                 {
-                    TempData["SuccessMessage"] = "Order placed successfully!";
+                    TempData["SuccessMessage"] = "Đặt món thành công!";
                     return RedirectToPage("/Sessions/Index");
                 }
                 else
                 {
-                    TempData["ErrorMessage"] = "Failed to place order.";
+                    TempData["ErrorMessage"] = "Đặt món thất bại. Vui lòng thử lại.";
                     return RedirectToPage(new { sessionId = SessionId });
                 }
             }

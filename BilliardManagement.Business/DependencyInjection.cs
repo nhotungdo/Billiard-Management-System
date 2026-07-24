@@ -27,6 +27,7 @@ namespace BilliardManagement.Business
             services.AddScoped<IShiftService, ShiftService>();
             services.AddScoped<IRevenueService, RevenueService>();
             services.AddScoped<ICustomerService, CustomerService>();
+            services.AddScoped<IComboService, ComboService>();
 
             services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
             services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);

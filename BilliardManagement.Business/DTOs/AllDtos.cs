@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using BilliardManagement.Models.Enums;
 
 namespace BilliardManagement.Business.DTOs
@@ -250,7 +251,15 @@ namespace BilliardManagement.Business.DTOs
         public Guid TableSessionId { get => SessionId; set => SessionId = value; }
         public List<CreateOrderItemDto> Items { get; set; } = new();
     }
-    public class CreateOrderItemDto { public Guid ProductId { get; set; } public int Quantity { get; set; } }
+    public class CreateOrderItemDto 
+    { 
+        [Required]
+        public Guid ProductId { get; set; } 
+
+        [Required]
+        [Range(1, 10000, ErrorMessage = "Số lượng món phải lớn hơn 0")]
+        public int Quantity { get; set; } 
+    }
 
     public class BillDto
     {

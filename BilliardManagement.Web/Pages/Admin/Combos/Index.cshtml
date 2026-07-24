@@ -1,0 +1,455 @@
+@page
+@model BilliardManagement.Web.Pages.Admin.Combos.IndexModel
+@{
+    ViewData["Title"] = "Quản Lý Gói Combo";
+    Layout = "_Layout";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="container-fluid px-4 py-3">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="fa-solid fa-layer-group text-primary me-2"></i>Quản Lý Gói Combo (Combo Code)</h2>
+            <p class="text-muted mb-0">Tạo và quản lý các gói combo khuyến mãi, mã combo ưu đãi cho quán bida.</p>
+        </div>
+        <button class="btn btn-primary px-4 py-2 shadow-sm rounded-pill fw-semibold" data-bs-toggle="modal" data-bs-target="#comboModal" onclick="resetForm()">
+            <i class="fa-solid fa-plus me-2"></i>Thêm Gói Combo Mới
+        </button>
+    </div>
+
+    <!-- Alert Messages -->
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>@Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>@Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Stat Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-gradient bg-primary text-white">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="fa-solid fa-tags fa-2x"></i>
+                    </div>
+                    <div>
+                        <div class="text-white-50 small fw-semibold">TỔNG SỐ COMBO</div>
+                        <div class="fs-3 fw-bold">@Model.Combos.Count</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-gradient bg-success text-white">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="fa-solid fa-circle-check fa-2x"></i>
+                    </div>
+                    <div>
+                        <div class="text-white-50 small fw-semibold">ĐANG HOẠT ĐỘNG</div>
+                        <div class="fs-3 fw-bold">@Model.Combos.Count(c => c.IsActive)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-gradient bg-secondary text-white">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                        <i class="fa-solid fa-eye-slash fa-2x"></i>
+                    </div>
+                    <div>
+                        <div class="text-white-50 small fw-semibold">NGỪNG HOẠT ĐỘNG</div>
+                        <div class="fs-3 fw-bold">@Model.Combos.Count(c => !c.IsActive)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Card -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            <form method="get" class="row g-3 align-items-center">
+                <div class="col-md-6 col-lg-5">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0 text-muted">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </span>
+                        <input type="text" asp-for="Search" class="form-control bg-light border-start-0 ps-0" placeholder="Tìm theo mã Combo Code hoặc Tên Combo..." />
+                    </div>
+                </div>
+                <div class="col-md-4 col-lg-3">
+                    <select asp-for="ActiveOnly" class="form-select bg-light">
+                        <option value="">-- Tất cả trạng thái --</option>
+                        <option value="true">Chỉ combo đang hoạt động</option>
+                        <option value="false">Chỉ combo đã ẩn/tắt</option>
+                    </select>
+                </div>
+                <div class="col-md-2 col-lg-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100 fw-semibold">
+                        <i class="fa-solid fa-filter me-1"></i> Lọc
+                    </button>
+                    <a href="/Admin/Combos/Index" class="btn btn-outline-secondary" title="Đặt lại">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Combos Table Card -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-muted small text-uppercase fw-bold border-bottom">
+                        <tr>
+                            <th class="ps-4">Mã Combo Code</th>
+                            <th>Tên Gói Combo</th>
+                            <th>Giờ Chơi Bàn</th>
+                            <th>Sản Phẩm Đi Kèm</th>
+                            <th>Giá Combo</th>
+                            <th>Trạng Thái</th>
+                            <th class="text-end pe-4">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Combos == null || !Model.Combos.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="fa-solid fa-box-open fa-3x mb-3 text-secondary opacity-50"></i>
+                                    <p class="mb-0 fw-medium">Chưa có gói combo nào phù hợp.</p>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var combo in Model.Combos)
+                            {
+                                <tr>
+                                    <td class="ps-4">
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 fs-6 font-monospace fw-bold rounded-3">
+                                            <i class="fa-solid fa-barcode me-1"></i>@combo.ComboCode
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold text-dark">@combo.Name</div>
+                                        @if (!string.IsNullOrEmpty(combo.Description))
+                                        {
+                                            <small class="text-muted">@combo.Description</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (combo.PlayingHours > 0)
+                                        {
+                                            <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1 rounded-pill">
+                                                <i class="fa-solid fa-clock me-1"></i>+@combo.PlayingHours giờ bàn
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">0 giờ</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (combo.Items != null && combo.Items.Any())
+                                        {
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @foreach (var item in combo.Items)
+                                                {
+                                                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 rounded-pill small">
+                                                        @item.ProductName x<strong>@item.Quantity</strong>
+                                                    </span>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">Không có sản phẩm</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold text-success fs-6">@combo.Price.ToString("N0") VNĐ</span>
+                                    </td>
+                                    <td>
+                                        @if (combo.IsActive)
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-semibold">
+                                                <i class="fa-solid fa-circle-check me-1"></i>Hoạt động
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border px-3 py-2 rounded-pill fw-semibold">
+                                                <i class="fa-solid fa-eye-slash me-1"></i>Tắt
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="d-flex justify-content-end gap-1">
+                                            <button class="btn btn-sm btn-outline-primary rounded-3" title="Chỉnh sửa" onclick="editCombo(@System.Text.Json.JsonSerializer.Serialize(combo))">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </button>
+                                            <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@combo.Id" class="d-inline">
+                                                <button type="submit" class="btn btn-sm @(combo.IsActive ? "btn-outline-warning" : "btn-outline-success") rounded-3" title="@(combo.IsActive ? "Ẩn Combo" : "Kích hoạt Combo")">
+                                                    <i class="fa-solid @(combo.IsActive ? "fa-eye-slash" : "fa-eye")"></i>
+                                                </button>
+                                            </form>
+                                            <form method="post" asp-page-handler="Delete" asp-route-id="@combo.Id" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa gói combo này?');">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-3" title="Xóa Combo">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create / Edit Combo -->
+<div class="modal fade" id="comboModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-primary text-white rounded-top-4">
+                <h5 class="modal-title fw-bold" id="modalTitle">
+                    <i class="fa-solid fa-layer-group me-2"></i>Thêm Gói Combo Mới
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="comboForm">
+                    <input type="hidden" id="comboId" value="" />
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">MÃ COMBO CODE <span class="text-danger">*</span></label>
+                            <input type="text" id="comboCode" class="form-control text-uppercase fw-bold font-monospace" placeholder="VD: CB_SOLO_1H, CB_VIP_3H" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">TÊN GÓI COMBO <span class="text-danger">*</span></label>
+                            <input type="text" id="comboName" class="form-control fw-semibold" placeholder="VD: Combo Solo 1h + Red Bull" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">GIÁ GÓI COMBO (VNĐ) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" id="comboPrice" class="form-control fw-bold text-success" placeholder="VD: 150000" min="0" step="1000" required />
+                                <span class="input-group-text">VNĐ</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted">SỐ GIỜ CHƠI BÀN ĐI KÈM (Giờ)</label>
+                            <div class="input-group">
+                                <input type="number" id="playingHours" class="form-control" placeholder="VD: 1, 2, 3" min="0" max="24" value="0" />
+                                <span class="input-group-text">Giờ</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold small text-muted">MÔ TẢ GÓI COMBO</label>
+                            <textarea id="comboDescription" class="form-control" rows="2" placeholder="Nhập mô tả ngắn gọn về ưu đãi gói combo..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="comboIsActive" checked />
+                                <label class="form-check-label fw-semibold" for="comboIsActive">Kích hoạt gói combo ngay khi tạo</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <!-- Combo Items Builder -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0 text-primary">
+                            <i class="fa-solid fa-boxes-stacked me-1"></i> Danh Sách Sản Phẩm Đi Kèm Combo
+                        </h6>
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill fw-semibold" onclick="addItemRow()">
+                            <i class="fa-solid fa-plus me-1"></i>Thêm Sản Phẩm
+                        </button>
+                    </div>
+
+                    <div class="table-responsive mb-3 border rounded-3 p-2 bg-light">
+                        <table class="table table-borderless align-middle mb-0" id="itemsTable">
+                            <thead class="text-muted small border-bottom">
+                                <tr>
+                                    <th style="width: 60%;">Sản Phẩm</th>
+                                    <th style="width: 25%;">Số Lượng</th>
+                                    <th style="width: 15%;" class="text-end">Xóa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsBody">
+                                <!-- Dynamic Item Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-light rounded-bottom-4">
+                <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary px-4 rounded-pill fw-semibold" onclick="saveCombo()">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Lưu Combo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const productsList = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Products));
+        let comboModalInstance = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            comboModalInstance = new bootstrap.Modal(document.getElementById('comboModal'));
+        });
+
+        function resetForm() {
+            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-layer-group me-2"></i>Thêm Gói Combo Mới';
+            document.getElementById('comboId').value = '';
+            document.getElementById('comboCode').value = '';
+            document.getElementById('comboName').value = '';
+            document.getElementById('comboPrice').value = '';
+            document.getElementById('playingHours').value = '0';
+            document.getElementById('comboDescription').value = '';
+            document.getElementById('comboIsActive').checked = true;
+            document.getElementById('itemsBody').innerHTML = '';
+            addItemRow();
+        }
+
+        function addItemRow(productId = '', quantity = 1) {
+            const tbody = document.getElementById('itemsBody');
+            const rowId = 'row_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+
+            let optionsHtml = '<option value="">-- Chọn sản phẩm --</option>';
+            productsList.forEach(p => {
+                const selected = p.Id === productId ? 'selected' : '';
+                optionsHtml += `<option value="${p.Id}" ${selected}>${p.Name} (${p.Price.toLocaleString()} VNĐ)</option>`;
+            });
+
+            const rowHtml = `
+                <tr id="${rowId}">
+                    <td>
+                        <select class="form-select form-select-sm item-product-id" required>
+                            ${optionsHtml}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm item-quantity" value="${quantity}" min="1" max="100" required />
+                    </td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-sm btn-outline-danger rounded-circle" onclick="removeRow('${rowId}')">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+
+            tbody.insertAdjacentHTML('beforeend', rowHtml);
+        }
+
+        function removeRow(rowId) {
+            const row = document.getElementById(rowId);
+            if (row) row.remove();
+        }
+
+        function editCombo(combo) {
+            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen me-2"></i>Chỉnh Sửa Gói Combo';
+            document.getElementById('comboId').value = combo.Id;
+            document.getElementById('comboCode').value = combo.ComboCode;
+            document.getElementById('comboName').value = combo.Name;
+            document.getElementById('comboPrice').value = combo.Price;
+            document.getElementById('playingHours').value = combo.PlayingHours;
+            document.getElementById('comboDescription').value = combo.Description || '';
+            document.getElementById('comboIsActive').checked = combo.IsActive;
+
+            const tbody = document.getElementById('itemsBody');
+            tbody.innerHTML = '';
+
+            if (combo.Items && combo.Items.length > 0) {
+                combo.Items.forEach(item => {
+                    addItemRow(item.ProductId, item.Quantity);
+                });
+            } else {
+                addItemRow();
+            }
+
+            comboModalInstance.show();
+        }
+
+        async function saveCombo() {
+            const id = document.getElementById('comboId').value;
+            const comboCode = document.getElementById('comboCode').value.trim();
+            const name = document.getElementById('comboName').value.trim();
+            const price = parseFloat(document.getElementById('comboPrice').value);
+            const playingHours = parseInt(document.getElementById('playingHours').value) || 0;
+            const description = document.getElementById('comboDescription').value.trim();
+            const isActive = document.getElementById('comboIsActive').checked;
+
+            if (!comboCode || !name || isNaN(price) || price < 0) {
+                alert('Vui lòng điền đầy đủ các thông tin bắt buộc (Mã Combo, Tên Combo, Giá Combo hợp lệ).');
+                return;
+            }
+
+            const items = [];
+            const itemRows = document.querySelectorAll('#itemsBody tr');
+            itemRows.forEach(row => {
+                const productId = row.querySelector('.item-product-id').value;
+                const quantity = parseInt(row.querySelector('.item-quantity').value) || 1;
+                if (productId) {
+                    items.push({ productId, quantity });
+                }
+            });
+
+            const payload = {
+                comboCode,
+                name,
+                price,
+                description,
+                playingHours,
+                isActive,
+                items
+            };
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            const handler = id ? `Update&id=${id}` : 'Create';
+
+            try {
+                const response = await fetch(`/Admin/Combos/Index?handler=${handler}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const resData = await response.json();
+                if (response.ok && resData.success) {
+                    alert(resData.message);
+                    window.location.reload();
+                } else {
+                    alert('Lỗi: ' + (resData.message || 'Lưu thông tin thất bại.'));
+                }
+            } catch (err) {
+                alert('Có lỗi xảy ra: ' + err.message);
+            }
+        }
+    </script>
+}

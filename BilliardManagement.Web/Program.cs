@@ -5,6 +5,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "RequestVerificationToken";
+});
 
 // Configure HttpContextAccessor for Session and Token management
 builder.Services.AddHttpContextAccessor();
@@ -37,7 +41,7 @@ builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<InvoiceService>();
 builder.Services.AddScoped<RevenueService>();
 builder.Services.AddScoped<StaffService>();
-builder.Services.AddScoped<StaffService>();
+builder.Services.AddScoped<ComboService>();
 
 var app = builder.Build();
 

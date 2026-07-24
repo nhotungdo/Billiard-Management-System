@@ -265,59 +265,77 @@
                     </div>
                 </div>
 
-                <!-- 6 overall stats cards -->
-                <div class="dashboard-grid">
-                    <div class="kpi-gradient kpi-gradient-1">
-                        <div class="kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+                <!-- Bento Grid Overview Cards -->
+                <div class="bento-grid">
+                    <!-- Bento Card 1: Doanh thu Hôm nay -->
+                    <div class="bento-card bento-emerald bento-col-4">
+                        <div class="bento-header">
+                            <div class="bento-label truncate-text">Doanh thu Hôm nay</div>
+                            <div class="bento-icon-wrapper"><i class="fa-solid fa-sack-dollar"></i></div>
+                        </div>
                         <div>
-                            <div class="kpi-label">Doanh thu Hôm nay</div>
-                            <div class="kpi-value text-nowrap" id="kpi-revenue-today">@Model.TodayRevenue.ToString("N0") đ</div>
-                            <div class="kpi-sub">Số liệu thực tế</div>
+                            <div class="bento-value truncate-text" id="kpi-revenue-today">@Model.TodayRevenue.ToString("N0") đ</div>
+                            <div class="bento-sub truncate-text"><i class="fa-solid fa-bolt me-1"></i>Số liệu thực tế trong ngày</div>
                         </div>
                     </div>
                     
-                    <div class="kpi-gradient kpi-gradient-2">
-                        <div class="kpi-icon"><i class="fa-solid fa-calendar-days"></i></div>
+                    <!-- Bento Card 2: Doanh thu Tháng này -->
+                    <div class="bento-card bento-indigo bento-col-4">
+                        <div class="bento-header">
+                            <div class="bento-label truncate-text">Doanh thu Tháng này</div>
+                            <div class="bento-icon-wrapper"><i class="fa-solid fa-calendar-days"></i></div>
+                        </div>
                         <div>
-                            <div class="kpi-label">Doanh thu Tháng này</div>
-                            <div class="kpi-value text-nowrap" id="kpi-revenue-month">@Model.MonthRevenue.ToString("N0") đ</div>
-                            <div class="kpi-sub">Từ đầu tháng</div>
+                            <div class="bento-value truncate-text" id="kpi-revenue-month">@Model.MonthRevenue.ToString("N0") đ</div>
+                            <div class="bento-sub truncate-text"><i class="fa-solid fa-chart-line me-1"></i>Tính từ đầu tháng hiện tại</div>
                         </div>
                     </div>
 
-                    <div class="kpi-gradient kpi-gradient-3">
-                        <div class="kpi-icon"><i class="fa-solid fa-table-cells"></i></div>
+                    <!-- Bento Card 3: Bàn Đang hoạt động -->
+                    <div class="bento-card bento-purple bento-col-4">
+                        <div class="bento-header">
+                            <div class="bento-label truncate-text">Bàn Đang hoạt động</div>
+                            <div class="bento-icon-wrapper"><i class="fa-solid fa-table-cells"></i></div>
+                        </div>
                         <div>
-                            <div class="kpi-label">Bàn Đang hoạt động</div>
-                            <div class="kpi-value" id="kpi-active-tables">@Model.ActiveTablesCount</div>
-                            <div class="kpi-sub">đang có người chơi</div>
+                            <div class="bento-value truncate-text" id="kpi-active-tables">@Model.ActiveTablesCount <span class="fs-6 opacity-75">bàn</span></div>
+                            <div class="bento-sub truncate-text"><i class="fa-solid fa-gamepad me-1"></i>Đang có khách playing</div>
                         </div>
                     </div>
 
-                    <div class="kpi-gradient kpi-gradient-4">
-                        <div class="kpi-icon"><i class="fa-solid fa-stopwatch"></i></div>
+                    <!-- Bento Card 4: Lượt chơi Hôm nay -->
+                    <div class="bento-card bento-amber bento-col-4">
+                        <div class="bento-header">
+                            <div class="bento-label truncate-text">Lượt chơi Hôm nay</div>
+                            <div class="bento-icon-wrapper"><i class="fa-solid fa-stopwatch"></i></div>
+                        </div>
                         <div>
-                            <div class="kpi-label">Lượt chơi Hôm nay</div>
-                            <div class="kpi-value" id="kpi-sessions-today">@Model.TotalSessionsToday</div>
-                            <div class="kpi-sub">Phiên được kích hoạt</div>
+                            <div class="bento-value truncate-text" id="kpi-sessions-today">@Model.TotalSessionsToday <span class="fs-6 opacity-75">lượt</span></div>
+                            <div class="bento-sub truncate-text"><i class="fa-solid fa-circle-play me-1"></i>Phiên đã mở hôm nay</div>
                         </div>
                     </div>
 
-                    <div class="kpi-gradient kpi-gradient-5">
-                        <div class="kpi-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                    <!-- Bento Card 5: Hóa đơn Hôm nay -->
+                    <div class="bento-card bento-sky bento-col-4">
+                        <div class="bento-header">
+                            <div class="bento-label truncate-text">Hóa đơn Hôm nay</div>
+                            <div class="bento-icon-wrapper"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                        </div>
                         <div>
-                            <div class="kpi-label">Hóa đơn Hôm nay</div>
-                            <div class="kpi-value" id="kpi-invoices-today">@Model.TotalInvoicesToday</div>
-                            <div class="kpi-sub">Đã thanh toán</div>
+                            <div class="bento-value truncate-text" id="kpi-invoices-today">@Model.TotalInvoicesToday <span class="fs-6 opacity-75">hóa đơn</span></div>
+                            <div class="bento-sub truncate-text"><i class="fa-solid fa-check-double me-1"></i>Đã thanh toán thành công</div>
                         </div>
                     </div>
 
-                    <div class="kpi-gradient kpi-gradient-6">
-                        <div class="kpi-icon"><i class="fa-solid fa-user-tie"></i></div>
+                    <!-- Bento Card 6: Nhân viên Trực -->
+                    <div class="bento-card bento-rose bento-col-4">
+                        <div class="bento-header">
+                            <div class="bento-label truncate-text">Nhân viên Trực</div>
+                            <div class="bento-icon-wrapper"><i class="fa-solid fa-user-tie"></i></div>
+                        </div>
                         <div>
-                            <div class="kpi-label">Nhân viên Trực</div>
-                            <div class="kpi-value" id="kpi-staff-online">@Model.OnlineStaffCount</div>
-                            <div class="kpi-sub">Đang trong ca làm</div>
+                            <div class="bento-value truncate-text" id="kpi-staff-online">@Model.OnlineStaffCount <span class="fs-6 opacity-75">nhân viên</span></div>
+                            <div class="bento-sub truncate-text"><i class="fa-solid fa-clock-rotate-left me-1"></i>Đang trong ca làm việc</div>
                         </div>
                     </div>
                 </div>

@@ -436,11 +436,82 @@ namespace BilliardManagement.Data
                 }
 
                 context.SaveChanges();
+                SeedCombos(context);
             }
             else
             {
                 UpgradeActiveSessions(context);
+                SeedCombos(context);
             }
+        }
+
+        private static void SeedCombos(BilliardManagementDbContext context)
+        {
+            if (context.Combos.Any()) return;
+
+            var pepsi = context.Products.FirstOrDefault(p => p.ProductName == "Pepsi");
+            var redbull = context.Products.FirstOrDefault(p => p.ProductName == "Red Bull");
+            var khoaitay = context.Products.FirstOrDefault(p => p.ProductName == "Khoai Tây Chiên");
+            var mily = context.Products.FirstOrDefault(p => p.ProductName == "Mì Ly");
+
+            var comboSolo = new Combo
+            {
+                Id = Guid.NewGuid(),
+                ComboCode = "CB_SOLO_1H",
+                Name = "Combo Solo 1h + Red Bull",
+                Price = 75000,
+                PlayingHours = 1,
+                Description = "1 giờ chơi bàn chuẩn + 1 lon Red Bull",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            if (redbull != null)
+            {
+                comboSolo.ComboItems.Add(new ComboItem { Id = Guid.NewGuid(), ComboId = comboSolo.Id, ProductId = redbull.Id, Quantity = 1 });
+            }
+
+            var comboDuo = new Combo
+            {
+                Id = Guid.NewGuid(),
+                ComboCode = "CB_DUO_2H",
+                Name = "Combo Đôi 2h + 2 Pepsi + Khoai Tây Chiên",
+                Price = 160000,
+                PlayingHours = 2,
+                Description = "2 giờ chơi + 2 lon Pepsi + 1 dĩa Khoai Tây Chiên",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            if (pepsi != null)
+            {
+                comboDuo.ComboItems.Add(new ComboItem { Id = Guid.NewGuid(), ComboId = comboDuo.Id, ProductId = pepsi.Id, Quantity = 2 });
+            }
+            if (khoaitay != null)
+            {
+                comboDuo.ComboItems.Add(new ComboItem { Id = Guid.NewGuid(), ComboId = comboDuo.Id, ProductId = khoaitay.Id, Quantity = 1 });
+            }
+
+            var comboNight = new Combo
+            {
+                Id = Guid.NewGuid(),
+                ComboCode = "CB_NIGHT_VIP",
+                Name = "Combo Đêm VIP 3h + Mì Ly + Red Bull",
+                Price = 210000,
+                PlayingHours = 3,
+                Description = "3 giờ chơi đêm + 1 Mì Ly + 1 Red Bull",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            if (mily != null)
+            {
+                comboNight.ComboItems.Add(new ComboItem { Id = Guid.NewGuid(), ComboId = comboNight.Id, ProductId = mily.Id, Quantity = 1 });
+            }
+            if (redbull != null)
+            {
+                comboNight.ComboItems.Add(new ComboItem { Id = Guid.NewGuid(), ComboId = comboNight.Id, ProductId = redbull.Id, Quantity = 1 });
+            }
+
+            context.Combos.AddRange(comboSolo, comboDuo, comboNight);
+            context.SaveChanges();
         }
 
         private static void UpgradeActiveSessions(BilliardManagementDbContext context)

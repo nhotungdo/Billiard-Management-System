@@ -41,6 +41,9 @@ namespace BilliardManagement.Business.Services
             if (table == null || table.Status != TableStatus.Playing)
                 throw new CustomException("Cannot order: table is not currently playing", 400);
 
+            if (dto.Items == null || !dto.Items.Any())
+                throw new CustomException("Vui lòng chọn ít nhất 1 món để gọi món.", 400);
+
             var order = new Order
             {
                 TableSessionId = sessionId,
@@ -51,11 +54,18 @@ namespace BilliardManagement.Business.Services
 
             foreach (var itemDto in dto.Items)
             {
-                if (itemDto.Quantity <= 0) throw new CustomException("Quantity must be greater than 0", 400);
+                if (itemDto.Quantity <= 0)
+                    throw new CustomException("Số lượng đặt món phải lớn hơn 0.", 400);
 
                 var product = await _unitOfWork.Repository<Product>().GetByIdAsync(itemDto.ProductId);
-                if (product == null) throw new CustomException($"Product {itemDto.ProductId} not found", 404);
-                if (product.StockQuantity < itemDto.Quantity) throw new CustomException($"Not enough stock for {product.ProductName}", 400);
+                if (product == null || product.IsDeleted)
+                    throw new CustomException("Sản phẩm không tồn tại hoặc đã bị xóa.", 404);
+
+                if (!product.IsAvailable)
+                    throw new CustomException($"Sản phẩm '{product.ProductName}' hiện tạm ngưng phục vụ.", 400);
+
+                if (product.StockQuantity < itemDto.Quantity)
+                    throw new CustomException($"Sản phẩm '{product.ProductName}' chỉ còn {product.StockQuantity} trong kho, không đủ số lượng đặt {itemDto.Quantity}.", 400);
 
                 product.StockQuantity -= itemDto.Quantity;
                 _unitOfWork.Repository<Product>().Update(product);

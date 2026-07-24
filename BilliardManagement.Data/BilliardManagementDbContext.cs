@@ -21,6 +21,8 @@ namespace BilliardManagement.Data
         public DbSet<Shift> Shifts { get; set; }
         public DbSet<TableStatusHistory> TableStatusHistories { get; set; }
         public DbSet<Customer> Customers { get; set; }
+        public DbSet<Combo> Combos { get; set; }
+        public DbSet<ComboItem> ComboItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -120,6 +122,27 @@ namespace BilliardManagement.Data
                 .WithMany()
                 .HasForeignKey(h => h.ChangedById)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // Combo configurations
+            modelBuilder.Entity<Combo>()
+                .HasIndex(c => c.ComboCode)
+                .IsUnique();
+
+            modelBuilder.Entity<Combo>()
+                .Property(c => c.Price)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Combo>()
+                .HasMany(c => c.ComboItems)
+                .WithOne(ci => ci.Combo)
+                .HasForeignKey(ci => ci.ComboId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ComboItem>()
+                .HasOne(ci => ci.Product)
+                .WithMany()
+                .HasForeignKey(ci => ci.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
