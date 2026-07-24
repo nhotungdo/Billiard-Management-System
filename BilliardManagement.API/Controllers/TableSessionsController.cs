@@ -2,6 +2,7 @@ using System.Security.Claims;
 using BilliardManagement.API.Hubs;
 using BilliardManagement.Business.DTOs;
 using BilliardManagement.Business.Interfaces;
+using BilliardManagement.Common.Exceptions;
 using BilliardManagement.Common.Responses;
 using BilliardManagement.Models.Enums;
 using BilliardManagement.Models.Models;
@@ -129,8 +130,9 @@ namespace BilliardManagement.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "End session failed for {SessionId}", id);
-                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+                _logger.LogError(ex, "End session failed for {SessionId}", id);
+                var msg = ex is CustomException ? ex.Message : (ex.InnerException?.Message ?? ex.Message);
+                return BadRequest(ApiResponse<object>.Fail(msg));
             }
         }
 

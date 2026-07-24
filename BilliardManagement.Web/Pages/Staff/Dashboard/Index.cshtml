@@ -171,60 +171,53 @@
                     </div>
                 </div>
 
-                <!-- KPI Cards -->
-                <div class="row g-4 mb-4">
+                <!-- Bento Grid KPI Cards -->
+                <div class="bento-grid">
                     <!-- Card 1: My Revenue Today -->
-                    <div class="col-12 col-sm-6 col-xl-3">
-                        <div class="kpi-card shadow-sm border-0 rounded-4 p-4 bg-white h-100 position-relative overflow-hidden">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <span class="text-muted fw-medium small text-uppercase">Doanh thu hôm nay</span>
-                                <div class="kpi-icon-wrapper bg-success-subtle text-success p-2 rounded-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fa-solid fa-wallet fs-5"></i>
-                                </div>
-                            </div>
-                            <h3 class="fw-bold mb-1 text-dark">@Model.MyRevenueToday.ToString("N0") <span class="fs-6 fw-normal">đ</span></h3>
-                            <p class="mb-0 text-success small fw-semibold">
-                                <i class="fa-solid fa-arrow-trend-up me-1"></i>Đã thu trong ca của bạn
-                            </p>
+                    <div class="bento-card bento-teal bento-col-3">
+                        <div class="bento-header">
+                            <div class="bento-label truncate-text">Doanh thu hôm nay</div>
+                            <div class="bento-icon-wrapper"><i class="fa-solid fa-wallet"></i></div>
+                        </div>
+                        <div>
+                            <div class="bento-value truncate-text">@Model.MyRevenueToday.ToString("N0") <span class="fs-6 opacity-75 fw-normal">đ</span></div>
+                            <div class="bento-sub truncate-text"><i class="fa-solid fa-arrow-trend-up me-1"></i>Đã thu trong ca làm</div>
                         </div>
                     </div>
+
                     <!-- Card 2: Sessions Handled Today -->
-                    <div class="col-12 col-sm-6 col-xl-3">
-                        <div class="kpi-card shadow-sm border-0 rounded-4 p-4 bg-white h-100 position-relative overflow-hidden">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <span class="text-muted fw-medium small text-uppercase">Lượt chơi đã xử lý</span>
-                                <div class="kpi-icon-wrapper bg-primary-subtle text-primary p-2 rounded-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fa-solid fa-play fs-5"></i>
-                                </div>
-                            </div>
-                            <h3 class="fw-bold mb-1 text-dark">@Model.SessionsHandledToday</h3>
-                            <p class="mb-0 text-secondary small">Số phiên hoạt động hôm nay</p>
+                    <div class="bento-card bento-sky bento-col-3">
+                        <div class="bento-header">
+                            <div class="bento-label truncate-text">Lượt chơi đã xử lý</div>
+                            <div class="bento-icon-wrapper"><i class="fa-solid fa-play"></i></div>
+                        </div>
+                        <div>
+                            <div class="bento-value truncate-text">@Model.SessionsHandledToday <span class="fs-6 opacity-75 fw-normal">lượt</span></div>
+                            <div class="bento-sub truncate-text"><i class="fa-solid fa-circle-check me-1"></i>Số phiên phục vụ hôm nay</div>
                         </div>
                     </div>
+
                     <!-- Card 3: Active Tables -->
-                    <div class="col-12 col-sm-6 col-xl-3">
-                        <div class="kpi-card shadow-sm border-0 rounded-4 p-4 bg-white h-100 position-relative overflow-hidden">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <span class="text-muted fw-medium small text-uppercase">Bàn đang phục vụ</span>
-                                <div class="kpi-icon-wrapper bg-teal-subtle text-teal p-2 rounded-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fa-solid fa-table-cells-large fs-5"></i>
-                                </div>
-                            </div>
-                            <h3 class="fw-bold mb-1 text-dark">@Model.ActiveTablesCount</h3>
-                            <p class="mb-0 text-secondary small">Bàn chơi bạn đang quản lý</p>
+                    <div class="bento-card bento-indigo bento-col-3">
+                        <div class="bento-header">
+                            <div class="bento-label truncate-text">Bàn đang phục vụ</div>
+                            <div class="bento-icon-wrapper"><i class="fa-solid fa-table-cells-large"></i></div>
+                        </div>
+                        <div>
+                            <div class="bento-value truncate-text">@Model.ActiveTablesCount <span class="fs-6 opacity-75 fw-normal">bàn</span></div>
+                            <div class="bento-sub truncate-text"><i class="fa-solid fa-user-group me-1"></i>Bàn chơi bạn đang quản lý</div>
                         </div>
                     </div>
+
                     <!-- Card 4: Orders Today -->
-                    <div class="col-12 col-sm-6 col-xl-3">
-                        <div class="kpi-card shadow-sm border-0 rounded-4 p-4 bg-white h-100 position-relative overflow-hidden">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <span class="text-muted fw-medium small text-uppercase">Đơn dịch vụ hôm nay</span>
-                                <div class="kpi-icon-wrapper bg-warning-subtle text-warning p-2 rounded-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fa-solid fa-cart-shopping fs-5"></i>
-                                </div>
-                            </div>
-                            <h3 class="fw-bold mb-1 text-dark">@Model.OrdersTodayCount</h3>
-                            <p class="mb-0 text-secondary small">Đồ ăn / đồ uống đã order</p>
+                    <div class="bento-card bento-amber bento-col-3">
+                        <div class="bento-header">
+                            <div class="bento-label truncate-text">Đơn dịch vụ hôm nay</div>
+                            <div class="bento-icon-wrapper"><i class="fa-solid fa-cart-shopping"></i></div>
+                        </div>
+                        <div>
+                            <div class="bento-value truncate-text">@Model.OrdersTodayCount <span class="fs-6 opacity-75 fw-normal">đơn</span></div>
+                            <div class="bento-sub truncate-text"><i class="fa-solid fa-utensils me-1"></i>Đồ ăn / đồ uống order</div>
                         </div>
                     </div>
                 </div>
@@ -720,12 +713,12 @@
 
             function calculateDashboardStartTotal() {
                 const selectedOpt = $('#startNewSessionTableSelect option:selected');
-                const rate = parseFloat(selectedOpt.attr('data-rate')) || 0;
+                const rate = parseFloat(selectedOpt.attr('data-rate')) || parseFloat(selectedOpt.data('rate')) || 0;
                 const hours = parseInt($('#customHoursNewInput').val(), 10) || 1;
                 let quickFee = 0;
                 $('.quick-qty-input-dash').each(function() {
                     const qty = parseInt($(this).val(), 10) || 0;
-                    const price = parseFloat($(this).data('price')) || 0;
+                    const price = parseFloat($(this).data('price')) || parseFloat($(this).attr('data-price')) || 0;
                     if (qty > 0) {
                         quickFee += qty * price;
                     }
@@ -734,7 +727,16 @@
                 $('#startNewSessionTotalAmount').text(total.toLocaleString('vi-VN') + ' đ');
             }
 
-            $(document).on('change input', '#startNewSessionTableSelect, #customHoursNewInput, .quick-qty-input-dash', calculateDashboardStartTotal);
+            $(document).on('change input keyup', '#startNewSessionTableSelect, #customHoursNewInput, .quick-qty-input-dash', calculateDashboardStartTotal);
+
+            $('#customHoursNewInput').on('input change keyup', function () {
+                const val = parseInt($(this).val(), 10);
+                $('.btn-new-hour-option').removeClass('btn-success text-white').addClass('btn-outline-success');
+                if (val >= 1 && val <= 4) {
+                    $(`.btn-new-hour-option[data-hours="${val}"]`).removeClass('btn-outline-success').addClass('btn-success text-white');
+                }
+                calculateDashboardStartTotal();
+            });
 
             $(document).on('click', '.btn-quick-qty-minus-dash', function () {
                 const targetId = $(this).data('target');

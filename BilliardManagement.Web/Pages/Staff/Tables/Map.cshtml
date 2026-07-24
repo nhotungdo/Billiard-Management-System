@@ -1440,9 +1440,11 @@
             $('.btn-hour-preset').removeClass('active');
             $(this).addClass('active');
             $('#modalStartHoursInput').val($(this).data('hours'));
+            updatePrepaidTotals();
         });
-        $('#modalStartHoursInput').on('input', function() {
+        $('#modalStartHoursInput').on('input change', function() {
             $('.btn-hour-preset').removeClass('active');
+            updatePrepaidTotals();
         });
 
         // Trigger action modals from Details modal
@@ -1478,7 +1480,7 @@
 
         function updatePrepaidTotals() {
             const table = tablesData.find(t => t.Id === selectedTableId || t.id === selectedTableId);
-            const hourlyRate = table ? (table.PricePerHour || table.pricePerHour || 0) : 0;
+            const hourlyRate = table ? (table.HourlyRate || table.hourlyRate || table.PricePerHour || table.pricePerHour || 0) : 0;
 
             const modalHours = parseInt($('#customHoursInput').val()) || 1;
             let modalQuickOrdersFee = 0;
@@ -1505,7 +1507,7 @@
             $('#detailsPrepaidTotal').text(detailsTotal.toLocaleString('vi-VN') + ' đ');
         }
 
-        $('#customHoursInput, #modalStartHoursInput, .quick-qty-input-start, .quick-qty-input-details').on('input change', updatePrepaidTotals);
+        $('#customHoursInput, #modalStartHoursInput, .quick-qty-input-start, .quick-qty-input-details').on('input change keyup', updatePrepaidTotals);
 
         $('#startPrepaidPaymentMethod').on('change', function() {
             if ($(this).val() === '2') {
