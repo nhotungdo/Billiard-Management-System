@@ -139,6 +139,8 @@ namespace BilliardManagement.Web.Models
 
         [Range(0, 2, ErrorMessage = "Phương thức thanh toán không hợp lệ.")]
         public int PaymentMethod { get; set; } = 0;
+
+        public Guid? ComboId { get; set; }
     }
 
     public class ExtendSessionRequest
@@ -182,6 +184,17 @@ namespace BilliardManagement.Web.Models
         public bool IsFinished { get; set; }
         public bool IsExpired { get; set; }
         public int Status { get; set; }
+        public Guid? ComboId { get; set; }
+        public int ComboHours { get; set; }
+        public int ComboDurationMinutes { get; set; }
+        public DateTime? ComboEndTime { get; set; }
+        public decimal ComboPrice { get; set; }
+        public bool IsUsingCombo { get; set; }
+        public bool IsOverComboTime { get; set; }
+        public int OverComboMinutes { get; set; }
+        public decimal TableFeeAfterCombo { get; set; }
+        public bool HasCombo => ComboDurationMinutes > 0 || ComboEndTime.HasValue || ComboHours > 0 || ComboId.HasValue;
+        public List<ComboItemDto> AppliedCombos { get; set; } = new();
         public List<SessionOrderLineDto> OrderLines { get; set; } = new();
     }
 
@@ -277,6 +290,9 @@ namespace BilliardManagement.Web.Models
         public string StaffName { get; set; } = string.Empty;
         public decimal PlayingFee { get; set; }
         public decimal ServiceFee { get; set; }
+        public decimal ComboFee { get; set; }
+        public decimal TableFeeAfterCombo { get; set; }
+        public int OverComboMinutes { get; set; }
     }
 
     public class CreateInvoiceDto

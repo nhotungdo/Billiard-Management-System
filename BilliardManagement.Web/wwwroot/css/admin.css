@@ -2,9 +2,12 @@
    Admin Layout CSS - Billiard Management (Upgraded)
    ======================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Google+Sans+Text:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Google+Sans+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
+    --font-gemini-body: 'Google Sans Text', 'Google Sans', 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-gemini-heading: 'Google Sans', 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-gemini-mono: 'Google Sans Mono', 'Fira Code', 'Roboto Mono', monospace;
     --admin-primary: #10b981;
     --admin-primary-dark: #059669;
     --admin-accent: #6366f1;
@@ -35,7 +38,9 @@
 * { box-sizing: border-box; }
 
 body.admin-body {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--font-gemini-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     background: #f8fafc;
     color: var(--text-primary);
     margin: 0;

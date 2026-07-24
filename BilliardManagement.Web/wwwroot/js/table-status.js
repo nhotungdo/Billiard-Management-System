@@ -2,7 +2,7 @@
 window.TableStatusConfig = {
     1: { key: 'Available', text: 'Trống bàn', badge: 'success', icon: 'circle-check' },
     2: { key: 'Playing', text: 'Đang chơi', badge: 'primary', icon: 'circle-play' },
-    3: { key: 'Reserved', text: 'Đặt trước', badge: 'warning', icon: 'clock' },
+    3: { key: 'Waiting', text: 'Chờ', badge: 'warning', icon: 'clock' },
     4: { key: 'Maintenance', text: 'Bảo trì', badge: 'danger', icon: 'wrench' }
 };
 
@@ -19,22 +19,22 @@ window.renderTableStatusBadge = function (status, elementId) {
 };
 
 window.updateTableStatusStats = function (tables) {
-    const counts = { available: 0, playing: 0, reserved: 0, maintenance: 0 };
+    const counts = { available: 0, playing: 0, waiting: 0, maintenance: 0 };
     tables.forEach(function (t) {
         const s = t.status !== undefined ? t.status : t.Status;
         if (s === 1) counts.available++;
         else if (s === 2) counts.playing++;
-        else if (s === 3) counts.reserved++;
+        else if (s === 3) counts.waiting++;
         else if (s === 4) counts.maintenance++;
     });
-    ['stat-available', 'stat-playing', 'stat-reserved', 'stat-maintenance'].forEach(function (id) {
+    ['stat-available', 'stat-playing', 'stat-waiting', 'stat-maintenance'].forEach(function (id) {
         const el = document.getElementById(id);
         if (!el) return;
     });
     const map = {
         'stat-available': counts.available,
         'stat-playing': counts.playing,
-        'stat-reserved': counts.reserved,
+        'stat-waiting': counts.waiting,
         'stat-maintenance': counts.maintenance
     };
     Object.keys(map).forEach(function (id) {

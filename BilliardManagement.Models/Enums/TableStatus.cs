@@ -4,7 +4,7 @@ namespace BilliardManagement.Models.Enums
     {
         Available = 1,     // Trống bàn
         Playing = 2,       // Đang chơi
-        Reserved = 3,      // Đặt trước
+        Waiting = 3,       // Chờ
         Maintenance = 4    // Bảo trì
     }
 }

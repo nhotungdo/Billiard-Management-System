@@ -90,6 +90,8 @@ namespace BilliardManagement.Business.Mappings
                 .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.ComboItems));
             CreateMap<CreateComboDto, Combo>();
             CreateMap<UpdateComboDto, Combo>();
+
+            CreateMap<SessionCombo, SessionComboDto>().ReverseMap();
         }
     }
 }

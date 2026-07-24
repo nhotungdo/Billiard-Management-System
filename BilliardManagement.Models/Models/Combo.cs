@@ -27,6 +27,8 @@ namespace BilliardManagement.Models.Models
 
         public int PlayingHours { get; set; } = 0;
 
+        public bool IsVip { get; set; } = false;
+
         public bool IsActive { get; set; } = true;
 
         public bool IsDeleted { get; set; } = false;

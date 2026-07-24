@@ -59,8 +59,18 @@ namespace BilliardManagement.Web.Pages.Staff.Products
 
             try
             {
-                // Category field stores the CategoryId Guid as string
+                // Category field stores CategoryId Guid as string, or CategoryName string
                 Guid.TryParse(EditProduct.Category, out var categoryId);
+                if (categoryId == Guid.Empty)
+                {
+                    var categories = await _productService.GetAllCategoriesAsync();
+                    var matchCat = categories?.FirstOrDefault(c => c.CategoryName.Equals(EditProduct.Category, StringComparison.OrdinalIgnoreCase));
+                    if (matchCat != null)
+                    {
+                        categoryId = matchCat.Id;
+                    }
+                }
+
                 var success = await _productService.UpdateProductWithImageAsync(
                     Id,
                     EditProduct.Name,

@@ -43,7 +43,7 @@ namespace BilliardManagement.Web.Pages.Tables
                     TableName = table.TableName,
                     TableType = table.TableType,
                     PricePerHour = table.PricePerHour,
-                    Status = table.Status switch { 1 => "Available", 2 => "Playing", 3 => "Reserved", 4 => "Maintenance", _ => "Available" }
+                    Status = table.Status switch { 1 => "Available", 2 => "Playing", 3 => "Waiting", 4 => "Maintenance", _ => "Available" }
                 };
             }
             catch (Exception ex)

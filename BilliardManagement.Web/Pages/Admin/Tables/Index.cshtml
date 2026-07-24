@@ -141,8 +141,8 @@
                     <i class="fa-solid fa-clock text-warning fs-5"></i>
                 </div>
                 <div>
-                    <div class="text-muted small">Đặt trước</div>
-                    <div class="fw-bold fs-4 text-warning" id="stat-reserved">@Model.CountReserved</div>
+                    <div class="text-muted small">Chờ</div>
+                    <div class="fw-bold fs-4 text-warning" id="stat-waiting">@Model.CountWaiting</div>
                 </div>
             </div>
         </div>
@@ -230,7 +230,7 @@
                                             style="max-width: 130px;">
                                         @if (t.Status == 1) { <option value="Available" selected>Trống bàn</option> } else { <option value="Available">Trống bàn</option> }
                                         @if (t.Status == 2) { <option value="Playing" selected>Đang chơi</option> } else { <option value="Playing">Đang chơi</option> }
-                                        @if (t.Status == 3) { <option value="Reserved" selected>Đặt trước</option> } else { <option value="Reserved">Đặt trước</option> }
+                                        @if (t.Status == 3) { <option value="Waiting" selected>Chờ</option> } else { <option value="Waiting">Chờ</option> }
                                         @if (t.Status == 4) { <option value="Maintenance" selected>Bảo trì</option> } else { <option value="Maintenance">Bảo trì</option> }
                                     </select>
                                     <span class="status-spinner d-none" id="spinner-@t.Id">
@@ -248,7 +248,7 @@
                                                 data-tablename="@t.TableName"
                                                 data-tabletype="@t.TableType"
                                                 data-priceperhour="@t.PricePerHour"
-                                                data-status="@(t.Status switch { 1 => "Available", 2 => "Playing", 3 => "Reserved", 4 => "Maintenance", _ => "Available" })"
+                                                data-status="@(t.Status switch { 1 => "Available", 2 => "Playing", 3 => "Waiting", 4 => "Maintenance", _ => "Available" })"
                                                 data-description="@t.Description"
                                                 title="Sửa Bàn">
                                             <i class="fa-solid fa-pen-to-square"></i>
@@ -351,7 +351,7 @@
                         <select asp-for="EditTable.Status" id="editStatus" class="form-select">
                             <option value="Available">Trống bàn</option>
                             <option value="Playing">Đang chơi</option>
-                            <option value="Reserved">Đặt trước</option>
+                            <option value="Waiting">Chờ</option>
                             <option value="Maintenance">Bảo trì</option>
                         </select>
                     </div>
@@ -400,7 +400,7 @@
     const STATUS_ENUM = {
         Available: 1,
         Playing: 2,
-        Reserved: 3,
+        Waiting: 3,
         Maintenance: 4
     };
 

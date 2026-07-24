@@ -38,7 +38,7 @@ namespace BilliardManagement.Business.Interfaces
 
     public interface ISessionService
     {
-        Task<SessionDto> StartSessionAsync(Guid tableId, Guid userId, int durationHours, string? customerName = null, string? customerPhone = null, int paymentMethod = 0);
+        Task<SessionDto> StartSessionAsync(Guid tableId, Guid userId, int durationHours, string? customerName = null, string? customerPhone = null, int paymentMethod = 0, Guid? comboId = null);
         Task<SessionDto> ExtendSessionAsync(Guid sessionId, int additionalMinutes, Guid? staffUserId = null);
         Task<SessionDto> EndSessionAsync(Guid sessionId, GenerateBillDto? billDto = null, Guid? staffUserId = null);
         Task<IEnumerable<SessionDto>> GetActiveSessionsAsync();
@@ -50,6 +50,7 @@ namespace BilliardManagement.Business.Interfaces
     {
         Task<IEnumerable<ProductDto>> GetAllProductsAsync();
         Task<PagedResult<ProductDto>> GetPagedProductsAsync(ProductQueryParameters query);
+        Task<ProductDto> GetProductByIdAsync(Guid id);
         Task<ProductDto> CreateProductAsync(CreateProductDto dto, Guid? createdBy = null);
         Task<ProductDto> UpdateProductAsync(Guid id, CreateProductDto dto, Guid? updatedBy = null);
         Task<bool> DeleteProductAsync(Guid id);

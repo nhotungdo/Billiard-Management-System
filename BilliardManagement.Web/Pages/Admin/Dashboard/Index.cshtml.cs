@@ -55,7 +55,7 @@ namespace BilliardManagement.Web.Pages.Admin.Dashboard
         // Helper counts from current tables
         public int CountAvailable => LiveTables.Count(t => t.Status == 1);
         public int CountPlaying => LiveTables.Count(t => t.Status == 2);
-        public int CountReserved => LiveTables.Count(t => t.Status == 3);
+        public int CountWaiting => LiveTables.Count(t => t.Status == 3);
         public int CountMaintenance => LiveTables.Count(t => t.Status == 4);
 
         public async Task<IActionResult> OnGetAsync()

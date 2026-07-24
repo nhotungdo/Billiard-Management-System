@@ -106,13 +106,13 @@ namespace BilliardManagement.Data
                 {
                     new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 01 (Pool 8)", TableType = "Pool 8 Ball", HourlyRate = 60000, Status = TableStatus.Available, IsActive = true },
                     new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 02 (Pool 8)", TableType = "Pool 8 Ball", HourlyRate = 60000, Status = TableStatus.Available, IsActive = true },
-                    new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 03 (Pool 9)", TableType = "Pool 9 Ball", HourlyRate = 70000, Status = TableStatus.Reserved, IsActive = true },
+                    new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 03 (Pool 9)", TableType = "Pool 9 Ball", HourlyRate = 70000, Status = TableStatus.Waiting, IsActive = true },
                     new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 04 (Pool 9)", TableType = "Pool 9 Ball", HourlyRate = 70000, Status = TableStatus.Maintenance, IsActive = true },
                     new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 05 (Snooker)", TableType = "Snooker", HourlyRate = 90000, Status = TableStatus.Available, IsActive = true },
-                    new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 06 (Snooker)", TableType = "Snooker", HourlyRate = 90000, Status = TableStatus.Reserved, IsActive = true },
+                    new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 06 (Snooker)", TableType = "Snooker", HourlyRate = 90000, Status = TableStatus.Waiting, IsActive = true },
                     new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 07 (VIP)", TableType = "VIP", HourlyRate = 120000, Status = TableStatus.Available, IsActive = true },
                     new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 08 (VIP)", TableType = "VIP", HourlyRate = 120000, Status = TableStatus.Maintenance, IsActive = true },
-                    new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 09 (Pool 8)", TableType = "Pool 8 Ball", HourlyRate = 60000, Status = TableStatus.Reserved, IsActive = true },
+                    new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 09 (Pool 8)", TableType = "Pool 8 Ball", HourlyRate = 60000, Status = TableStatus.Waiting, IsActive = true },
                     new BilliardTable { Id = Guid.NewGuid(), TableName = "Bàn 10 (VIP)", TableType = "VIP", HourlyRate = 120000, Status = TableStatus.Available, IsActive = true }
                 };
                 tables.AddRange(new[]
@@ -498,6 +498,7 @@ namespace BilliardManagement.Data
                 Price = 210000,
                 PlayingHours = 3,
                 Description = "3 giờ chơi đêm + 1 Mì Ly + 1 Red Bull",
+                IsVip = true,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };

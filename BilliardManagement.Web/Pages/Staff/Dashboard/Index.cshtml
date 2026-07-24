@@ -257,13 +257,24 @@
                                             </div>
 
                                             <div class="row g-2 border-top border-bottom border-light-subtle py-3 my-3">
+                                                @{
+                                                    var isPayLater = session.DurationHours == 0 || !session.EndTime.HasValue;
+                                                    var elapsedSec = Math.Max(0, (int)(DateTime.UtcNow - session.StartTime).TotalSeconds);
+                                                }
                                                 <div class="col-6">
                                                     <span class="text-muted small d-block">Giờ bắt đầu</span>
                                                     <span class="fw-semibold text-dark">@session.StartTime.ToLocalTime().ToString("HH:mm")</span>
                                                 </div>
                                                 <div class="col-6 text-end">
-                                                    <span class="text-muted small d-block">Thời gian còn lại</span>
-                                                    <span class="session-timer @timerClass" id="timer-@t.Id" data-end="@endIso" data-remaining="@remainingSec">@timerText</span>
+                                                    <span class="text-muted small d-block">@(isPayLater ? "Thời gian đã chơi" : "Thời gian còn lại")</span>
+                                                    <span class="session-timer @(isPayLater ? "text-primary fw-bold" : timerClass)" 
+                                                          id="timer-@t.Id" 
+                                                          data-mode="@(isPayLater ? "paylater" : "prepaid")"
+                                                          data-start="@session.StartTime.ToString("o")" 
+                                                          data-end="@endIso" 
+                                                          data-remaining="@remainingSec">
+                                                        @(isPayLater ? IndexModel.FormatTimer(elapsedSec) : timerText)
+                                                    </span>
                                                 </div>
                                             </div>
 
@@ -412,11 +423,32 @@
                         <label class="form-label fw-semibold text-dark small">Chọn bàn chơi</label>
                         <select class="form-select rounded-3 py-2 border-light-subtle" id="startNewSessionTableSelect">
                             <option value="">-- Chọn bàn trống --</option>
-                            @foreach (var t in Model.TableDashboard.Where(tb => tb.Status == 1 || tb.Status == 3))
+                            @foreach (var t in Model.TableDashboard.OrderBy(tb => tb.Status).ThenBy(tb => tb.TableName))
                             {
-                                <option value="@t.Id" data-rate="@t.HourlyRate">@t.TableName (@t.TableType) - @t.HourlyRate.ToString("N0")đ/h</option>
+                                if (t.Status == 1 || t.Status == 3)
+                                {
+                                    <option value="@t.Id" data-rate="@t.HourlyRate" data-status="@t.Status">🟢 @t.TableName (@t.TableType) - @t.HourlyRate.ToString("N0")đ/h</option>
+                                }
+                                else if (t.Status == 2)
+                                {
+                                    <option value="@t.Id" data-rate="@t.HourlyRate" data-status="@t.Status" disabled>🔴 @t.TableName (@t.TableType) — Đang có người chơi</option>
+                                }
+                                else if (t.Status == 4)
+                                {
+                                    <option value="@t.Id" data-rate="@t.HourlyRate" data-status="@t.Status" disabled>🔧 @t.TableName (@t.TableType) — Đang bảo trì</option>
+                                }
                             }
                         </select>
+                        <div class="alert alert-warning py-2 px-3 small mt-2 rounded-3 border-warning-subtle d-none" id="tableSelectWarning">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                            <span id="tableSelectWarningMsg"></span>
+                        </div>
+                        @if (!Model.TableDashboard.Any(tb => tb.Status == 1 || tb.Status == 3))
+                        {
+                            <div class="alert alert-danger py-2 px-3 small mt-2 rounded-3">
+                                <i class="fa-solid fa-circle-xmark me-1"></i> Hiện tại tất cả các bàn đều đang bận. Vui lòng thử lại sau hoặc <a href="/Staff/Tables/Map" class="fw-bold">xem sơ đồ bàn</a>.
+                            </div>
+                        }
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold text-dark small">Tên khách hàng <span class="text-danger">*</span></label>
@@ -427,15 +459,51 @@
                         <input type="tel" class="form-control rounded-3 py-2 border-light-subtle" id="startNewSessionCustomerPhone" placeholder="Số điện thoại (0912345678)" required pattern="0[0-9]{9}" maxlength="10" title="Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold text-dark small">Chọn thời gian chơi</label>
-                        <div class="d-grid gap-2 hour-options-new mb-3" style="grid-template-columns: repeat(4, 1fr); display: grid;">
-                            @for (int h = 1; h <= 4; h++)
-                            {
-                                <button type="button" class="btn btn-outline-success py-2 rounded-3 btn-new-hour-option" data-hours="@h">@h giờ</button>
-                            }
+                        <label class="form-label fw-bold small text-secondary">Chế độ mở bàn</label>
+                        <div class="d-flex gap-2 mb-2 flex-wrap">
+                            <button type="button" class="btn btn-outline-primary active btn-dash-start-mode flex-fill fw-bold py-2" data-mode="paylater">
+                                ⚡ Mở bàn theo giờ (Thanh toán sau)
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-dash-start-mode flex-fill fw-bold py-2" data-mode="prepaid">
+                                ⏱️ Đặt giờ (Trả trước)
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-dash-start-mode flex-fill fw-bold py-2" data-mode="combo">
+                                🎁 Mở bằng Combo
+                            </button>
                         </div>
-                        <label class="form-label fw-semibold text-dark small">Nhập giờ tùy chỉnh (1-24)</label>
-                        <input type="number" class="form-control rounded-3 border-light-subtle mb-3" id="customHoursNewInput" min="1" max="24" value="1" />
+
+                        <div class="dash-start-paylater-notice alert alert-info py-2 px-3 small border-info-subtle mb-0 rounded-3">
+                            <i class="fa-solid fa-circle-info text-info me-1"></i> Khách hàng chơi tự do theo giờ. Tiền giờ sẽ tự động tính theo thời gian chơi thực tế đến khi trả bàn & thanh toán.
+                        </div>
+
+                        <div class="dash-start-prepaid-box mt-2" style="display:none;">
+                            <label class="form-label fw-bold small text-secondary">Số giờ chơi đăng ký ban đầu</label>
+                            <div class="d-grid gap-2 hour-options-new mb-3" style="grid-template-columns: repeat(4, 1fr); display: grid;">
+                                @for (int h = 1; h <= 4; h++)
+                                {
+                                    <button type="button" class="btn btn-outline-success py-2 rounded-3 btn-new-hour-option" data-hours="@h">@h giờ</button>
+                                }
+                            </div>
+                            <label class="form-label fw-bold small text-secondary">Nhập giờ tùy chỉnh (1-24)</label>
+                            <input type="number" class="form-control rounded-3 border-light-subtle mb-3" id="customHoursNewInput" min="1" max="24" value="2" />
+                        </div>
+
+                        <div class="dash-start-combo-box mt-2" id="dashStartComboBox" style="display:none;">
+                            <label class="form-label fw-bold small text-secondary"><i class="fa-solid fa-layer-group text-success me-1"></i>Chọn gói Combo ưu đãi</label>
+                            <select class="form-select fw-bold text-success" id="dashStartComboSelect">
+                                <option value="" selected>-- Chọn gói Combo --</option>
+                                @foreach (var c in (Model.Combos ?? new List<BilliardManagement.Web.Models.ComboDto>()).Where(c => c.IsActive))
+                                {
+                                    <option value="@c.Id" data-code="@c.ComboCode" data-price="@c.Price" data-hours="@c.PlayingHours" data-name="@c.Name" data-vip="@(c.IsVip ? "true" : "false")">
+                                        🎁 @c.ComboCode - @c.Name (@c.Price.ToString("N0") đ - @c.PlayingHours giờ chơi)
+                                    </option>
+                                }
+                            </select>
+                            <div class="alert alert-success py-2 px-3 small border-success-subtle mt-2 mb-0 rounded-3" id="dashStartComboInfo" style="display:none;">
+                                <i class="fa-solid fa-circle-check text-success me-1"></i> Trong thời gian Combo, <strong>miễn phí hoàn toàn tiền bàn</strong>. Nếu chơi quá giờ Combo sẽ bắt đầu tính tiền bàn từ thời điểm hết Combo.
+                            </div>
+                        </div>
+                    </div>
 
                         <div class="mb-3 border-top pt-3">
                             <label class="form-label fw-semibold text-dark small d-block">Gọi món nhanh (Tuỳ chọn)</label>
@@ -695,26 +763,103 @@
             // Modals & API Calls
             let activeSessionId = null;
             let activeTableId = null;
-            let selectedHours = 1;
+            let selectedHours = 2;
+            let currentDashStartMode = 'paylater';
+
+            $('.btn-dash-start-mode').on('click', function () {
+                $('.btn-dash-start-mode').removeClass('active btn-primary btn-success').addClass('btn-outline-secondary');
+                currentDashStartMode = $(this).data('mode');
+
+                if (currentDashStartMode === 'combo') {
+                    $(this).removeClass('btn-outline-secondary').addClass('active btn-success');
+                    $('.dash-start-paylater-notice, .dash-start-prepaid-box').slideUp();
+                    $('#dashStartComboBox').slideDown();
+                    $('#btnConfirmStartNewSession').html('<i class="fa-solid fa-gift me-2"></i>Mở Bàn Bằng Combo');
+                } else if (currentDashStartMode === 'prepaid') {
+                    $(this).removeClass('btn-outline-secondary').addClass('active btn-primary');
+                    $('.dash-start-paylater-notice, #dashStartComboBox').slideUp();
+                    $('.dash-start-prepaid-box').slideDown();
+                    $('#btnConfirmStartNewSession').html('<i class="fa-solid fa-credit-card me-2"></i>Duyệt Thanh Toán & Mở Bàn');
+                } else {
+                    $(this).removeClass('btn-outline-secondary').addClass('active btn-primary');
+                    $('.dash-start-paylater-notice').slideDown();
+                    $('.dash-start-prepaid-box, #dashStartComboBox').slideUp();
+                    $('#btnConfirmStartNewSession').html('<i class="fa-solid fa-play me-2"></i>Mở Bàn Theo Giờ Ngay');
+                }
+                calculateDashboardStartTotal();
+            });
+
+            $('#dashStartComboSelect').on('change', function () {
+                if ($(this).val()) {
+                    $('#dashStartComboInfo').slideDown();
+                } else {
+                    $('#dashStartComboInfo').slideUp();
+                }
+                calculateDashboardStartTotal();
+            });
 
             // Start Session Popup (Quick Action)
             $('.btn-start-new-session-modal').on('click', function () {
                 $('#startNewSessionTableSelect').val('');
+                $('#tableSelectWarning').addClass('d-none');
                 $('#startNewSessionCustomerName').val('');
                 $('#startNewSessionCustomerPhone').val('');
                 $('.quick-qty-input-dash').val(0);
+                $('#dashStartComboSelect').val('');
+                $('#dashStartComboInfo').hide();
+                $('#dashStartComboBox').hide();
+                $('#customHoursNewInput').val(2);
                 $('.btn-new-hour-option').removeClass('btn-success text-white').addClass('btn-outline-success');
-                $('[data-hours="1"]').removeClass('btn-outline-success').addClass('btn-success text-white');
-                selectedHours = 1;
-                $('#customHoursNewInput').val(1);
+                $('[data-hours="2"]').removeClass('btn-outline-success').addClass('btn-success text-white');
+                selectedHours = 2;
+
+                currentDashStartMode = 'paylater';
+                $('.btn-dash-start-mode').removeClass('active btn-primary btn-success').addClass('btn-outline-secondary');
+                $('.btn-dash-start-mode[data-mode="paylater"]').removeClass('btn-outline-secondary').addClass('active btn-primary');
+                $('.dash-start-paylater-notice').show();
+                $('.dash-start-prepaid-box, #dashStartComboBox').hide();
+                $('#btnConfirmStartNewSession').html('<i class="fa-solid fa-play me-2"></i>Mở Bàn Theo Giờ Ngay');
+
                 calculateDashboardStartTotal();
                 $('#startNewSessionModal').modal('show');
+            });
+
+            // Validate table selection — block playing/maintenance tables
+            $('#startNewSessionTableSelect').on('change', function () {
+                const selectedOpt = $(this).find('option:selected');
+                const status = parseInt(selectedOpt.attr('data-status') || '0', 10);
+                const warning = $('#tableSelectWarning');
+                const warningMsg = $('#tableSelectWarningMsg');
+
+                if (status === 2) {
+                    warning.removeClass('d-none');
+                    warningMsg.html('Bàn này <strong>đang có khách chơi</strong>. Vui lòng chọn một bàn khác còn trống!');
+                    $(this).val('');
+                    calculateDashboardStartTotal();
+                } else if (status === 4) {
+                    warning.removeClass('d-none');
+                    warningMsg.html('Bàn này <strong>đang bảo trì</strong>. Vui lòng chọn một bàn khác!');
+                    $(this).val('');
+                    calculateDashboardStartTotal();
+                } else {
+                    warning.addClass('d-none');
+                    calculateDashboardStartTotal();
+                }
             });
 
             function calculateDashboardStartTotal() {
                 const selectedOpt = $('#startNewSessionTableSelect option:selected');
                 const rate = parseFloat(selectedOpt.attr('data-rate')) || parseFloat(selectedOpt.data('rate')) || 0;
-                const hours = parseInt($('#customHoursNewInput').val(), 10) || 1;
+                let tableFee = 0;
+
+                if (currentDashStartMode === 'prepaid') {
+                    const hours = parseInt($('#customHoursNewInput').val(), 10) || 1;
+                    tableFee = rate * hours;
+                } else if (currentDashStartMode === 'combo') {
+                    const comboOpt = $('#dashStartComboSelect option:selected');
+                    tableFee = parseFloat(comboOpt.attr('data-price')) || parseFloat(comboOpt.data('price')) || 0;
+                }
+
                 let quickFee = 0;
                 $('.quick-qty-input-dash').each(function() {
                     const qty = parseInt($(this).val(), 10) || 0;
@@ -723,7 +868,7 @@
                         quickFee += qty * price;
                     }
                 });
-                const total = (rate * hours) + quickFee;
+                const total = tableFee + quickFee;
                 $('#startNewSessionTotalAmount').text(total.toLocaleString('vi-VN') + ' đ');
             }
 
@@ -771,21 +916,53 @@
                     $('#btnConfirmStartNewSession').html('<i class="fa-solid fa-circle-check me-2"></i>Duyệt thanh toán & Bắt đầu');
                 } else {
                     $('#startNewSessionQrContainer').slideUp();
-                    $('#btnConfirmStartNewSession').html('<i class="fa-solid fa-credit-card me-2"></i>Thanh toán & Bắt đầu');
+                    if (currentDashStartMode === 'combo') {
+                        $('#btnConfirmStartNewSession').html('<i class="fa-solid fa-gift me-2"></i>Mở Bàn Bằng Combo');
+                    } else if (currentDashStartMode === 'prepaid') {
+                        $('#btnConfirmStartNewSession').html('<i class="fa-solid fa-credit-card me-2"></i>Duyệt Thanh Toán & Mở Bàn');
+                    } else {
+                        $('#btnConfirmStartNewSession').html('<i class="fa-solid fa-play me-2"></i>Mở Bàn Theo Giờ Ngay');
+                    }
                 }
             });
 
             $('#btnConfirmStartNewSession').on('click', async function () {
                 const tableId = $('#startNewSessionTableSelect').val();
-                const hours = parseInt($('#customHoursNewInput').val(), 10);
+                const hours = currentDashStartMode === 'paylater' || currentDashStartMode === 'combo' ? 0 : (parseInt($('#customHoursNewInput').val(), 10) || 2);
                 const customerName = $('#startNewSessionCustomerName').val().trim();
                 const customerPhone = $('#startNewSessionCustomerPhone').val().trim();
                 const paymentMethod = parseInt($('#startNewSessionPaymentMethod').val(), 10) || 0;
                 
                 if (!tableId) {
-                    toastr.warning('Vui lòng chọn một bàn chơi.');
+                    toastr.warning('Vui lòng chọn một bàn còn trống.');
                     return;
                 }
+
+                // Double-check: ensure selected table is not playing or under maintenance
+                const selectedTableOpt = $('#startNewSessionTableSelect option:selected');
+                const selectedTableStatus = parseInt(selectedTableOpt.attr('data-status') || '0', 10);
+                if (selectedTableStatus === 2) {
+                    toastr.warning('Bàn đang có khách chơi! Vui lòng chọn một bàn khác còn trống.');
+                    $('#startNewSessionTableSelect').val('');
+                    $('#tableSelectWarning').removeClass('d-none');
+                    $('#tableSelectWarningMsg').html('Bàn này <strong>đang có khách chơi</strong>. Vui lòng chọn một bàn khác còn trống!');
+                    return;
+                }
+                if (selectedTableStatus === 4) {
+                    toastr.warning('Bàn đang bảo trì! Vui lòng chọn một bàn khác còn trống.');
+                    $('#startNewSessionTableSelect').val('');
+                    return;
+                }
+
+                let comboId = null;
+                if (currentDashStartMode === 'combo') {
+                    comboId = $('#dashStartComboSelect').val();
+                    if (!comboId) {
+                        toastr.warning('Vui lòng chọn gói Combo để mở bàn.');
+                        return;
+                    }
+                }
+
                 if (!customerName || !customerPhone) {
                     toastr.warning('Vui lòng nhập đầy đủ tên và số điện thoại khách hàng.');
                     return;
@@ -795,26 +972,28 @@
                     toastr.warning('Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678).');
                     return;
                 }
-                if (isNaN(hours) || hours < 1 || hours > 24) {
+                if (currentDashStartMode === 'prepaid' && (isNaN(hours) || hours < 1 || hours > 24)) {
                     toastr.warning('Thời gian phải từ 1 đến 24 giờ.');
                     return;
                 }
 
                 $('#loading-overlay').css('display', 'flex');
                 try {
+                    const payload = { 
+                        tableId: tableId, 
+                        durationHours: hours,
+                        customerName: customerName,
+                        customerPhone: customerPhone,
+                        paymentMethod: paymentMethod,
+                        comboId: comboId
+                    };
                     const response = await fetch(`${window.STAFF_DASHBOARD.apiBase}table-sessions/start`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${window.STAFF_DASHBOARD.token}`
                         },
-                        body: JSON.stringify({ 
-                            tableId: tableId, 
-                            durationHours: hours,
-                            customerName: customerName,
-                            customerPhone: customerPhone,
-                            paymentMethod: paymentMethod
-                        })
+                        body: JSON.stringify(payload)
                     });
                     const resData = await response.json();
                     if (response.ok && resData.success) {

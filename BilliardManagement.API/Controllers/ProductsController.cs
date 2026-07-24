@@ -62,6 +62,23 @@ namespace BilliardManagement.API.Controllers
             return Ok(ApiResponse<PagedResult<ProductDto>>.Ok(pagedResult));
         }
 
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(Guid id)
+        {
+            try
+            {
+                var product = await _productService.GetProductByIdAsync(id);
+                if (product == null)
+                    return NotFound(ApiResponse<object>.Fail("Sản phẩm không tồn tại"));
+
+                return Ok(ApiResponse<ProductDto>.Ok(product));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
+        }
+
         [HttpGet("check-name")]
         [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> CheckName([FromQuery] string name, [FromQuery] Guid? excludeId = null)

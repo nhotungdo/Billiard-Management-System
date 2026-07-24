@@ -211,7 +211,7 @@ namespace BilliardManagement.Business.Services
                 }
             }
 
-            if (status == TableStatus.Reserved)
+            if (status == TableStatus.Waiting)
             {
                 if (hasActiveSession)
                 {
@@ -229,7 +229,7 @@ namespace BilliardManagement.Business.Services
                     }
                     else
                     {
-                        throw new CustomException("Không thể đặt trước khi bàn đang hoạt động phiên chơi.", 400);
+                        throw new CustomException("Không thể chuyển sang trạng thái Chờ khi bàn đang hoạt động phiên chơi.", 400);
                     }
                 }
             }

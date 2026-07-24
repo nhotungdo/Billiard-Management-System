@@ -77,6 +77,7 @@ namespace BilliardManagement.Business.Services
                 Price = dto.Price,
                 Description = dto.Description,
                 PlayingHours = dto.PlayingHours,
+                IsVip = dto.IsVip,
                 IsActive = dto.IsActive,
                 CreatedAt = DateTime.UtcNow
             };
@@ -124,6 +125,7 @@ namespace BilliardManagement.Business.Services
             combo.Price = dto.Price;
             combo.Description = dto.Description;
             combo.PlayingHours = dto.PlayingHours;
+            combo.IsVip = dto.IsVip;
             combo.IsActive = dto.IsActive;
 
             // Remove existing combo items
@@ -195,7 +197,8 @@ namespace BilliardManagement.Business.Services
             }
 
             var session = await _unitOfWork.Repository<TableSession>().GetFirstOrDefaultAsync(
-                filter: s => s.Id == request.TableSessionId && !s.IsFinished
+                filter: s => s.Id == request.TableSessionId && !s.IsFinished,
+                includeProperties: "BilliardTable"
             );
 
             if (session == null)
@@ -207,58 +210,115 @@ namespace BilliardManagement.Business.Services
                 };
             }
 
+            var table = session.BilliardTable ?? await _unitOfWork.Repository<BilliardTable>().GetByIdAsync(session.TableId);
+            var isVipTable = table != null && table.TableType.Contains("VIP", StringComparison.OrdinalIgnoreCase);
+            var isVipCombo = comboDto.IsVip || comboDto.Name.Contains("VIP", StringComparison.OrdinalIgnoreCase) || comboDto.ComboCode.Contains("VIP", StringComparison.OrdinalIgnoreCase);
+
+            if (!isVipCombo && isVipTable)
+            {
+                return new ApplyComboResultDto
+                {
+                    Success = false,
+                    Message = $"Gói combo '{comboDto.Name}' là Gói Combo Thường, không được phép áp dụng cho Bàn VIP ({table?.TableName}). Vui lòng chọn Gói Combo VIP!"
+                };
+            }
+
             await _unitOfWork.BeginTransactionAsync();
             try
             {
-                // Create an order for the combo
-                var order = new Order
+                var comboMins = comboDto.PlayingHours * 60;
+
+                // Record SessionCombo
+                var sessionCombo = new SessionCombo
                 {
                     Id = Guid.NewGuid(),
                     TableSessionId = session.Id,
-                    OrderedBy = userId,
-                    OrderTime = DateTime.UtcNow,
-                    TotalAmount = comboDto.Price,
-                    Status = OrderStatus.Completed
+                    ComboId = comboDto.Id,
+                    ComboName = comboDto.Name,
+                    Price = comboDto.Price,
+                    DurationMinutes = comboMins,
+                    AppliedAt = DateTime.UtcNow
                 };
+                await _unitOfWork.Repository<SessionCombo>().AddAsync(sessionCombo);
 
-                // Create OrderItems from combo items
-                foreach (var item in comboDto.Items)
+                // Create stock deduction order for bundled combo items
+                Guid? orderId = null;
+                if (comboDto.Items != null && comboDto.Items.Any())
                 {
-                    var product = await _unitOfWork.Repository<Product>().GetByIdAsync(item.ProductId);
-                    var unitPrice = product != null ? product.Price : item.ProductPrice;
-
-                    order.OrderItems.Add(new OrderItem
+                    var order = new Order
                     {
                         Id = Guid.NewGuid(),
-                        OrderId = order.Id,
-                        ProductId = item.ProductId,
-                        Quantity = item.Quantity,
-                        UnitPrice = unitPrice,
-                        TotalPrice = unitPrice * item.Quantity
-                    });
+                        TableSessionId = session.Id,
+                        OrderedBy = userId,
+                        OrderTime = DateTime.UtcNow,
+                        TotalAmount = 0, // Bundled items covered by combo price
+                        Status = OrderStatus.Completed,
+                        IsComboOrder = true
+                    };
+                    orderId = order.Id;
 
-                    // Deduct stock if available
-                    if (product != null && product.StockQuantity >= item.Quantity)
+                    foreach (var item in comboDto.Items)
                     {
-                        product.StockQuantity -= item.Quantity;
-                        _unitOfWork.Repository<Product>().Update(product);
+                        var product = await _unitOfWork.Repository<Product>().GetByIdAsync(item.ProductId);
+                        var unitPrice = product != null ? product.Price : item.ProductPrice;
+
+                        order.OrderItems.Add(new OrderItem
+                        {
+                            Id = Guid.NewGuid(),
+                            OrderId = order.Id,
+                            ProductId = item.ProductId,
+                            Quantity = item.Quantity,
+                            UnitPrice = unitPrice,
+                            TotalPrice = unitPrice * item.Quantity
+                        });
+
+                        if (product != null && product.StockQuantity >= item.Quantity)
+                        {
+                            product.StockQuantity -= item.Quantity;
+                            _unitOfWork.Repository<Product>().Update(product);
+                        }
                     }
+
+                    await _unitOfWork.Repository<Order>().AddAsync(order);
                 }
 
-                await _unitOfWork.Repository<Order>().AddAsync(order);
-
-                // If combo includes table play hours, add to session duration
-                if (comboDto.PlayingHours > 0)
+                // Update combo metadata on session
+                if (!session.ComboId.HasValue)
                 {
-                    session.DurationHours += comboDto.PlayingHours;
-                    session.DurationMinutes = session.DurationHours * 60;
-                    if (session.EndTime.HasValue)
-                    {
-                        session.EndTime = session.EndTime.Value.AddHours(comboDto.PlayingHours);
-                        session.RemainingMinutes = Math.Max(0, (int)(session.EndTime.Value - DateTime.UtcNow).TotalMinutes);
-                    }
-                    _unitOfWork.Repository<TableSession>().Update(session);
+                    session.ComboId = comboDto.Id;
                 }
+                session.ComboHours += comboDto.PlayingHours;
+                session.ComboDurationMinutes += comboMins;
+                session.ComboPrice += comboDto.Price;
+
+                // Update ComboEndTime (Req 4 & 5: ComboEndTime += ComboDuration)
+                if (!session.ComboEndTime.HasValue)
+                {
+                    session.ComboEndTime = session.StartTime.AddMinutes(session.ComboDurationMinutes);
+                }
+                else
+                {
+                    session.ComboEndTime = session.ComboEndTime.Value.AddMinutes(comboMins);
+                }
+
+                session.EndTime = session.ComboEndTime;
+                session.DurationHours = (int)Math.Ceiling(session.ComboDurationMinutes / 60.0);
+                session.DurationMinutes = session.ComboDurationMinutes;
+                session.RemainingMinutes = Math.Max(0, (int)(session.ComboEndTime.Value - DateTime.UtcNow).TotalMinutes);
+
+                // Table fee calculation: 0 if now <= ComboEndTime, or overtime fee if now > ComboEndTime
+                var now = DateTime.UtcNow;
+                if (now > session.ComboEndTime.Value)
+                {
+                    var overSeconds = (now - session.ComboEndTime.Value).TotalSeconds;
+                    session.TotalPrice = Math.Round((decimal)overSeconds / 3600m * (table?.HourlyRate ?? 0));
+                }
+                else
+                {
+                    session.TotalPrice = 0;
+                }
+
+                _unitOfWork.Repository<TableSession>().Update(session);
 
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitTransactionAsync();
@@ -266,9 +326,9 @@ namespace BilliardManagement.Business.Services
                 return new ApplyComboResultDto
                 {
                     Success = true,
-                    Message = $"Áp dụng combo '{comboDto.Name}' cho bàn thành công!",
+                    Message = $"Áp dụng / Gia hạn combo '{comboDto.Name}' cho bàn thành công!",
                     Combo = comboDto,
-                    OrderId = order.Id
+                    OrderId = orderId
                 };
             }
             catch (Exception ex)

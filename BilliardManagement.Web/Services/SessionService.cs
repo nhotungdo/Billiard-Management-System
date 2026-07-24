@@ -20,7 +20,7 @@ namespace BilliardManagement.Web.Services
             return await GetAsync<List<TableDashboardDto>>("table-sessions/dashboard");
         }
 
-        public async Task<SessionDto?> StartSessionAsync(Guid tableId, int durationHours, string? customerName = null, string? customerPhone = null, int paymentMethod = 0)
+        public async Task<SessionDto?> StartSessionAsync(Guid tableId, int durationHours, string? customerName = null, string? customerPhone = null, int paymentMethod = 0, Guid? comboId = null)
         {
             var url = "table-sessions/start";
             return await PostAsync<StartSessionRequest, SessionDto>(url,
@@ -30,7 +30,8 @@ namespace BilliardManagement.Web.Services
                     DurationHours = durationHours, 
                     CustomerName = customerName, 
                     CustomerPhone = customerPhone,
-                    PaymentMethod = paymentMethod
+                    PaymentMethod = paymentMethod,
+                    ComboId = comboId
                 });
         }
 

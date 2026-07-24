@@ -28,7 +28,7 @@ namespace BilliardManagement.Web.Pages.Staff.Tables
 
         public int CountAvailable => TableDashboard.Count(t => t.Status == 1);
         public int CountPlaying => TableDashboard.Count(t => t.Status == 2);
-        public int CountReserved => TableDashboard.Count(t => t.Status == 3);
+        public int CountWaiting => TableDashboard.Count(t => t.Status == 3);
         public int CountMaintenance => TableDashboard.Count(t => t.Status == 4);
 
         public decimal ActiveSessionsRevenue => TableDashboard

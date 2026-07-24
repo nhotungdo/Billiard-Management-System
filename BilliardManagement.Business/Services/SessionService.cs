@@ -37,25 +37,54 @@ namespace BilliardManagement.Business.Services
             _customerService = customerService;
         }
 
-        public async Task<SessionDto> StartSessionAsync(Guid tableId, Guid userId, int durationHours, string? customerName = null, string? customerPhone = null, int paymentMethod = 0)
+        public async Task<SessionDto> StartSessionAsync(Guid tableId, Guid userId, int durationHours, string? customerName = null, string? customerPhone = null, int paymentMethod = 0, Guid? comboId = null)
         {
-            if (durationHours < 1 || durationHours > 24)
-                throw new CustomException("Duration must be between 1 and 24 hours", 400);
+            if (durationHours < 0 || durationHours > 24)
+                throw new CustomException("Duration must be between 0 and 24 hours", 400);
 
             var table = await _unitOfWork.Repository<BilliardTable>().GetByIdAsync(tableId);
             if (table == null) throw new CustomException("Table not found", 404);
 
             if (table.Status == TableStatus.Maintenance)
-                throw new CustomException("Cannot start session on a table under maintenance", 400);
+                throw new CustomException($"Không thể mở bàn '{table.TableName}' vì đang ở trạng thái bảo trì.", 400);
+
+            Combo? combo = null;
+            if (comboId.HasValue)
+            {
+                combo = await _unitOfWork.Repository<Combo>().GetFirstOrDefaultAsync(
+                    c => c.Id == comboId.Value && !c.IsDeleted && c.IsActive,
+                    "ComboItems,ComboItems.Product");
+                if (combo == null)
+                    throw new CustomException("Combo không tồn tại hoặc đã bị ẩn", 400);
+
+                var isVipTable = table.TableType.Contains("VIP", StringComparison.OrdinalIgnoreCase);
+                var isVipCombo = combo.IsVip || combo.Name.Contains("VIP", StringComparison.OrdinalIgnoreCase) || combo.ComboCode.Contains("VIP", StringComparison.OrdinalIgnoreCase);
+                if (!isVipCombo && isVipTable)
+                {
+                    throw new CustomException($"Gói combo '{combo.Name}' không được áp dụng cho Bàn VIP ({table.TableName}). Vui lòng chọn Combo VIP!", 400);
+                }
+            }
 
             var activeOnTable = (await _unitOfWork.Repository<TableSession>().GetAllAsync(
                 s => s.TableId == tableId && s.Status == SessionStatus.Active && !s.IsFinished)).ToList();
 
-            if (activeOnTable.Any())
+            if (table.Status == TableStatus.Playing)
             {
-                if (table.Status == TableStatus.Available || table.Status == TableStatus.Reserved)
+                if (activeOnTable.Any())
                 {
-                    // Auto-heal orphaned active sessions because table state is Available/Reserved
+                    throw new CustomException($"Bàn '{table.TableName}' đang trong phiên chơi hoạt động. Vui lòng kết thúc bàn trước khi tạo phiên chơi mới!", 400);
+                }
+                else
+                {
+                    // Auto-heal table status if DB status was left as Playing but no active session exists
+                    table.Status = TableStatus.Available;
+                }
+            }
+            else if (activeOnTable.Any())
+            {
+                if (table.Status == TableStatus.Available || table.Status == TableStatus.Waiting)
+                {
+                    // Auto-heal orphaned active sessions because table state is Available/Waiting
                     foreach (var s in activeOnTable)
                     {
                         s.EndTime = s.EndTime ?? DateTime.UtcNow;
@@ -65,10 +94,6 @@ namespace BilliardManagement.Business.Services
                         _unitOfWork.Repository<TableSession>().Update(s);
                     }
                     await _unitOfWork.SaveChangesAsync();
-                }
-                else
-                {
-                    throw new CustomException("Cannot start session when table is already playing", 400);
                 }
             }
 
@@ -80,12 +105,15 @@ namespace BilliardManagement.Business.Services
                 await _unitOfWork.SaveChangesAsync();
             }
 
-            if (table.Status != TableStatus.Available && table.Status != TableStatus.Reserved)
+            if (table.Status != TableStatus.Available && table.Status != TableStatus.Waiting)
                 throw new CustomException("Table is not available for a new session", 400);
 
             var startTime = DateTime.UtcNow;
-            var endTime = startTime.AddHours(durationHours);
-            var totalPrice = table.HourlyRate * durationHours;
+            int comboMins = combo != null ? combo.PlayingHours * 60 : 0;
+            DateTime? comboEndTime = combo != null && comboMins > 0 ? startTime.AddMinutes(comboMins) : null;
+            DateTime? endTime = comboEndTime ?? (durationHours > 0 ? startTime.AddHours(durationHours) : null);
+            decimal comboPrice = combo != null ? combo.Price : 0;
+            decimal totalPrice = combo != null ? 0 : (durationHours > 0 ? table.HourlyRate * durationHours : 0);
 
             CustomerDto? customerDto = null;
             Guid? customerId = null;
@@ -111,58 +139,127 @@ namespace BilliardManagement.Business.Services
                 CustomerId = customerId,
                 StartTime = startTime,
                 EndTime = endTime,
-                DurationHours = durationHours,
-                DurationMinutes = durationHours * 60,
-                RemainingMinutes = durationHours * 60,
+                DurationHours = combo != null ? combo.PlayingHours : durationHours,
+                DurationMinutes = comboMins > 0 ? comboMins : (durationHours > 0 ? durationHours * 60 : (int?)null),
+                RemainingMinutes = comboMins > 0 ? comboMins : (durationHours > 0 ? durationHours * 60 : 0),
                 TotalPrice = totalPrice,
                 IsFinished = false,
-                Status = SessionStatus.Active
+                Status = SessionStatus.Active,
+                ComboId = combo?.Id,
+                ComboHours = combo?.PlayingHours ?? 0,
+                ComboDurationMinutes = comboMins,
+                ComboEndTime = comboEndTime,
+                ComboPrice = comboPrice
             };
 
             table.Status = TableStatus.Playing;
 
             await _unitOfWork.Repository<TableSession>().AddAsync(session);
-            _unitOfWork.Repository<BilliardTable>().Update(table);
-            await _unitOfWork.SaveChangesAsync();
 
-            var enumPaymentMethod = Enum.IsDefined(typeof(PaymentMethod), paymentMethod) 
-                ? (PaymentMethod)paymentMethod 
-                : PaymentMethod.Cash;
-
-            var prepaidInvoice = new Invoice
+            if (combo != null)
             {
-                TableSessionId = session.Id,
-                CustomerId = customerId,
-                Subtotal = totalPrice,
-                TotalAmount = totalPrice,
-                PaymentMethod = enumPaymentMethod,
-                IsPaid = true,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            if (customerId.HasValue)
-            {
-                var customer = await _unitOfWork.Repository<Customer>().GetByIdAsync(customerId.Value);
-                if (customer != null)
+                var sessionCombo = new SessionCombo
                 {
-                    customer.TotalVisits += 1;
-                    customer.TotalPlayHours += (decimal)durationHours;
-                    customer.TotalSpent += totalPrice;
-                    customer.LastVisitDate = DateTime.UtcNow;
-                    if (!customer.FirstVisitDate.HasValue)
+                    Id = Guid.NewGuid(),
+                    TableSessionId = session.Id,
+                    ComboId = combo.Id,
+                    ComboName = combo.Name,
+                    Price = combo.Price,
+                    DurationMinutes = comboMins,
+                    AppliedAt = startTime
+                };
+                await _unitOfWork.Repository<SessionCombo>().AddAsync(sessionCombo);
+
+                if (combo.ComboItems != null && combo.ComboItems.Any())
+                {
+                    var comboOrder = new Order
                     {
-                        customer.FirstVisitDate = DateTime.UtcNow;
+                        Id = Guid.NewGuid(),
+                        TableSessionId = session.Id,
+                        OrderedBy = userId,
+                        OrderTime = startTime,
+                        TotalAmount = 0,
+                        Status = OrderStatus.Completed,
+                        IsComboOrder = true
+                    };
+
+                    foreach (var ci in combo.ComboItems)
+                    {
+                        var product = ci.Product ?? await _unitOfWork.Repository<Product>().GetByIdAsync(ci.ProductId);
+                        if (product != null)
+                        {
+                            if (product.StockQuantity >= ci.Quantity)
+                            {
+                                product.StockQuantity -= ci.Quantity;
+                                _unitOfWork.Repository<Product>().Update(product);
+                            }
+
+                            comboOrder.OrderItems.Add(new OrderItem
+                            {
+                                Id = Guid.NewGuid(),
+                                OrderId = comboOrder.Id,
+                                ProductId = ci.ProductId,
+                                Quantity = ci.Quantity,
+                                UnitPrice = product.Price,
+                                TotalPrice = product.Price * ci.Quantity
+                            });
+                        }
                     }
-                    _unitOfWork.Repository<Customer>().Update(customer);
+                    await _unitOfWork.Repository<Order>().AddAsync(comboOrder);
                 }
             }
 
-            await _unitOfWork.Repository<Invoice>().AddAsync(prepaidInvoice);
+            _unitOfWork.Repository<BilliardTable>().Update(table);
             await _unitOfWork.SaveChangesAsync();
 
-            _logger.LogInformation(
-                "Prepaid session started & paid: sessionId={SessionId}, tableId={TableId}, staffId={StaffId}, durationHours={Hours}, totalPrice={TotalPrice}, paymentMethod={PaymentMethod}",
-                session.Id, tableId, userId, durationHours, totalPrice, enumPaymentMethod);
+            // Create prepaid invoice only for fixed duration prepaid sessions (durationHours > 0 and no combo)
+            if (durationHours > 0 && combo == null)
+            {
+                var enumPaymentMethod = Enum.IsDefined(typeof(PaymentMethod), paymentMethod) 
+                    ? (PaymentMethod)paymentMethod 
+                    : PaymentMethod.Cash;
+
+                var prepaidInvoice = new Invoice
+                {
+                    TableSessionId = session.Id,
+                    CustomerId = customerId,
+                    Subtotal = totalPrice,
+                    TotalAmount = totalPrice,
+                    PaymentMethod = enumPaymentMethod,
+                    IsPaid = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                if (customerId.HasValue)
+                {
+                    var customer = await _unitOfWork.Repository<Customer>().GetByIdAsync(customerId.Value);
+                    if (customer != null)
+                    {
+                        customer.TotalVisits += 1;
+                        customer.TotalPlayHours += (decimal)durationHours;
+                        customer.TotalSpent += totalPrice;
+                        customer.LastVisitDate = DateTime.UtcNow;
+                        if (!customer.FirstVisitDate.HasValue)
+                        {
+                            customer.FirstVisitDate = DateTime.UtcNow;
+                        }
+                        _unitOfWork.Repository<Customer>().Update(customer);
+                    }
+                }
+
+                await _unitOfWork.Repository<Invoice>().AddAsync(prepaidInvoice);
+                await _unitOfWork.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "Prepaid session started & paid: sessionId={SessionId}, tableId={TableId}, staffId={StaffId}, durationHours={Hours}, totalPrice={TotalPrice}, paymentMethod={PaymentMethod}",
+                    session.Id, tableId, userId, durationHours, totalPrice, enumPaymentMethod);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Session started: sessionId={SessionId}, tableId={TableId}, staffId={StaffId}, combo={ComboName}",
+                    session.Id, tableId, userId, combo?.Name ?? "None");
+            }
 
             var dto = await MapSessionDtoAsync(session, table);
             if (customerDto != null)
@@ -252,9 +349,38 @@ namespace BilliardManagement.Business.Services
             session.IsFinished = true;
             session.RemainingMinutes = 0;
 
-            if (session.DurationHours <= 0)
-                session.DurationHours = Math.Max(1, (int)Math.Ceiling((session.EndTime.Value - session.StartTime).TotalHours));
-            session.DurationMinutes = (int)Math.Ceiling((session.EndTime.Value - session.StartTime).TotalMinutes);
+            var totalSeconds = Math.Max(1, (int)(session.EndTime.Value - AsUtc(session.StartTime)).TotalSeconds);
+            var elapsedMinutes = (int)Math.Ceiling(totalSeconds / 60.0);
+
+            var sessionCombos = await _unitOfWork.Repository<SessionCombo>().GetAllAsync(sc => sc.TableSessionId == session.Id);
+            int totalComboMins = sessionCombos.Any() ? sessionCombos.Sum(sc => sc.DurationMinutes) : (session.ComboDurationMinutes > 0 ? session.ComboDurationMinutes : session.ComboHours * 60);
+
+            if (totalComboMins > 0 || session.ComboEndTime.HasValue || session.ComboId.HasValue)
+            {
+                DateTime comboEndTime = session.ComboEndTime ?? AsUtc(session.StartTime).AddMinutes(totalComboMins);
+                if (session.EndTime.Value > comboEndTime)
+                {
+                    var overSeconds = (session.EndTime.Value - comboEndTime).TotalSeconds;
+                    session.TotalPrice = Math.Round((decimal)overSeconds / 3600m * (table?.HourlyRate ?? 0));
+                }
+                else
+                {
+                    session.TotalPrice = 0;
+                }
+                session.DurationMinutes = elapsedMinutes;
+                session.DurationHours = Math.Max(1, (int)Math.Ceiling(elapsedMinutes / 60.0));
+            }
+            else if (session.DurationHours <= 0)
+            {
+                var actualPlayFee = Math.Round((decimal)totalSeconds / 3600m * (table?.HourlyRate ?? 0));
+                session.TotalPrice = actualPlayFee;
+                session.DurationMinutes = elapsedMinutes;
+                session.DurationHours = Math.Max(1, (int)Math.Ceiling(elapsedMinutes / 60.0));
+            }
+            else
+            {
+                session.DurationMinutes = (int)Math.Ceiling((session.EndTime.Value - session.StartTime).TotalMinutes);
+            }
 
             if (table != null)
             {
@@ -371,16 +497,80 @@ namespace BilliardManagement.Business.Services
 
         public SessionRealtimeDto BuildRealtimeDto(TableSession session, BilliardTable table, decimal ordersTotal = 0)
         {
-            EnsureSessionEndTime(session);
-            var now = DateTime.UtcNow;
-            var end = session.EndTime!.Value;
-            var remainingSeconds = Math.Max(0, (int)(end - now).TotalSeconds);
-            var remainingMinutes = remainingSeconds / 60;
-            var isExpired = remainingSeconds <= 0 && session.Status == SessionStatus.Active && !session.IsFinished;
+            var sessionCombos = _unitOfWork.Repository<SessionCombo>().GetAllAsync(sc => sc.TableSessionId == session.Id).GetAwaiter().GetResult();
+            var appliedCombos = _mapper.Map<List<SessionComboDto>>(sessionCombos.OrderBy(sc => sc.AppliedAt).ToList());
 
+            decimal comboPrice = sessionCombos.Any() ? sessionCombos.Sum(sc => sc.Price) : session.ComboPrice;
+            int comboDurationMinutes = sessionCombos.Any() ? sessionCombos.Sum(sc => sc.DurationMinutes) : (session.ComboDurationMinutes > 0 ? session.ComboDurationMinutes : session.ComboHours * 60);
+            DateTime? comboEndTime = session.ComboEndTime;
+
+            if (!comboEndTime.HasValue && comboDurationMinutes > 0)
+            {
+                comboEndTime = AsUtc(session.StartTime).AddMinutes(comboDurationMinutes);
+            }
+
+            bool hasCombo = comboDurationMinutes > 0 || comboEndTime.HasValue || session.ComboId.HasValue || sessionCombos.Any();
+
+            decimal tableFeeAfterCombo = 0;
+            bool isUsingCombo = false;
+            bool isOverComboTime = false;
+            int overComboMinutes = 0;
+            int remainingSeconds = 0;
+            int remainingMinutes = 0;
+            bool isExpired = false;
             string timerLevel = "ok";
-            if (isExpired) timerLevel = "expired";
-            else if (remainingMinutes < 15) timerLevel = "warning";
+            decimal playFee = 0;
+
+            var effectiveNow = (session.IsFinished && session.EndTime.HasValue) ? AsUtc(session.EndTime.Value) : DateTime.UtcNow;
+
+            if (hasCombo && comboEndTime.HasValue)
+            {
+                isUsingCombo = true;
+                if (effectiveNow <= comboEndTime.Value)
+                {
+                    tableFeeAfterCombo = 0;
+                    isOverComboTime = false;
+                    overComboMinutes = 0;
+                    remainingSeconds = Math.Max(0, (int)(comboEndTime.Value - effectiveNow).TotalSeconds);
+                    remainingMinutes = remainingSeconds / 60;
+                    isExpired = false;
+                    timerLevel = "ok";
+                }
+                else
+                {
+                    isOverComboTime = true;
+                    var overSeconds = (effectiveNow - comboEndTime.Value).TotalSeconds;
+                    overComboMinutes = (int)Math.Ceiling(overSeconds / 60.0);
+                    tableFeeAfterCombo = Math.Round((decimal)overSeconds / 3600m * table.HourlyRate);
+                    remainingSeconds = 0;
+                    remainingMinutes = 0;
+                    isExpired = true;
+                    timerLevel = "expired";
+                }
+                playFee = tableFeeAfterCombo;
+            }
+            else if (session.DurationHours == 0 || !session.EndTime.HasValue)
+            {
+                var elapsedSec = Math.Max(0, (int)(effectiveNow - AsUtc(session.StartTime)).TotalSeconds);
+                remainingSeconds = elapsedSec;
+                remainingMinutes = elapsedSec / 60;
+                playFee = Math.Round((decimal)elapsedSec / 3600m * table.HourlyRate);
+                tableFeeAfterCombo = playFee;
+                isExpired = false;
+                timerLevel = "ok";
+            }
+            else
+            {
+                EnsureSessionEndTime(session);
+                var endVal = session.EndTime!.Value;
+                remainingSeconds = Math.Max(0, (int)(endVal - effectiveNow).TotalSeconds);
+                remainingMinutes = remainingSeconds / 60;
+                playFee = session.TotalPrice > 0 ? session.TotalPrice : table.HourlyRate * session.DurationHours;
+                tableFeeAfterCombo = playFee;
+                isExpired = remainingSeconds <= 0 && session.Status == SessionStatus.Active && !session.IsFinished;
+                if (isExpired) timerLevel = "expired";
+                else if (remainingMinutes < 15) timerLevel = "warning";
+            }
 
             return new SessionRealtimeDto
             {
@@ -390,34 +580,105 @@ namespace BilliardManagement.Business.Services
                 Status = (int)session.Status,
                 TableStatus = (int)table.Status,
                 StartTime = AsUtc(session.StartTime),
-                EndTime = end,
+                EndTime = comboEndTime ?? session.EndTime,
                 DurationHours = session.DurationHours,
                 RemainingMinutes = remainingMinutes,
                 RemainingSeconds = remainingSeconds,
-                TotalPrice = session.TotalPrice,
+                TotalPrice = playFee,
                 OrdersTotal = ordersTotal,
-                CurrentTotal = session.TotalPrice + ordersTotal,
+                CurrentTotal = comboPrice + ordersTotal + playFee,
                 IsExpired = isExpired,
                 IsFinished = session.IsFinished,
                 TimerLevel = timerLevel,
                 CustomerName = session.Customer?.FullName,
-                CustomerPhone = session.Customer?.PhoneNumber
+                CustomerPhone = session.Customer?.PhoneNumber,
+                ComboId = session.ComboId,
+                ComboHours = session.ComboHours,
+                ComboDurationMinutes = comboDurationMinutes,
+                ComboEndTime = comboEndTime,
+                ComboPrice = comboPrice,
+                IsUsingCombo = isUsingCombo,
+                IsOverComboTime = isOverComboTime,
+                OverComboMinutes = overComboMinutes,
+                TableFeeAfterCombo = tableFeeAfterCombo,
+                AppliedCombos = appliedCombos
             };
         }
 
         private async Task<SessionDto> MapSessionDtoAsync(TableSession session, BilliardTable table)
         {
             await RepairSessionIfNeededAsync(session);
-            EnsureSessionEndTime(session);
 
             var (ordersTotal, orderLines) = await LoadOrderSummaryAsync(session.Id);
-            var end = session.EndTime!.Value;
-            var now = DateTime.UtcNow;
-            var remainingSeconds = Math.Max(0, (int)(end - now).TotalSeconds);
-            var remainingMinutes = remainingSeconds / 60;
-            var isExpired = remainingSeconds <= 0 && session.Status == SessionStatus.Active && !session.IsFinished;
+            var sessionCombos = await _unitOfWork.Repository<SessionCombo>().GetAllAsync(sc => sc.TableSessionId == session.Id);
+            var appliedCombos = _mapper.Map<List<SessionComboDto>>(sessionCombos.OrderBy(sc => sc.AppliedAt).ToList());
 
-            session.RemainingMinutes = remainingMinutes;
+            decimal comboPrice = sessionCombos.Any() ? sessionCombos.Sum(sc => sc.Price) : session.ComboPrice;
+            int comboDurationMinutes = sessionCombos.Any() ? sessionCombos.Sum(sc => sc.DurationMinutes) : (session.ComboDurationMinutes > 0 ? session.ComboDurationMinutes : session.ComboHours * 60);
+            DateTime? comboEndTime = session.ComboEndTime;
+
+            if (!comboEndTime.HasValue && comboDurationMinutes > 0)
+            {
+                comboEndTime = AsUtc(session.StartTime).AddMinutes(comboDurationMinutes);
+            }
+
+            bool hasCombo = comboDurationMinutes > 0 || comboEndTime.HasValue || session.ComboId.HasValue || sessionCombos.Any();
+
+            decimal tableFeeAfterCombo = 0;
+            bool isUsingCombo = false;
+            bool isOverComboTime = false;
+            int overComboMinutes = 0;
+            int remainingSeconds = 0;
+            int remainingMinutes = 0;
+            bool isExpired = false;
+            decimal playFee = 0;
+
+            var effectiveNow = (session.IsFinished && session.EndTime.HasValue) ? AsUtc(session.EndTime.Value) : DateTime.UtcNow;
+
+            if (hasCombo && comboEndTime.HasValue)
+            {
+                isUsingCombo = true;
+                if (effectiveNow <= comboEndTime.Value)
+                {
+                    tableFeeAfterCombo = 0;
+                    isOverComboTime = false;
+                    overComboMinutes = 0;
+                    remainingSeconds = Math.Max(0, (int)(comboEndTime.Value - effectiveNow).TotalSeconds);
+                    remainingMinutes = remainingSeconds / 60;
+                    isExpired = false;
+                }
+                else
+                {
+                    isOverComboTime = true;
+                    var overSeconds = (effectiveNow - comboEndTime.Value).TotalSeconds;
+                    overComboMinutes = (int)Math.Ceiling(overSeconds / 60.0);
+                    tableFeeAfterCombo = Math.Round((decimal)overSeconds / 3600m * table.HourlyRate);
+                    remainingSeconds = 0;
+                    remainingMinutes = 0;
+                    isExpired = true;
+                }
+                playFee = tableFeeAfterCombo;
+            }
+            else if (session.DurationHours == 0 || !session.EndTime.HasValue)
+            {
+                var elapsedSec = Math.Max(0, (int)(effectiveNow - AsUtc(session.StartTime)).TotalSeconds);
+                remainingSeconds = elapsedSec;
+                remainingMinutes = elapsedSec / 60;
+                playFee = Math.Round((decimal)elapsedSec / 3600m * table.HourlyRate);
+                tableFeeAfterCombo = playFee;
+                isExpired = false;
+            }
+            else
+            {
+                EnsureSessionEndTime(session);
+                var endVal = session.EndTime!.Value;
+                remainingSeconds = Math.Max(0, (int)(endVal - effectiveNow).TotalSeconds);
+                remainingMinutes = remainingSeconds / 60;
+                playFee = session.TotalPrice > 0 ? session.TotalPrice : table.HourlyRate * session.DurationHours;
+                tableFeeAfterCombo = playFee;
+                isExpired = remainingSeconds <= 0 && session.Status == SessionStatus.Active && !session.IsFinished;
+                session.RemainingMinutes = remainingMinutes;
+            }
 
             return new SessionDto
             {
@@ -430,17 +691,27 @@ namespace BilliardManagement.Business.Services
                 CustomerPhone = session.Customer?.PhoneNumber,
                 HourlyRate = table.HourlyRate,
                 StartTime = AsUtc(session.StartTime),
-                EndTime = end,
-                DurationHours = session.DurationHours > 0 ? session.DurationHours : Math.Max(1, (int)Math.Ceiling((end - AsUtc(session.StartTime)).TotalHours)),
+                EndTime = comboEndTime ?? session.EndTime,
+                DurationHours = session.DurationHours,
                 DurationMinutes = session.DurationMinutes,
                 RemainingMinutes = remainingMinutes,
                 RemainingSeconds = remainingSeconds,
-                TotalPrice = session.TotalPrice,
+                TotalPrice = playFee,
                 OrdersTotal = ordersTotal,
-                CurrentTotal = session.TotalPrice + ordersTotal,
+                CurrentTotal = comboPrice + ordersTotal + tableFeeAfterCombo,
                 IsFinished = session.IsFinished,
                 IsExpired = isExpired,
                 Status = session.Status,
+                ComboId = session.ComboId,
+                ComboHours = session.ComboHours,
+                ComboDurationMinutes = comboDurationMinutes,
+                ComboEndTime = comboEndTime,
+                ComboPrice = comboPrice,
+                IsUsingCombo = isUsingCombo,
+                IsOverComboTime = isOverComboTime,
+                OverComboMinutes = overComboMinutes,
+                TableFeeAfterCombo = tableFeeAfterCombo,
+                AppliedCombos = appliedCombos,
                 OrderLines = orderLines
             };
         }
@@ -449,13 +720,7 @@ namespace BilliardManagement.Business.Services
         {
             var needsSave = false;
 
-            if (session.DurationHours <= 0)
-            {
-                session.DurationHours = 2;
-                needsSave = true;
-            }
-
-            if (!session.EndTime.HasValue)
+            if (session.DurationHours > 0 && !session.EndTime.HasValue && !session.ComboEndTime.HasValue && session.ComboDurationMinutes == 0)
             {
                 session.EndTime = AsUtc(session.StartTime).AddHours(session.DurationHours);
                 session.DurationMinutes = session.DurationHours * 60;
@@ -479,12 +744,11 @@ namespace BilliardManagement.Business.Services
 
         private static void EnsureSessionEndTime(TableSession session)
         {
-            if (!session.EndTime.HasValue)
+            if (session.DurationHours > 0 && !session.EndTime.HasValue)
             {
-                var hours = session.DurationHours > 0 ? session.DurationHours : 1;
-                session.EndTime = AsUtc(session.StartTime).AddHours(hours);
+                session.EndTime = AsUtc(session.StartTime).AddHours(session.DurationHours);
             }
-            else
+            else if (session.EndTime.HasValue)
             {
                 session.EndTime = AsUtc(session.EndTime.Value);
             }
@@ -495,7 +759,7 @@ namespace BilliardManagement.Business.Services
         private async Task<(decimal ordersTotal, List<SessionOrderLineDto> lines)> LoadOrderSummaryAsync(Guid sessionId)
         {
             var orders = await _unitOfWork.Repository<Order>().GetAllAsync(
-                o => o.TableSessionId == sessionId && o.Status != OrderStatus.Cancelled, "OrderItems,OrderItems.Product");
+                o => o.TableSessionId == sessionId && !o.IsComboOrder && o.Status != OrderStatus.Cancelled, "OrderItems,OrderItems.Product");
 
             var lines = new List<SessionOrderLineDto>();
             foreach (var order in orders)

@@ -4,6 +4,7 @@ using BilliardManagement.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BilliardManagement.Data.Migrations
 {
     [DbContext(typeof(BilliardManagementDbContext))]
-    partial class BilliardManagementDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260724195051_AddComboToTableSession")]
+    partial class AddComboToTableSession
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -251,9 +254,6 @@ namespace BilliardManagement.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<bool>("IsComboOrder")
-                        .HasColumnType("bit");
-
                     b.Property<DateTime>("OrderTime")
                         .HasColumnType("datetime2");
 
@@ -358,42 +358,6 @@ namespace BilliardManagement.Data.Migrations
                     b.ToTable("Products");
                 });
 
-            modelBuilder.Entity("BilliardManagement.Models.Models.SessionCombo", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("AppliedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("ComboId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ComboName")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<int>("DurationMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid>("TableSessionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ComboId");
-
-                    b.HasIndex("TableSessionId");
-
-                    b.ToTable("SessionCombos");
-                });
-
             modelBuilder.Entity("BilliardManagement.Models.Models.Shift", b =>
                 {
                     b.Property<Guid>("Id")
@@ -434,21 +398,11 @@ namespace BilliardManagement.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("ComboDurationMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ComboEndTime")
-                        .HasColumnType("datetime2");
-
                     b.Property<int>("ComboHours")
                         .HasColumnType("int");
 
                     b.Property<Guid?>("ComboId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("ComboPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -672,23 +626,6 @@ namespace BilliardManagement.Data.Migrations
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("BilliardManagement.Models.Models.SessionCombo", b =>
-                {
-                    b.HasOne("BilliardManagement.Models.Models.Combo", "Combo")
-                        .WithMany()
-                        .HasForeignKey("ComboId");
-
-                    b.HasOne("BilliardManagement.Models.Models.TableSession", "TableSession")
-                        .WithMany("SessionCombos")
-                        .HasForeignKey("TableSessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Combo");
-
-                    b.Navigation("TableSession");
-                });
-
             modelBuilder.Entity("BilliardManagement.Models.Models.Shift", b =>
                 {
                     b.HasOne("BilliardManagement.Models.Models.User", "User")
@@ -789,8 +726,6 @@ namespace BilliardManagement.Data.Migrations
                     b.Navigation("Invoices");
 
                     b.Navigation("Orders");
-
-                    b.Navigation("SessionCombos");
                 });
 
             modelBuilder.Entity("BilliardManagement.Models.Models.User", b =>

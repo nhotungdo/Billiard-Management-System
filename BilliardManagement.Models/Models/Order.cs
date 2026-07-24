@@ -23,6 +23,8 @@ namespace BilliardManagement.Models.Models
         [Required]
         public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
+        public bool IsComboOrder { get; set; } = false;
+
         // Navigation properties
         [ForeignKey("TableSessionId")]
         public virtual TableSession? TableSession { get; set; }

@@ -23,12 +23,12 @@ namespace BilliardManagement.API.Controllers
 
         // Bắt đầu phiên chơi cho một bàn
         [HttpPost("start/{tableId}")]
-        public async Task<IActionResult> StartSession(Guid tableId, [FromQuery] int durationHours = 2, [FromQuery] string? customerName = null, [FromQuery] string? customerPhone = null, [FromQuery] int paymentMethod = 0)
+        public async Task<IActionResult> StartSession(Guid tableId, [FromQuery] int durationHours = 2, [FromQuery] string? customerName = null, [FromQuery] string? customerPhone = null, [FromQuery] int paymentMethod = 0, [FromQuery] Guid? comboId = null)
         {
             try
             {
                 var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                _logger.LogInformation("bắt đầu phiên chơi: tableId={TableId}, userId={UserId}, customerName={CustomerName}, customerPhone={CustomerPhone}", tableId, userIdStr, customerName, customerPhone);
+                _logger.LogInformation("bắt đầu phiên chơi: tableId={TableId}, userId={UserId}, customerName={CustomerName}, customerPhone={CustomerPhone}, comboId={ComboId}", tableId, userIdStr, customerName, customerPhone, comboId);
 
                 if (string.IsNullOrWhiteSpace(customerPhone) || !System.Text.RegularExpressions.Regex.IsMatch(customerPhone.Trim(), @"^0\d{9}$"))
                 {
@@ -41,7 +41,7 @@ namespace BilliardManagement.API.Controllers
                     return Unauthorized(ApiResponse<object>.Fail("Unauthorized: invalid user token"));
                 }
 
-                var session = await _sessionService.StartSessionAsync(tableId, userId, durationHours, customerName, customerPhone, paymentMethod);
+                var session = await _sessionService.StartSessionAsync(tableId, userId, durationHours, customerName, customerPhone, paymentMethod, comboId);
                 _logger.LogInformation("bắt đầu phiên chơi thành công: sessionId={SessionId}", session.Id);
                 return Ok(ApiResponse<SessionDto>.Ok(session, "bắt đầu phiên chơi thành công"));
             }
