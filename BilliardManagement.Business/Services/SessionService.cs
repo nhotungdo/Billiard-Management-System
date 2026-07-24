@@ -190,11 +190,38 @@ namespace BilliardManagement.Business.Services
             var session = await _unitOfWork.Repository<TableSession>().GetFirstOrDefaultAsync(
                 s => s.Id == sessionId, "BilliardTable,Orders");
             if (session == null) throw new CustomException("Session not found", 404);
-            if (session.Status != SessionStatus.Active || session.IsFinished)
-                throw new CustomException("Cannot end: session is not active or already finished", 400);
 
             var table = session.BilliardTable ?? await _unitOfWork.Repository<BilliardTable>().GetByIdAsync(session.TableId);
-            if (table == null) throw new CustomException("Table not found", 404);
+
+            if (session.Status != SessionStatus.Active || session.IsFinished)
+            {
+                // Ensure table status is reset to Available if left as Playing
+                if (table != null && table.Status == TableStatus.Playing)
+                {
+                    table.Status = TableStatus.Available;
+                    _unitOfWork.Repository<BilliardTable>().Update(table);
+                    await _unitOfWork.SaveChangesAsync();
+                }
+
+                // Auto-complete non-cancelled orders for this session
+                var existingOrders = await _unitOfWork.Repository<Order>().GetAllAsync(
+                    o => o.TableSessionId == sessionId && o.Status != OrderStatus.Cancelled);
+                foreach (var order in existingOrders)
+                {
+                    order.Status = OrderStatus.Completed;
+                    _unitOfWork.Repository<Order>().Update(order);
+                }
+                await _unitOfWork.SaveChangesAsync();
+
+                var generateDtoFallback = billDto ?? new GenerateBillDto { PaymentMethod = PaymentMethod.Cash };
+                await _billingService.GenerateBillAsync(sessionId, generateDtoFallback);
+
+                _logger.LogInformation(
+                    "Session already ended/inactive, handled idempotently: sessionId={SessionId}, tableId={TableId}",
+                    sessionId, session.TableId);
+
+                return await MapSessionDtoAsync(session, table ?? new BilliardTable());
+            }
 
             session.EndTime = DateTime.UtcNow;
             session.Status = SessionStatus.Finished;
@@ -205,7 +232,11 @@ namespace BilliardManagement.Business.Services
                 session.DurationHours = Math.Max(1, (int)Math.Ceiling((session.EndTime.Value - session.StartTime).TotalHours));
             session.DurationMinutes = (int)Math.Ceiling((session.EndTime.Value - session.StartTime).TotalMinutes);
 
-            table.Status = TableStatus.Available;
+            if (table != null)
+            {
+                table.Status = TableStatus.Available;
+                _unitOfWork.Repository<BilliardTable>().Update(table);
+            }
 
             // Auto-complete all non-cancelled orders for this session
             var orders = await _unitOfWork.Repository<Order>().GetAllAsync(
@@ -217,7 +248,6 @@ namespace BilliardManagement.Business.Services
             }
 
             _unitOfWork.Repository<TableSession>().Update(session);
-            _unitOfWork.Repository<BilliardTable>().Update(table);
             await _unitOfWork.SaveChangesAsync();
 
             var generateDto = billDto ?? new GenerateBillDto { PaymentMethod = PaymentMethod.Cash };
@@ -227,7 +257,7 @@ namespace BilliardManagement.Business.Services
                 "Session ended: sessionId={SessionId}, tableId={TableId}, staffId={StaffId}, endTime={End}, tablePrice={Price}",
                 sessionId, session.TableId, staffUserId, session.EndTime, session.TotalPrice);
 
-            return await MapSessionDtoAsync(session, table);
+            return await MapSessionDtoAsync(session, table ?? new BilliardTable());
         }
 
         public async Task<IEnumerable<SessionDto>> GetActiveSessionsAsync()
