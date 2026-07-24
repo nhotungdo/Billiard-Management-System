@@ -34,6 +34,19 @@ namespace BilliardManagement.Business.Services
             decimal sessionTotal = session.TotalPrice;
             decimal subtotal = ordersTotal + sessionTotal;
 
+            var existingInvoice = await _unitOfWork.Repository<Invoice>().GetFirstOrDefaultAsync(i => i.TableSessionId == sessionId);
+            if (existingInvoice != null)
+            {
+                existingInvoice.Subtotal = subtotal;
+                existingInvoice.TotalAmount = subtotal;
+                existingInvoice.PaymentMethod = dto.PaymentMethod;
+                existingInvoice.IsPaid = true;
+                _unitOfWork.Repository<Invoice>().Update(existingInvoice);
+                await _unitOfWork.SaveChangesAsync();
+
+                return _mapper.Map<BillDto>(existingInvoice);
+            }
+
             var invoice = new Invoice
             {
                 TableSessionId = sessionId,
@@ -41,7 +54,7 @@ namespace BilliardManagement.Business.Services
                 Subtotal = subtotal,
                 TotalAmount = subtotal,
                 PaymentMethod = dto.PaymentMethod,
-                IsPaid = false
+                IsPaid = true
             };
 
             await _unitOfWork.Repository<Invoice>().AddAsync(invoice);
