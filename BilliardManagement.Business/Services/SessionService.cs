@@ -45,16 +45,40 @@ namespace BilliardManagement.Business.Services
             var table = await _unitOfWork.Repository<BilliardTable>().GetByIdAsync(tableId);
             if (table == null) throw new CustomException("Table not found", 404);
 
-            if (table.Status == TableStatus.Playing)
-                throw new CustomException("Cannot start session when table is already playing", 400);
-
             if (table.Status == TableStatus.Maintenance)
                 throw new CustomException("Cannot start session on a table under maintenance", 400);
 
-            var activeOnTable = await _unitOfWork.Repository<TableSession>().GetAllAsync(
-                s => s.TableId == tableId && s.Status == SessionStatus.Active && !s.IsFinished);
+            var activeOnTable = (await _unitOfWork.Repository<TableSession>().GetAllAsync(
+                s => s.TableId == tableId && s.Status == SessionStatus.Active && !s.IsFinished)).ToList();
+
             if (activeOnTable.Any())
-                throw new CustomException("Table already has an active session", 400);
+            {
+                if (table.Status == TableStatus.Available || table.Status == TableStatus.Reserved)
+                {
+                    // Auto-heal orphaned active sessions because table state is Available/Reserved
+                    foreach (var s in activeOnTable)
+                    {
+                        s.EndTime = s.EndTime ?? DateTime.UtcNow;
+                        s.Status = SessionStatus.Finished;
+                        s.IsFinished = true;
+                        s.RemainingMinutes = 0;
+                        _unitOfWork.Repository<TableSession>().Update(s);
+                    }
+                    await _unitOfWork.SaveChangesAsync();
+                }
+                else
+                {
+                    throw new CustomException("Cannot start session when table is already playing", 400);
+                }
+            }
+
+            if (table.Status == TableStatus.Playing)
+            {
+                // Auto-heal table status if DB status was left as Playing but no active session exists
+                table.Status = TableStatus.Available;
+                _unitOfWork.Repository<BilliardTable>().Update(table);
+                await _unitOfWork.SaveChangesAsync();
+            }
 
             if (table.Status != TableStatus.Available && table.Status != TableStatus.Reserved)
                 throw new CustomException("Table is not available for a new session", 400);
@@ -238,6 +262,18 @@ namespace BilliardManagement.Business.Services
                 _unitOfWork.Repository<BilliardTable>().Update(table);
             }
 
+            // Clean up any other orphaned active sessions for this table to prevent blocking future sessions
+            var otherActiveOnTable = await _unitOfWork.Repository<TableSession>().GetAllAsync(
+                s => s.TableId == session.TableId && s.Id != sessionId && s.Status == SessionStatus.Active && !s.IsFinished);
+            foreach (var otherSession in otherActiveOnTable)
+            {
+                otherSession.EndTime = otherSession.EndTime ?? DateTime.UtcNow;
+                otherSession.Status = SessionStatus.Finished;
+                otherSession.IsFinished = true;
+                otherSession.RemainingMinutes = 0;
+                _unitOfWork.Repository<TableSession>().Update(otherSession);
+            }
+
             // Auto-complete all non-cancelled orders for this session
             var orders = await _unitOfWork.Repository<Order>().GetAllAsync(
                 o => o.TableSessionId == sessionId && o.Status != OrderStatus.Cancelled);
@@ -289,12 +325,30 @@ namespace BilliardManagement.Business.Services
                 .ToDictionary(g => g.Key, g => g.OrderByDescending(s => s.StartTime).First());
 
             var dashboard = new List<TableDashboardDto>();
+            var hasStatusUpdates = false;
             foreach (var table in tables.Where(t => t.IsActive))
             {
                 sessionByTable.TryGetValue(table.Id, out var session);
                 SessionDto? sessionDto = null;
                 if (session != null)
+                {
                     sessionDto = await MapSessionDtoAsync(session, table);
+                    if (table.Status != TableStatus.Playing && table.Status != TableStatus.Maintenance)
+                    {
+                        table.Status = TableStatus.Playing;
+                        _unitOfWork.Repository<BilliardTable>().Update(table);
+                        hasStatusUpdates = true;
+                    }
+                }
+                else
+                {
+                    if (table.Status == TableStatus.Playing)
+                    {
+                        table.Status = TableStatus.Available;
+                        _unitOfWork.Repository<BilliardTable>().Update(table);
+                        hasStatusUpdates = true;
+                    }
+                }
 
                 dashboard.Add(new TableDashboardDto
                 {
@@ -306,6 +360,12 @@ namespace BilliardManagement.Business.Services
                     ActiveSession = sessionDto
                 });
             }
+
+            if (hasStatusUpdates)
+            {
+                await _unitOfWork.SaveChangesAsync();
+            }
+
             return dashboard.OrderBy(d => d.TableName);
         }
 

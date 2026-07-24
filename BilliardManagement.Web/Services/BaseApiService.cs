@@ -192,5 +192,18 @@ namespace BilliardManagement.Web.Services
             var apiResponse = JsonSerializer.Deserialize<ApiResponse<TResponse>>(responseContent, ApiJson.Options);
             return apiResponse != null ? apiResponse.Data : default;
         }
+
+        protected async Task<bool> PatchAsync(string url)
+        {
+            AttachToken();
+            var content = new StringContent(string.Empty, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PatchAsync(url, content);
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                throw new Exception(FormatErrorMessage(response, responseContent));
+            }
+            return true;
+        }
     }
 }

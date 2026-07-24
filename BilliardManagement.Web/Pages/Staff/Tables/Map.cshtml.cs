@@ -12,15 +12,18 @@ namespace BilliardManagement.Web.Pages.Staff.Tables
     {
         private readonly SessionService _sessionService;
         private readonly ProductService _productService;
+        private readonly ComboService _comboService;
 
-        public MapModel(SessionService sessionService, ProductService productService)
+        public MapModel(SessionService sessionService, ProductService productService, ComboService comboService)
         {
             _sessionService = sessionService;
             _productService = productService;
+            _comboService = comboService;
         }
 
         public List<TableDashboardDto> TableDashboard { get; set; } = new();
         public List<ProductDto> Products { get; set; } = new();
+        public List<ComboDto> Combos { get; set; } = new();
         public string? ErrorMessage { get; set; }
 
         public int CountAvailable => TableDashboard.Count(t => t.Status == 1);
@@ -44,6 +47,9 @@ namespace BilliardManagement.Web.Pages.Staff.Tables
                                     .OrderBy(p => p.Category)
                                     .ThenBy(p => p.Name)
                                     .ToList() ?? new();
+
+                var combos = await _comboService.GetAllCombosAsync(activeOnly: true);
+                Combos = combos ?? new();
             }
             catch (Exception ex)
             {

@@ -401,9 +401,51 @@
                 </div>
             </nav>
             <main id="staff-content">
-                <div class="dashboard-header mb-4">
-                    <h1 class="page-title"><i class="fa-solid fa-map-location-dot me-2 text-primary"></i>Sơ đồ bàn trực quan</h1>
-                    <p class="page-subtitle">Xem trạng thái bàn bida realtime, quản lý phiên chơi và dịch vụ nhanh chóng</p>
+                <div class="dashboard-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h1 class="page-title"><i class="fa-solid fa-map-location-dot me-2 text-primary"></i>Sơ đồ bàn trực quan</h1>
+                        <p class="page-subtitle">Xem trạng thái bàn bida realtime, quản lý phiên chơi và dịch vụ nhanh chóng</p>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-primary px-4 py-2.5 rounded-pill fw-bold shadow-sm" onclick="openApplyComboModal()">
+                            <i class="fa-solid fa-layer-group me-2"></i>Áp Dụng Gói Combo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TOP COMBO PACKAGES BAR -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4 bg-gradient bg-light overflow-hidden border-start border-primary border-4">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <h6 class="fw-bold text-primary mb-1">
+                                    <i class="fa-solid fa-gift me-2"></i>Danh Sách Gói Combo Ưu Đãi
+                                </h6>
+                                <small class="text-muted">Xem thông tin và áp dụng gói Combo (nước uống, đồ ăn, thêm giờ chơi) trực tiếp cho bàn đang chơi</small>
+                            </div>
+                        </div>
+
+                        @if (Model.Combos != null && Model.Combos.Any())
+                        {
+                            <div class="d-flex flex-wrap gap-2 mt-3 pt-2 border-top">
+                                @foreach (var c in Model.Combos)
+                                {
+                                    <div class="badge bg-white text-dark border p-2.5 rounded-3 shadow-xs d-flex align-items-center gap-2">
+                                        <span class="badge bg-primary font-monospace fs-6">@c.ComboCode</span>
+                                        <span class="fw-bold fs-6 text-dark">@c.Name</span>
+                                        <span class="text-success fw-bold fs-6">@c.Price.ToString("N0") đ</span>
+                                        @if (c.PlayingHours > 0)
+                                        {
+                                            <span class="badge bg-info-subtle text-info border border-info-subtle">+@c.PlayingHours giờ bàn</span>
+                                        }
+                                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2 py-0 ms-1 fw-bold" onclick="openApplyComboModal('@c.ComboCode')">
+                                            <i class="fa-solid fa-wand-magic-sparkles me-1"></i>Áp dụng
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
                 </div>
 
                 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
@@ -811,7 +853,7 @@
                                 </div>
                                 <div class="col">
                                     <button class="btn btn-danger w-100 py-2.5 fw-bold" id="btnDetailsEndTrigger">
-                                        <i class="fa-solid fa-file-invoice-dollar me-2"></i>Thanh toán
+                                        <i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Trả bàn
                                     </button>
                                 </div>
                             </div>
@@ -1076,6 +1118,91 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
     <script src="/js/table-status.js" asp-append-version="true"></script>
 
+    <!-- APPLY COMBO MODAL FOR ACTIVE TABLES -->
+    <div class="modal fade" id="headerApplyComboModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-primary text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fa-solid fa-layer-group me-2"></i>Áp Dụng Gói Combo Cho Bàn
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">Chọn bàn áp dụng Combo <span class="text-danger">*</span></label>
+                        <select class="form-select" id="applyComboTableSelect" required>
+                            <option value="" selected>-- Chọn bàn áp dụng --</option>
+                            <optgroup label="Bàn đang chơi">
+                                @foreach (var t in Model.TableDashboard.Where(t => t.Status == 2 && t.ActiveSession != null))
+                                {
+                                    <option value="session:@(t.ActiveSession?.Id)" data-type="playing" data-table-id="@t.Id">
+                                        🎱 @t.TableName (Đang chơi)
+                                    </option>
+                                }
+                            </optgroup>
+                            <optgroup label="Bàn trống (Sẽ mở bàn mới)">
+                                @foreach (var t in Model.TableDashboard.Where(t => t.Status == 1))
+                                {
+                                    <option value="table:@t.Id" data-type="available" data-table-id="@t.Id">
+                                        🟢 @t.TableName (Trống bàn)
+                                    </option>
+                                }
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div id="startSessionForComboFields" class="border-top pt-3 mt-3" style="display:none;">
+                        <h6 class="fw-bold small text-primary mb-2">
+                            <i class="fa-solid fa-play me-1"></i>Thông tin mở bàn mới
+                        </h6>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label fw-bold small text-secondary">Tên khách hàng <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="applyComboCustomerName" value="Khách vãng lai" placeholder="Tên khách hàng" required />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-bold small text-secondary">Số điện thoại <span class="text-danger">*</span></label>
+                                <input type="tel" class="form-control form-control-sm" id="applyComboCustomerPhone" value="0900000000" placeholder="0912345678" required pattern="0[0-9]{9}" maxlength="10" />
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label fw-bold small text-secondary">Phương thức thanh toán <span class="text-danger">*</span></label>
+                            <select class="form-select form-select-sm" id="applyComboPaymentMethod">
+                                <option value="0" selected>💵 Tiền mặt</option>
+                                <option value="2">📲 Chuyển khoản QR</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 mt-3">
+                        <label class="form-label fw-bold small text-secondary">Chọn gói Combo áp dụng <span class="text-danger">*</span></label>
+                        <select class="form-select" id="applyComboPackageSelect" required>
+                            <option value="" selected>-- Chọn gói Combo --</option>
+                            @foreach (var c in Model.Combos)
+                            {
+                                <option value="@c.ComboCode" data-price="@c.Price" data-hours="@c.PlayingHours" data-name="@c.Name">
+                                    🎁 @c.ComboCode - @c.Name (@c.Price.ToString("N0") đ@(c.PlayingHours > 0 ? $" | +{c.PlayingHours}h chơi" : ""))
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="combo-preview-box p-3 bg-light rounded border border-primary-subtle" id="applyComboPreview" style="display:none;">
+                        <div class="fw-bold text-primary mb-1" id="previewComboName"></div>
+                        <div class="small text-muted mb-1" id="previewComboPrice"></div>
+                        <div class="small text-success fw-bold" id="previewComboHours"></div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary px-4 rounded-pill fw-bold" id="btnSubmitApplyCombo">
+                        <i class="fa-solid fa-check me-1"></i>Xác nhận áp dụng
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Store in-memory representation of table and session states
         let tablesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TableDashboard));
@@ -1088,6 +1215,7 @@
         const extendModal = new bootstrap.Modal(document.getElementById('extendSessionModal'));
         const orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
         const endModal = new bootstrap.Modal(document.getElementById('endSessionModal'));
+        const applyComboModalInstance = new bootstrap.Modal(document.getElementById('headerApplyComboModal'));
 
         let selectedTableId = null;
         let selectedSessionId = null;
@@ -1355,6 +1483,8 @@
             if (statusVal === 1) {
                 // Available View
                 $('#modalStartHoursInput').val(2);
+                $('#detailsComboSelect').val('');
+                $('#detailsComboInfo').hide();
                 $('.btn-hour-preset').removeClass('active');
                 $(`.btn-hour-preset[data-hours="2"]`).addClass('active');
                 updatePrepaidTotals();
@@ -1462,6 +1592,157 @@
         });
 
         // Open specific modals and prepare details
+        function openApplyComboModal(defaultComboCode = '') {
+            const select = $('#applyComboTableSelect');
+            select.empty().append('<option value="" selected>-- Chọn bàn áp dụng --</option>');
+
+            const playingGroup = $('<optgroup label="Bàn đang chơi"></optgroup>');
+            const availableGroup = $('<optgroup label="Bàn trống (Sẽ mở bàn mới)"></optgroup>');
+
+            tablesData.forEach(t => {
+                const status = (t.Status !== undefined ? t.Status : t.status);
+                const tableName = t.TableName || t.tableName;
+                const tableId = t.Id || t.id;
+
+                if (status === 2) {
+                    const session = t.ActiveSession || t.activeSession;
+                    if (session) {
+                        const sId = session.Id || session.id;
+                        playingGroup.append(`<option value="session:${sId}" data-type="playing" data-table-id="${tableId}">🎱 ${tableName} (Đang chơi)</option>`);
+                    }
+                } else if (status === 1) {
+                    availableGroup.append(`<option value="table:${tableId}" data-type="available" data-table-id="${tableId}">🟢 ${tableName} (Trống bàn)</option>`);
+                }
+            });
+
+            if (playingGroup.children().length > 0) select.append(playingGroup);
+            if (availableGroup.children().length > 0) select.append(availableGroup);
+
+            $('#startSessionForComboFields').hide();
+
+            if (defaultComboCode) {
+                $('#applyComboPackageSelect').val(defaultComboCode).trigger('change');
+            } else {
+                $('#applyComboPackageSelect').val('').trigger('change');
+            }
+
+            applyComboModalInstance.show();
+        }
+
+        $('#applyComboTableSelect').on('change', function () {
+            const selectedOption = $(this).find('option:selected');
+            const type = selectedOption.data('type');
+            if (type === 'available') {
+                $('#startSessionForComboFields').slideDown();
+            } else {
+                $('#startSessionForComboFields').slideUp();
+            }
+        });
+
+        $('#applyComboPackageSelect').on('change', function () {
+            const selectedOption = $(this).find('option:selected');
+            const comboCode = $(this).val();
+            const previewBox = $('#applyComboPreview');
+
+            if (comboCode) {
+                const name = selectedOption.data('name');
+                const price = parseFloat(selectedOption.data('price')) || 0;
+                const hours = parseInt(selectedOption.data('hours')) || 0;
+
+                $('#previewComboName').text('🎁 ' + name);
+                $('#previewComboPrice').text('Giá gói: ' + price.toLocaleString('vi-VN') + ' VNĐ');
+                if (hours > 0) {
+                    $('#previewComboHours').text('Tự động cộng thêm +' + hours + ' giờ chơi vào bàn.').show();
+                } else {
+                    $('#previewComboHours').hide();
+                }
+                previewBox.slideDown();
+            } else {
+                previewBox.slideUp();
+            }
+        });
+
+        $('#btnSubmitApplyCombo').on('click', async function () {
+            const val = $('#applyComboTableSelect').val();
+            const comboCode = $('#applyComboPackageSelect').val();
+
+            if (!val) {
+                showNotification('Chưa chọn bàn', 'warning', 'Vui lòng chọn bàn đang chơi hoặc bàn trống để áp dụng combo.');
+                return;
+            }
+            if (!comboCode) {
+                showNotification('Chưa chọn combo', 'warning', 'Vui lòng chọn gói Combo cần áp dụng.');
+                return;
+            }
+
+            const selectedOption = $('#applyComboTableSelect option:selected');
+            const type = selectedOption.data('type');
+            const tableId = selectedOption.data('table-id');
+
+            const btn = $(this);
+            btn.prop('disabled', true);
+            toggleLoading(true);
+
+            try {
+                let targetSessionId = null;
+
+                if (type === 'available') {
+                    // Start new session first
+                    const customerName = $('#applyComboCustomerName').val();
+                    const customerPhone = $('#applyComboCustomerPhone').val();
+                    const paymentMethod = parseInt($('#applyComboPaymentMethod').val()) || 0;
+
+                    if (!customerName || !customerPhone || customerName.trim() === '' || customerPhone.trim() === '') {
+                        showNotification('Thiếu thông tin', 'warning', 'Vui lòng nhập đầy đủ tên và số điện thoại khách hàng.');
+                        btn.prop('disabled', false);
+                        toggleLoading(false);
+                        return;
+                    }
+
+                    const phoneRegex = /^0\d{9}$/;
+                    if (!phoneRegex.test(customerPhone.trim())) {
+                        showNotification('Lỗi thông tin', 'warning', 'Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0.');
+                        btn.prop('disabled', false);
+                        toggleLoading(false);
+                        return;
+                    }
+
+                    // Check if combo has playing hours, else default 2 hours
+                    const comboOption = $('#applyComboPackageSelect option:selected');
+                    const comboHours = parseInt(comboOption.data('hours')) || 2;
+                    const hours = comboHours > 0 ? comboHours : 2;
+
+                    const newSession = await makeApiCall('table-sessions/start', 'POST', {
+                        tableId: tableId,
+                        durationHours: hours,
+                        customerName: customerName.trim(),
+                        customerPhone: customerPhone.trim(),
+                        paymentMethod: paymentMethod
+                    });
+
+                    targetSessionId = newSession.id || newSession.Id;
+                } else {
+                    // Extract sessionId from "session:GUID"
+                    targetSessionId = val.replace('session:', '');
+                }
+
+                // Apply Combo to session
+                const res = await makeApiCall('combos/apply', 'POST', {
+                    tableSessionId: targetSessionId,
+                    comboCode: comboCode
+                });
+
+                showNotification('Áp dụng Combo thành công!', 'success', res.message || 'Combo đã được áp dụng vào bàn.');
+                applyComboModalInstance.hide();
+                window.location.reload();
+            } catch (err) {
+                showNotification('Lỗi áp dụng Combo', 'error', err.message);
+            } finally {
+                btn.prop('disabled', false);
+                toggleLoading(false);
+            }
+        });
+
         function openStartSession(tableId) {
             selectedTableId = tableId;
             const table = tablesData.find(t => t.Id === tableId || t.id === tableId);
@@ -1471,6 +1752,8 @@
             $('#startCustomerName').val('');
             $('#startCustomerPhone').val('');
             $('.quick-qty-input-start').val(0);
+            $('#startComboSelect').val('');
+            $('#startComboInfo').hide();
             $('#customHoursInput').val(2);
             $('.btn-hour-preset-direct').removeClass('active');
             $(`.btn-hour-preset-direct[data-hours="2"]`).addClass('active');
@@ -1578,6 +1861,7 @@
             $('#endModalTableName').text(table.TableName || table.tableName);
             const session = table.ActiveSession || table.activeSession;
             if (!session) return;
+            selectedSessionId = session.Id || session.id;
 
             const playingFee = session.TotalPrice || session.totalPrice || 0;
             const serviceFee = session.OrdersTotal || session.ordersTotal || 0;
@@ -1672,6 +1956,17 @@
                     $(qtySelector).val(0);
                 }
                 
+                // Update local state
+                const table = tablesData.find(t => t.Id === selectedTableId || t.id === selectedTableId);
+                if (table) {
+                    table.Status = 2;
+                    table.status = 2;
+                    table.ActiveSession = session;
+                    table.activeSession = session;
+                }
+                updateTableCardState(selectedTableId, 2, session);
+                recalculateStats();
+
                 // Clear inputs
                 $('#detailsCustomerName, #startCustomerName, #detailsCustomerPhone, #startCustomerPhone').val('');
                 
@@ -1697,11 +1992,13 @@
         });
         $('.btn-quick-qty-plus').on('click', function () {
             const targetId = $(this).data('target');
-            const maxVal = $(this).data('max');
+            const maxVal = parseInt($(this).data('max')) || 0;
             const input = $('#' + targetId);
             let val = parseInt(input.val()) || 0;
             if (val < maxVal) {
                 input.val(val + 1).trigger('change');
+            } else {
+                showNotification('Số lượng tối đa', 'warning', 'Đã đạt số lượng tồn kho tối đa (' + maxVal + ')');
             }
         });
 
@@ -1739,20 +2036,32 @@
         });
         $('.btn-qty-plus').on('click', function () {
             const prodId = $(this).data('product-id');
-            const maxVal = $(this).data('max');
+            const maxVal = parseInt($(this).data('max')) || 0;
             const input = $(`#qty-${prodId}`);
             let val = parseInt(input.val()) || 0;
             if (val < maxVal) {
                 input.val(val + 1).trigger('change');
+            } else {
+                showNotification('Số lượng tối đa', 'warning', 'Đã đạt số lượng tồn kho tối đa (' + maxVal + ')');
             }
         });
 
-        // Live calculation of ordering summary
-        $('.qty-input').on('change keyup', function () {
+        // Live calculation of ordering summary & Quantity validation
+        $('.qty-input, .quick-qty-input-start, .quick-qty-input-details').on('change keyup blur', function () {
+            let val = parseInt($(this).val());
+            const max = parseInt($(this).data('max')) || parseInt($(this).attr('max')) || 0;
+
+            if (isNaN(val) || val < 0) {
+                $(this).val(0);
+            } else if (max > 0 && val > max) {
+                showNotification('Vượt quá tồn kho', 'warning', 'Số lượng nhập vượt quá số lượng tồn kho (Tồn kho: ' + max + ')');
+                $(this).val(max);
+            }
+
             let totalQty = 0;
             let totalPrice = 0;
             const list = $('#orderSummaryList');
-            list.empty();
+            if (list.length) list.empty();
 
             $('.qty-input').each(function () {
                 const qty = parseInt($(this).val()) || 0;
@@ -1762,22 +2071,26 @@
                     totalQty += qty;
                     totalPrice += qty * price;
 
-                    list.append(`
-                        <li class="d-flex justify-content-between small mb-1 border-bottom-dotted">
-                            <span>• ${name} <span class="text-secondary">x${qty}</span></span>
-                            <span class="fw-bold">${(qty * price).toLocaleString('vi-VN')} đ</span>
-                        </li>
-                    `);
+                    if (list.length) {
+                        list.append(`
+                            <li class="d-flex justify-content-between small mb-1 border-bottom-dotted">
+                                <span>• ${name} <span class="text-secondary">x${qty}</span></span>
+                                <span class="fw-bold">${(qty * price).toLocaleString('vi-VN')} đ</span>
+                            </li>
+                        `);
+                    }
                 }
             });
 
-            $('#orderSummaryCount').text(totalQty);
-            $('#orderSummaryTotal').text(totalPrice.toLocaleString('vi-VN') + ' đ');
+            if ($('#orderSummaryCount').length) $('#orderSummaryCount').text(totalQty);
+            if ($('#orderSummaryTotal').length) $('#orderSummaryTotal').text(totalPrice.toLocaleString('vi-VN') + ' đ');
 
-            if (totalQty > 0) {
-                $('#orderSummaryContainer').removeClass('d-none');
-            } else {
-                $('#orderSummaryContainer').addClass('d-none');
+            if ($('#orderSummaryContainer').length) {
+                if (totalQty > 0) {
+                    $('#orderSummaryContainer').removeClass('d-none');
+                } else {
+                    $('#orderSummaryContainer').addClass('d-none');
+                }
             }
         });
 
@@ -1831,10 +2144,23 @@
 
             toggleLoading(true);
             try {
-                await makeApiCall(`table-sessions/end/${selectedSessionId}`, 'POST', {
+                const endedSession = await makeApiCall(`table-sessions/end/${selectedSessionId}`, 'POST', {
                     paymentMethod: payMethod
                 });
+                
+                const tableId = endedSession.tableId || endedSession.TableId || selectedTableId;
+                const table = tablesData.find(t => t.Id === tableId || t.id === tableId);
+                if (table) {
+                    table.Status = 1;
+                    table.status = 1;
+                    table.ActiveSession = null;
+                    table.activeSession = null;
+                }
+                updateTableCardState(tableId, 1, null);
+                recalculateStats();
+
                 endModal.hide();
+                detailsModal.hide();
                 showNotification('Đã thanh toán hóa đơn và đóng bàn thành công!', 'success');
             } catch (err) {
                 showNotification('Lỗi thanh toán', 'error', err.message);
@@ -1993,15 +2319,27 @@
                         };
 
                         const table = tablesData.find(t => t.Id === tableId || t.id === tableId);
+                        const isFinished = mappedSession.IsFinished || mappedSession.isFinished || mappedSession.Status === 2 || mappedSession.status === 2;
+
                         if (table) {
-                            table.Status = 2;
-                            table.status = 2;
-                            table.ActiveSession = mappedSession;
-                            table.activeSession = mappedSession;
+                            if (isFinished) {
+                                const newStatus = payload.TableStatus || payload.tableStatus || 1;
+                                table.Status = newStatus;
+                                table.status = newStatus;
+                                table.ActiveSession = null;
+                                table.activeSession = null;
+                            } else {
+                                table.Status = 2;
+                                table.status = 2;
+                                table.ActiveSession = mappedSession;
+                                table.activeSession = mappedSession;
+                            }
                         }
 
                         // Update DOM
-                        updateTableCardState(tableId, 2, mappedSession);
+                        const targetStatus = table ? (table.Status !== undefined ? table.Status : table.status) : (isFinished ? 1 : 2);
+                        const targetSession = (targetStatus === 2) ? mappedSession : null;
+                        updateTableCardState(tableId, targetStatus, targetSession);
                         recalculateStats();
 
                         // If details modal is open for this table, refresh it

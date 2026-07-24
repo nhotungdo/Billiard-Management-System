@@ -152,14 +152,20 @@
                                                     <span class="badge bg-light text-secondary mb-1">@product.Category</span>
                                                     <h6 class="font-weight-bold mb-1">@product.Name</h6>
                                                     <span class="text-primary font-weight-bold">@string.Format("{0:C0}", product.Price)</span>
-                                                    <div class="text-muted small">Stock: @product.Stock</div>
+                                                    <div class="text-muted small">
+                                                        Tồn kho: <strong>@product.Stock</strong>
+                                                        @if (product.Stock <= 0)
+                                                        {
+                                                            <span class="badge bg-danger ms-1">Hết hàng</span>
+                                                        }
+                                                    </div>
                                                 </div>
-                                                <div style="width: 120px;">
+                                                <div style="width: 130px;">
                                                     <input type="hidden" name="OrderItems[@i].ProductId" value="@product.Id" />
                                                     <div class="input-group input-group-sm">
-                                                        <button type="button" class="btn btn-outline-secondary minus-btn">-</button>
-                                                        <input type="number" name="OrderItems[@i].Quantity" class="form-control text-center qty-input" value="0" min="0" max="@product.Stock" data-price="@product.Price" data-name="@product.Name" readonly />
-                                                        <button type="button" class="btn btn-outline-secondary plus-btn">+</button>
+                                                        <button type="button" class="btn btn-outline-secondary minus-btn" @(product.Stock <= 0 ? "disabled" : "")>-</button>
+                                                        <input type="number" name="OrderItems[@i].Quantity" class="form-control text-center qty-input" value="0" min="0" max="@product.Stock" data-price="@product.Price" data-name="@product.Name" @(product.Stock <= 0 ? "disabled" : "") />
+                                                        <button type="button" class="btn btn-outline-secondary plus-btn" @(product.Stock <= 0 ? "disabled" : "")>+</button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -330,21 +336,37 @@ else
             // Cart Quantity Management
             $(".plus-btn").on("click", function() {
                 var input = $(this).siblings(".qty-input");
-                var val = parseInt(input.val());
-                var max = parseInt(input.attr("max"));
+                var val = parseInt(input.val()) || 0;
+                var max = parseInt(input.attr("max")) || 0;
                 if (val < max) {
                     input.val(val + 1);
                     updateCart();
+                } else {
+                    alert("Số lượng món vượt quá tồn kho (Tồn kho: " + max + ")");
                 }
             });
 
             $(".minus-btn").on("click", function() {
                 var input = $(this).siblings(".qty-input");
-                var val = parseInt(input.val());
+                var val = parseInt(input.val()) || 0;
                 if (val > 0) {
                     input.val(val - 1);
                     updateCart();
                 }
+            });
+
+            $(".qty-input").on("change keyup blur", function() {
+                var val = parseInt($(this).val());
+                var max = parseInt($(this).attr("max")) || 0;
+                var name = $(this).data("name") || "sản phẩm";
+
+                if (isNaN(val) || val < 0) {
+                    $(this).val(0);
+                } else if (val > max) {
+                    alert("Sản phẩm '" + name + "' chỉ còn tồn kho " + max + " món.");
+                    $(this).val(max);
+                }
+                updateCart();
             });
 
             function updateCart() {
@@ -353,7 +375,7 @@ else
                 var hasItems = false;
 
                 $(".qty-input").each(function() {
-                    var qty = parseInt($(this).val());
+                    var qty = parseInt($(this).val()) || 0;
                     if (qty > 0) {
                         var name = $(this).data("name");
                         var price = parseFloat($(this).data("price"));
@@ -372,7 +394,7 @@ else
                     $("#cartItemsList").html(html);
                     $("#btnPlaceOrder").prop("disabled", false);
                 } else {
-                    $("#cartItemsList").html('<p class="text-muted text-center py-4">No items selected.</p>');
+                    $("#cartItemsList").html('<p class="text-muted text-center py-4">Chưa chọn sản phẩm nào.</p>');
                     $("#btnPlaceOrder").prop("disabled", true);
                 }
 

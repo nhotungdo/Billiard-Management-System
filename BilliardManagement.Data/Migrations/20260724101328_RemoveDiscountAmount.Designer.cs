@@ -4,6 +4,7 @@ using BilliardManagement.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BilliardManagement.Data.Migrations
 {
     [DbContext(typeof(BilliardManagementDbContext))]
-    partial class BilliardManagementDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260724101328_RemoveDiscountAmount")]
+    partial class RemoveDiscountAmount
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -82,74 +85,6 @@ namespace BilliardManagement.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Categories");
-                });
-
-            modelBuilder.Entity("BilliardManagement.Models.Models.Combo", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ComboCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<int>("PlayingHours")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ComboCode")
-                        .IsUnique();
-
-                    b.ToTable("Combos");
-                });
-
-            modelBuilder.Entity("BilliardManagement.Models.Models.ComboItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ComboId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ComboId");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("ComboItems");
                 });
 
             modelBuilder.Entity("BilliardManagement.Models.Models.Customer", b =>
@@ -520,25 +455,6 @@ namespace BilliardManagement.Data.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("BilliardManagement.Models.Models.ComboItem", b =>
-                {
-                    b.HasOne("BilliardManagement.Models.Models.Combo", "Combo")
-                        .WithMany("ComboItems")
-                        .HasForeignKey("ComboId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("BilliardManagement.Models.Models.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Combo");
-
-                    b.Navigation("Product");
-                });
-
             modelBuilder.Entity("BilliardManagement.Models.Models.Invoice", b =>
                 {
                     b.HasOne("BilliardManagement.Models.Models.Customer", "Customer")
@@ -675,11 +591,6 @@ namespace BilliardManagement.Data.Migrations
             modelBuilder.Entity("BilliardManagement.Models.Models.Category", b =>
                 {
                     b.Navigation("Products");
-                });
-
-            modelBuilder.Entity("BilliardManagement.Models.Models.Combo", b =>
-                {
-                    b.Navigation("ComboItems");
                 });
 
             modelBuilder.Entity("BilliardManagement.Models.Models.Customer", b =>

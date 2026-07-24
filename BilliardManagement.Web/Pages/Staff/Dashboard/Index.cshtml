@@ -906,7 +906,7 @@
             // Product quantity controls
             $('.btn-qty-minus').on('click', function () {
                 const input = $(this).siblings('.order-qty');
-                let val = parseInt(input.val(), 10);
+                let val = parseInt(input.val(), 10) || 0;
                 if (val > 0) {
                     input.val(val - 1);
                     if (val - 1 === 0) {
@@ -917,13 +917,30 @@
 
             $('.btn-qty-plus').on('click', function () {
                 const input = $(this).siblings('.order-qty');
-                let val = parseInt(input.val(), 10);
-                const max = parseInt(input.attr('max'), 10);
+                let val = parseInt(input.val(), 10) || 0;
+                const max = parseInt(input.attr('max'), 10) || 0;
                 if (val < max) {
                     input.val(val + 1);
                     $(this).closest('.order-product-item').addClass('selected');
                 } else {
-                    toastr.warning('Đã đạt số lượng tồn kho tối đa!');
+                    toastr.warning('Đã đạt số lượng tồn kho tối đa (' + max + ')!');
+                }
+            });
+
+            $('.order-qty, .quick-qty-input-dash').on('change keyup blur', function () {
+                let val = parseInt($(this).val(), 10);
+                const max = parseInt($(this).attr('max'), 10) || 0;
+                if (isNaN(val) || val < 0) {
+                    $(this).val(0);
+                    $(this).closest('.order-product-item').removeClass('selected');
+                } else if (val > max) {
+                    toastr.warning('Số lượng nhập vượt quá tồn kho (Tồn kho: ' + max + ')');
+                    $(this).val(max);
+                    if (max > 0) $(this).closest('.order-product-item').addClass('selected');
+                } else if (val > 0) {
+                    $(this).closest('.order-product-item').addClass('selected');
+                } else {
+                    $(this).closest('.order-product-item').removeClass('selected');
                 }
             });
 

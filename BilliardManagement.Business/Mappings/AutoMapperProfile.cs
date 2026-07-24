@@ -81,6 +81,15 @@ namespace BilliardManagement.Business.Mappings
             CreateMap<Customer, CustomerDto>().ReverseMap();
             CreateMap<CustomerCreateDto, Customer>();
             CreateMap<CustomerUpdateDto, Customer>();
+
+            CreateMap<ComboItem, ComboItemDto>()
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.ProductName : string.Empty))
+                .ForMember(dest => dest.ProductPrice, opt => opt.MapFrom(src => src.Product != null ? src.Product.Price : 0));
+
+            CreateMap<Combo, ComboDto>()
+                .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.ComboItems));
+            CreateMap<CreateComboDto, Combo>();
+            CreateMap<UpdateComboDto, Combo>();
         }
     }
 }

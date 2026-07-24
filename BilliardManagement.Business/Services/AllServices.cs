@@ -169,9 +169,9 @@ namespace BilliardManagement.Business.Services
 
             if (status == TableStatus.Available && hasActiveSession)
             {
-                if (isAdmin && force)
+                if (force)
                 {
-                    // Admin can force this by ending all active sessions
+                    // Force this by ending all active sessions
                     foreach (var session in activeSessions)
                     {
                         session.EndTime = DateTime.UtcNow;
@@ -192,7 +192,7 @@ namespace BilliardManagement.Business.Services
             {
                 if (hasActiveSession)
                 {
-                    if (isAdmin && force)
+                    if (force)
                     {
                         foreach (var session in activeSessions)
                         {
@@ -215,7 +215,7 @@ namespace BilliardManagement.Business.Services
             {
                 if (hasActiveSession)
                 {
-                    if (isAdmin && force)
+                    if (force)
                     {
                         foreach (var session in activeSessions)
                         {
