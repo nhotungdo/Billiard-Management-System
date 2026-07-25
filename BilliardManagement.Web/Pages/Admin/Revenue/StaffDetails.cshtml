@@ -111,15 +111,15 @@
                 <!-- Filter Panel -->
                 <div class="card-panel mb-4">
                     <div class="panel-body py-3">
-                        <form method="get" class="row g-3 align-items-center">
+                        <form method="get" id="staffDetailsFilterForm" class="row g-3 align-items-center">
                             <input type="hidden" asp-for="StaffId" />
                             <div class="col-12 col-md-4">
                                 <label class="form-label small text-muted mb-1">Từ ngày</label>
-                                <input type="date" asp-for="FromDate" asp-format="{0:yyyy-MM-dd}" class="form-control form-control-sm" />
+                                <input type="date" id="staffDetailsFromDate" asp-for="FromDate" asp-format="{0:yyyy-MM-dd}" class="form-control form-control-sm" />
                             </div>
                             <div class="col-12 col-md-4">
                                 <label class="form-label small text-muted mb-1">Đến ngày</label>
-                                <input type="date" asp-for="ToDate" asp-format="{0:yyyy-MM-dd}" class="form-control form-control-sm" />
+                                <input type="date" id="staffDetailsToDate" asp-for="ToDate" asp-format="{0:yyyy-MM-dd}" class="form-control form-control-sm" />
                             </div>
                             <div class="col-12 col-md-4 d-flex align-items-end gap-2" style="margin-top: auto; padding-bottom: 2px;">
                                 <button type="submit" class="btn btn-sm btn-admin-primary flex-grow-1">
@@ -128,6 +128,11 @@
                                 <a href="/Admin/Revenue/StaffDetails?staffId=@Model.StaffId" class="btn btn-sm btn-outline-secondary flex-grow-1 text-center py-2">
                                     Xóa lọc
                                 </a>
+                            </div>
+                            <div class="col-12 d-none" id="staffDetailsDateError">
+                                <div class="alert alert-danger py-1 px-3 small mb-0 mt-1 rounded-2">
+                                    <i class="fa-solid fa-circle-exclamation me-1"></i> <span>Từ ngày không được lớn hơn Đến ngày.</span>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -313,7 +318,7 @@
         }
 
         // Live search
-        document.getElementById('invoiceSearchInput').addEventListener('input', function(e) {
+        document.getElementById('invoiceSearchInput')?.addEventListener('input', function(e) {
             const query = e.target.value.toLowerCase().trim();
             filteredInvoices = rawInvoices.filter(item => 
                 item.TableName.toLowerCase().includes(query) || 
@@ -322,6 +327,51 @@
             currentPage = 1;
             renderTable();
         });
+
+        // Date filter validation & dynamic constraints
+        const staffDetailsFilterForm = document.getElementById('staffDetailsFilterForm');
+        const staffDetailsFromDate = document.getElementById('staffDetailsFromDate');
+        const staffDetailsToDate = document.getElementById('staffDetailsToDate');
+        const staffDetailsDateError = document.getElementById('staffDetailsDateError');
+
+        function validateStaffDetailsDates() {
+            if (!staffDetailsFromDate || !staffDetailsToDate) return true;
+            const fromVal = staffDetailsFromDate.value;
+            const toVal = staffDetailsToDate.value;
+
+            if (fromVal) staffDetailsToDate.min = fromVal;
+            else staffDetailsToDate.removeAttribute('min');
+
+            if (toVal) staffDetailsFromDate.max = toVal;
+            else staffDetailsFromDate.removeAttribute('max');
+
+            if (fromVal && toVal && fromVal > toVal) {
+                if (staffDetailsDateError) staffDetailsDateError.classList.remove('d-none');
+                staffDetailsFromDate.classList.add('is-invalid');
+                staffDetailsToDate.classList.add('is-invalid');
+                return false;
+            } else {
+                if (staffDetailsDateError) staffDetailsDateError.classList.add('d-none');
+                staffDetailsFromDate.classList.remove('is-invalid');
+                staffDetailsToDate.classList.remove('is-invalid');
+                return true;
+            }
+        }
+
+        if (staffDetailsFromDate && staffDetailsToDate) {
+            staffDetailsFromDate.addEventListener('change', validateStaffDetailsDates);
+            staffDetailsToDate.addEventListener('change', validateStaffDetailsDates);
+            validateStaffDetailsDates();
+        }
+
+        if (staffDetailsFilterForm) {
+            staffDetailsFilterForm.addEventListener('submit', function(e) {
+                if (!validateStaffDetailsDates()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
+        }
 
         document.addEventListener('DOMContentLoaded', function() {
             renderTable();

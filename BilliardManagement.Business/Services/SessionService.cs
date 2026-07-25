@@ -61,7 +61,11 @@ namespace BilliardManagement.Business.Services
                 var isVipCombo = combo.IsVip || combo.Name.Contains("VIP", StringComparison.OrdinalIgnoreCase) || combo.ComboCode.Contains("VIP", StringComparison.OrdinalIgnoreCase);
                 if (!isVipCombo && isVipTable)
                 {
-                    throw new CustomException($"Gói combo '{combo.Name}' không được áp dụng cho Bàn VIP ({table.TableName}). Vui lòng chọn Combo VIP!", 400);
+                    throw new CustomException($"Gói combo thường '{combo.Name}' không được áp dụng cho Bàn VIP ({table.TableName}). Vui lòng chọn Combo VIP!", 400);
+                }
+                if (isVipCombo && !isVipTable)
+                {
+                    throw new CustomException($"Gói Combo VIP '{combo.Name}' chỉ áp dụng cho Bàn VIP ({table.TableName}). Vui lòng chọn Bàn VIP!", 400);
                 }
             }
 
@@ -372,7 +376,9 @@ namespace BilliardManagement.Business.Services
             }
             else if (session.DurationHours <= 0)
             {
-                var actualPlayFee = Math.Round((decimal)totalSeconds / 3600m * (table?.HourlyRate ?? 0));
+                var hourlyRate = table?.HourlyRate ?? 0;
+                var calculatedFee = Math.Round((decimal)totalSeconds / 3600m * hourlyRate);
+                var actualPlayFee = Math.Max(hourlyRate, calculatedFee);
                 session.TotalPrice = actualPlayFee;
                 session.DurationMinutes = elapsedMinutes;
                 session.DurationHours = Math.Max(1, (int)Math.Ceiling(elapsedMinutes / 60.0));
@@ -554,7 +560,8 @@ namespace BilliardManagement.Business.Services
                 var elapsedSec = Math.Max(0, (int)(effectiveNow - AsUtc(session.StartTime)).TotalSeconds);
                 remainingSeconds = elapsedSec;
                 remainingMinutes = elapsedSec / 60;
-                playFee = Math.Round((decimal)elapsedSec / 3600m * table.HourlyRate);
+                var calculatedFee = Math.Round((decimal)elapsedSec / 3600m * table.HourlyRate);
+                playFee = Math.Max(table.HourlyRate, calculatedFee);
                 tableFeeAfterCombo = playFee;
                 isExpired = false;
                 timerLevel = "ok";
@@ -664,7 +671,8 @@ namespace BilliardManagement.Business.Services
                 var elapsedSec = Math.Max(0, (int)(effectiveNow - AsUtc(session.StartTime)).TotalSeconds);
                 remainingSeconds = elapsedSec;
                 remainingMinutes = elapsedSec / 60;
-                playFee = Math.Round((decimal)elapsedSec / 3600m * table.HourlyRate);
+                var calculatedFee = Math.Round((decimal)elapsedSec / 3600m * table.HourlyRate);
+                playFee = Math.Max(table.HourlyRate, calculatedFee);
                 tableFeeAfterCombo = playFee;
                 isExpired = false;
             }

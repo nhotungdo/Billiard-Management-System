@@ -247,13 +247,20 @@
                                     <div class="card border border-light-subtle rounded-4 h-100 hover-shadow transition">
                                         <div class="card-body p-4">
                                             <div class="d-flex justify-content-between align-items-start mb-3">
-                                                <div>
-                                                    <h5 class="fw-bold mb-0 text-dark">@t.TableName</h5>
+                                                <div class="btn-view-table-details cursor-pointer" data-table-id="@t.Id" style="cursor: pointer;" title="Bấm để xem chi tiết bàn">
+                                                    <h5 class="fw-bold mb-0 text-dark">
+                                                        @t.TableName <i class="fa-solid fa-circle-info text-teal ms-1 small" title="Xem chi tiết bàn"></i>
+                                                    </h5>
                                                     <span class="badge bg-light text-muted border border-light-subtle small mt-1">@t.TableType</span>
                                                 </div>
-                                                <span class="badge bg-primary px-2.5 py-1.5 rounded-3 fw-medium">
-                                                    <i class="fa-solid fa-spinner fa-spin me-1.5"></i>Đang chơi
-                                                </span>
+                                                <div class="d-flex align-items-center gap-1.5">
+                                                    <button type="button" class="btn btn-sm btn-light border text-dark fw-medium btn-view-table-details me-1" data-table-id="@t.Id" title="Xem chi tiết bàn">
+                                                        <i class="fa-solid fa-eye me-1 text-teal"></i>Chi tiết
+                                                    </button>
+                                                    <span class="badge bg-primary px-2.5 py-1.5 rounded-3 fw-medium">
+                                                        <i class="fa-solid fa-spinner fa-spin me-1.5"></i>Đang chơi
+                                                    </span>
+                                                </div>
                                             </div>
 
                                             <div class="row g-2 border-top border-bottom border-light-subtle py-3 my-3">
@@ -427,15 +434,15 @@
                             {
                                 if (t.Status == 1 || t.Status == 3)
                                 {
-                                    <option value="@t.Id" data-rate="@t.HourlyRate" data-status="@t.Status">🟢 @t.TableName (@t.TableType) - @t.HourlyRate.ToString("N0")đ/h</option>
+                                    <option value="@t.Id" data-rate="@t.HourlyRate" data-status="@t.Status" data-table-type="@t.TableType">🟢 @t.TableName (@t.TableType) - @t.HourlyRate.ToString("N0")đ/h</option>
                                 }
                                 else if (t.Status == 2)
                                 {
-                                    <option value="@t.Id" data-rate="@t.HourlyRate" data-status="@t.Status" disabled>🔴 @t.TableName (@t.TableType) — Đang có người chơi</option>
+                                    <option value="@t.Id" data-rate="@t.HourlyRate" data-status="@t.Status" data-table-type="@t.TableType" disabled>🔴 @t.TableName (@t.TableType) — Đang có người chơi</option>
                                 }
                                 else if (t.Status == 4)
                                 {
-                                    <option value="@t.Id" data-rate="@t.HourlyRate" data-status="@t.Status" disabled>🔧 @t.TableName (@t.TableType) — Đang bảo trì</option>
+                                    <option value="@t.Id" data-rate="@t.HourlyRate" data-status="@t.Status" data-table-type="@t.TableType" disabled>🔧 @t.TableName (@t.TableType) — Đang bảo trì</option>
                                 }
                             }
                         </select>
@@ -473,7 +480,7 @@
                         </div>
 
                         <div class="dash-start-paylater-notice alert alert-info py-2 px-3 small border-info-subtle mb-0 rounded-3">
-                            <i class="fa-solid fa-circle-info text-info me-1"></i> Khách hàng chơi tự do theo giờ. Tiền giờ sẽ tự động tính theo thời gian chơi thực tế đến khi trả bàn & thanh toán.
+                            <i class="fa-solid fa-circle-info text-info me-1"></i> Mặc định mở bàn 1 tiếng (tính phí 1 giờ tối thiểu). Khi trôi qua 1 tiếng, tiền giờ sẽ tự động tính thêm theo thời gian chơi thực tế.
                         </div>
 
                         <div class="dash-start-prepaid-box mt-2" style="display:none;">
@@ -640,6 +647,114 @@
         </div>
     </div>
 
+    <!-- Table Details Modal -->
+    <div class="modal fade" id="tableDetailsModal" tabindex="-1" aria-labelledby="tableDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark"><i class="fa-solid fa-circle-info text-teal me-2"></i>Chi Tiết Phiên Chơi & Bàn</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <div class="text-center mb-4">
+                        <div class="avatar-circle staff-avatar rounded-circle bg-opacity-10 bg-teal mx-auto mb-2 d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; font-size: 1.8rem; color: #0d9488; background-color: rgba(13, 148, 136, 0.15);">
+                            <i class="fa-solid fa-table-cells-large"></i>
+                        </div>
+                        <h3 class="fw-bold text-dark mb-1" id="dashDetailsModalTableName">BÀN XX</h3>
+                        <span class="badge bg-secondary mb-2" id="dashDetailsModalTableType">Pool 8 Ball</span>
+                        <div class="d-flex justify-content-center gap-2 mt-2">
+                            <span class="badge bg-primary px-3 py-1.5" id="dashDetailsModalTableStatus">Đang chơi</span>
+                            <span class="badge bg-light text-dark border" id="dashDetailsModalTableRate">50.000 đ/giờ</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-teal-subtle text-teal p-3 rounded-4 mb-3 d-flex align-items-center" id="dashPlayingCustomerInfo">
+                        <i class="fa-solid fa-user-circle fs-3 me-3 text-teal"></i>
+                        <div>
+                            <div class="fw-bold fs-6 text-dark" id="dashPlayingCustomerName">Khách hàng</div>
+                            <div class="small text-muted" id="dashPlayingCustomerPhone">SĐT: --</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col">
+                            <div class="p-3 bg-light rounded-4 text-center border">
+                                <div class="fw-bold fs-5 text-dark" id="dashDetailsStartTime">--:--</div>
+                                <div class="small text-muted">Giờ vào</div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="p-3 bg-light rounded-4 text-center border">
+                                <div class="fw-bold fs-5 text-teal" id="dashDetailsElapsedTime">00:00:00</div>
+                                <div class="small text-muted">Đã chơi</div>
+                            </div>
+                        </div>
+                        <div class="col" id="dashDetailsRemainingTimeCol">
+                            <div class="p-3 bg-light rounded-4 text-center border">
+                                <div class="fw-bold fs-5 text-warning" id="dashDetailsRemainingTime">00:00:00</div>
+                                <div class="small text-muted" id="dashDetailsRemainingTimeLabel">Còn lại</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active order items and cost details -->
+                    <div class="border rounded-4 p-3 mb-4 bg-light">
+                        <h6 class="fw-bold mb-2 text-dark"><i class="fa-solid fa-receipt me-2 text-teal"></i>Hóa đơn tạm tính</h6>
+                        <div class="table-responsive" style="max-height: 160px; overflow-y: auto;">
+                            <table class="table table-sm table-borderless align-middle mb-2">
+                                <thead>
+                                    <tr class="border-bottom text-muted small">
+                                        <th>Dịch vụ</th>
+                                        <th class="text-center">SL</th>
+                                        <th class="text-end">Đơn giá</th>
+                                        <th class="text-end">Thành tiền</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashDetailsServicesList">
+                                    <!-- Order items list populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="border-top pt-2 mt-2">
+                            <div class="d-flex justify-content-between text-muted small mb-1">
+                                <span>Tiền giờ chơi:</span>
+                                <span class="fw-bold text-dark" id="dashDetailsTablePrice">0 đ</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted small mb-1">
+                                <span>Tiền nước & dịch vụ:</span>
+                                <span class="fw-bold text-dark" id="dashDetailsOrdersPrice">0 đ</span>
+                            </div>
+                            <div class="d-flex justify-content-between fw-bold text-success border-top pt-2 mt-2">
+                                <span>Tổng tạm tính:</span>
+                                <span class="fs-5" id="dashDetailsTotalPrice">0 đ</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Operations options -->
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-teal btn-lg fs-6 py-2.5 fw-bold rounded-3" id="dashBtnDetailsOrderTrigger">
+                            <i class="fa-solid fa-mug-hot me-2"></i>Gọi Đồ Ăn / Đồ Uống
+                        </button>
+                        <div class="row g-2">
+                            <div class="col" id="dashBtnDetailsExtendCol">
+                                <button class="btn btn-outline-primary w-100 py-2.5 fw-bold rounded-3" id="dashBtnDetailsExtendTrigger">
+                                    <i class="fa-solid fa-clock me-2"></i>Gia hạn chơi
+                                </button>
+                            </div>
+                            <div class="col">
+                                <button class="btn btn-danger w-100 py-2.5 fw-bold rounded-3" id="dashBtnDetailsEndTrigger">
+                                    <i class="fa-solid fa-stop me-2"></i>Trả bàn
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="loading-overlay" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
         <div class="loading-spinner text-center">
             <div class="spinner-ring spinner-border text-teal" style="width: 3rem; height: 3rem;" role="status"></div>
@@ -670,7 +785,123 @@
     </script>
 
     <script>
+        const tablesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TableDashboard));
+
+        function formatTimerString(totalSeconds) {
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const sec = totalSeconds % 60;
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+        }
+
+        function openDashTableDetails(tableId) {
+            const table = tablesData.find(t => t.Id === tableId || t.id === tableId);
+            if (!table) return;
+
+            activeTableId = table.Id || table.id;
+            const session = table.ActiveSession || table.activeSession;
+            if (!session) return;
+
+            activeSessionId = session.Id || session.id;
+
+            $('#dashDetailsModalTableName').text(table.TableName || table.tableName);
+            $('#dashDetailsModalTableType').text(table.TableType || table.tableType);
+            $('#dashDetailsModalTableRate').text(((table.HourlyRate || table.hourlyRate || 0)).toLocaleString('vi-VN') + ' đ/giờ');
+
+            const cName = session.CustomerName || session.customerName;
+            const cPhone = session.CustomerPhone || session.customerPhone;
+            if (cName || cPhone) {
+                $('#dashPlayingCustomerName').text(cName || 'Khách hàng');
+                $('#dashPlayingCustomerPhone').text('SĐT: ' + (cPhone || '--'));
+                $('#dashPlayingCustomerInfo').show();
+            } else {
+                $('#dashPlayingCustomerInfo').hide();
+            }
+
+            const startTime = new Date(session.StartTime || session.startTime);
+            $('#dashDetailsStartTime').text(startTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
+
+            const durationHours = session.DurationHours !== undefined ? session.DurationHours : (session.durationHours || 0);
+            const isPayLater = durationHours === 0 || !session.EndTime || !session.endTime;
+
+            const now = new Date();
+            const elapsed = Math.max(0, Math.floor((now - startTime) / 1000));
+            $('#dashDetailsElapsedTime').text(formatTimerString(elapsed));
+
+            if (isPayLater) {
+                $('#dashDetailsRemainingTimeCol').hide();
+                $('#dashBtnDetailsExtendCol').hide();
+            } else {
+                $('#dashDetailsRemainingTimeCol').show();
+                $('#dashBtnDetailsExtendCol').show();
+                const endTime = new Date(session.EndTime || session.endTime);
+                const rem = Math.max(0, Math.floor((endTime - now) / 1000));
+                $('#dashDetailsRemainingTime').text(formatTimerString(rem));
+            }
+
+            // Pricing
+            const playingFee = session.TotalPrice || session.totalPrice || 0;
+            const serviceFee = session.OrdersTotal || session.ordersTotal || 0;
+            const currentTotal = session.CurrentTotal || session.currentTotal || 0;
+
+            $('#dashDetailsTablePrice').text(playingFee.toLocaleString('vi-VN') + ' đ');
+            $('#dashDetailsOrdersPrice').text(serviceFee.toLocaleString('vi-VN') + ' đ');
+            $('#dashDetailsTotalPrice').text(currentTotal.toLocaleString('vi-VN') + ' đ');
+
+            // Services List
+            const listContainer = $('#dashDetailsServicesList');
+            listContainer.empty();
+            const orderLines = session.OrderLines || session.orderLines || [];
+            if (orderLines.length === 0) {
+                listContainer.append('<tr><td colspan="4" class="text-center py-2 text-muted fst-italic small">Chưa có dịch vụ nào</td></tr>');
+            } else {
+                orderLines.forEach(line => {
+                    const unitPrice = line.UnitPrice || line.unitPrice || 0;
+                    const lineTotal = line.LineTotal || line.lineTotal || 0;
+                    listContainer.append(`
+                        <tr>
+                            <td class="fw-semibold text-dark">${line.ProductName || line.productName}</td>
+                            <td class="text-center">x${line.Quantity || line.quantity}</td>
+                            <td class="text-end text-muted small">${unitPrice.toLocaleString('vi-VN')} đ</td>
+                            <td class="text-end fw-bold text-dark">${lineTotal.toLocaleString('vi-VN')} đ</td>
+                        </tr>
+                    `);
+                });
+            }
+
+            $('#tableDetailsModal').modal('show');
+        }
+
         $(document).ready(function () {
+            $('.btn-view-table-details').on('click', function (e) {
+                e.stopPropagation();
+                const tableId = $(this).attr('data-table-id');
+                openDashTableDetails(tableId);
+            });
+
+            $('#dashBtnDetailsOrderTrigger').on('click', function() {
+                $('#tableDetailsModal').modal('hide');
+                const card = $(`#session-card-${activeSessionId}`);
+                if (card.length) {
+                    card.find('.btn-order-drinks').trigger('click');
+                }
+            });
+
+            $('#dashBtnDetailsExtendTrigger').on('click', function() {
+                $('#tableDetailsModal').modal('hide');
+                const card = $(`#session-card-${activeSessionId}`);
+                if (card.length) {
+                    card.find('.btn-extend-session').trigger('click');
+                }
+            });
+
+            $('#dashBtnDetailsEndTrigger').on('click', function() {
+                $('#tableDetailsModal').modal('hide');
+                const card = $(`#session-card-${activeSessionId}`);
+                if (card.length) {
+                    card.find('.btn-end-session').trigger('click');
+                }
+            });
             // Clock
             function updateClock() {
                 const now = new Date();
@@ -729,22 +960,36 @@
                 }
             });
 
-            // Countdown Timer logic
+            // Countdown / Countup Timer logic
             function updateTimers() {
                 $('.session-timer').each(function () {
                     const el = $(this);
+                    const mode = el.attr('data-mode');
+                    const startTimeStr = el.attr('data-start');
+
+                    if (mode === 'paylater' && startTimeStr) {
+                        const startTime = new Date(startTimeStr);
+                        const now = new Date();
+                        const elapsedSec = Math.max(0, Math.floor((now - startTime) / 1000));
+
+                        if (elapsedSec <= 3600) {
+                            const remFirstHour = 3600 - elapsedSec;
+                            el.text(formatTimerString(remFirstHour));
+                            el.removeClass('text-warning text-danger').addClass('text-primary fw-bold');
+                        } else {
+                            el.text(formatTimerString(elapsedSec));
+                            el.removeClass('text-primary text-danger').addClass('text-teal fw-bold');
+                        }
+                        return;
+                    }
+
                     let rem = parseInt(el.attr('data-remaining'), 10);
                     if (isNaN(rem)) return;
 
                     if (rem > 0) {
                         rem--;
                         el.attr('data-remaining', rem);
-                        
-                        const h = Math.floor(rem / 3600);
-                        const m = Math.floor((rem % 3600) / 60);
-                        const s = rem % 60;
-                        const formatted = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-                        el.text(formatted);
+                        el.text(formatTimerString(rem));
 
                         if (rem <= 0) {
                             el.removeClass('text-primary text-warning').addClass('text-danger fw-bold pulse-danger');
@@ -766,6 +1011,55 @@
             let selectedHours = 2;
             let currentDashStartMode = 'paylater';
 
+            function filterStartModalTables() {
+                if (currentDashStartMode !== 'combo') {
+                    $('#startNewSessionTableSelect option').show();
+                    return;
+                }
+
+                const selectedComboOpt = $('#dashStartComboSelect option:selected');
+                if (!selectedComboOpt.val()) {
+                    $('#startNewSessionTableSelect option').show();
+                    return;
+                }
+
+                const comboName = (selectedComboOpt.attr('data-name') || selectedComboOpt.text() || '').toUpperCase();
+                const comboCode = (selectedComboOpt.attr('data-code') || '').toUpperCase();
+                const isVipCombo = selectedComboOpt.attr('data-vip') === 'true' || comboName.includes('VIP') || comboCode.includes('VIP');
+
+                $('#startNewSessionTableSelect option').each(function () {
+                    const tableId = $(this).val();
+                    if (!tableId) return;
+
+                    const tableType = ($(this).attr('data-table-type') || '').toUpperCase();
+                    const isVipTable = tableType.includes('VIP');
+
+                    if (isVipCombo) {
+                        if (isVipTable) {
+                            $(this).show();
+                        } else {
+                            $(this).hide();
+                        }
+                    } else {
+                        if (!isVipTable) {
+                            $(this).show();
+                        } else {
+                            $(this).hide();
+                        }
+                    }
+                });
+
+                const currentVal = $('#startNewSessionTableSelect').val();
+                if (currentVal) {
+                    const selectedOpt = $('#startNewSessionTableSelect option:selected');
+                    if (selectedOpt.css('display') === 'none') {
+                        $('#startNewSessionTableSelect').val('');
+                        toastr.warning(isVipCombo ? 'Gói Combo VIP chỉ áp dụng cho Bàn VIP!' : 'Gói Combo thường chỉ áp dụng cho Bàn thường!');
+                        calculateDashboardStartTotal();
+                    }
+                }
+            }
+
             $('.btn-dash-start-mode').on('click', function () {
                 $('.btn-dash-start-mode').removeClass('active btn-primary btn-success').addClass('btn-outline-secondary');
                 currentDashStartMode = $(this).data('mode');
@@ -786,6 +1080,7 @@
                     $('.dash-start-prepaid-box, #dashStartComboBox').slideUp();
                     $('#btnConfirmStartNewSession').html('<i class="fa-solid fa-play me-2"></i>Mở Bàn Theo Giờ Ngay');
                 }
+                filterStartModalTables();
                 calculateDashboardStartTotal();
             });
 
@@ -795,6 +1090,7 @@
                 } else {
                     $('#dashStartComboInfo').slideUp();
                 }
+                filterStartModalTables();
                 calculateDashboardStartTotal();
             });
 
@@ -852,7 +1148,9 @@
                 const rate = parseFloat(selectedOpt.attr('data-rate')) || parseFloat(selectedOpt.data('rate')) || 0;
                 let tableFee = 0;
 
-                if (currentDashStartMode === 'prepaid') {
+                if (currentDashStartMode === 'paylater') {
+                    tableFee = rate;
+                } else if (currentDashStartMode === 'prepaid') {
                     const hours = parseInt($('#customHoursNewInput').val(), 10) || 1;
                     tableFee = rate * hours;
                 } else if (currentDashStartMode === 'combo') {

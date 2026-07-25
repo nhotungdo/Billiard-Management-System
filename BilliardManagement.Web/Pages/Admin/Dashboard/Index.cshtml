@@ -936,20 +936,25 @@
                             if (diffMs < 0) return;
 
                             const diffSecs = Math.floor(diffMs / 1000);
-                            const hours = Math.floor(diffSecs / 3600);
-                            const minutes = Math.floor((diffSecs % 3600) / 60);
-                            const seconds = diffSecs % 60;
+                            let formatTime = '';
+                            if (diffSecs <= 3600) {
+                                const remFirstHour = 3600 - diffSecs;
+                                const hours = Math.floor(remFirstHour / 3600);
+                                const minutes = Math.floor((remFirstHour % 3600) / 60);
+                                const seconds = remFirstHour % 60;
+                                formatTime = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+                                row.querySelector('.live-timer').innerHTML = `<span class="timer-badge text-primary">${formatTime}</span>`;
+                            } else {
+                                const hours = Math.floor(diffSecs / 3600);
+                                const minutes = Math.floor((diffSecs % 3600) / 60);
+                                const seconds = diffSecs % 60;
+                                formatTime = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+                                row.querySelector('.live-timer').innerHTML = `<span class="timer-badge text-teal fw-bold">${formatTime}</span>`;
+                            }
 
-                            const formatTime = 
-                                String(hours).padStart(2, '0') + ':' + 
-                                String(minutes).padStart(2, '0') + ':' + 
-                                String(seconds).padStart(2, '0');
-
-                            row.querySelector('.live-timer').innerHTML = `<span class="timer-badge">${formatTime}</span>`;
-
-                            // Calculate temporary playing cost
+                            // Calculate temporary playing cost (Minimum 1h rate)
                             const durationHours = diffSecs / 3600.0;
-                            const playingFee = pricePerHour * durationHours;
+                            const playingFee = Math.max(pricePerHour, pricePerHour * durationHours);
                             const totalAmount = playingFee + ordersTotal;
 
                             row.querySelector('.live-revenue').textContent = formatVnd(totalAmount);

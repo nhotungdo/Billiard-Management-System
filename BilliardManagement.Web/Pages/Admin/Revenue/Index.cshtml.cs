@@ -31,6 +31,14 @@ namespace BilliardManagement.Web.Pages.Admin.Revenue
 
         public async Task<IActionResult> OnGetAsync()
         {
+            if (FromDate.HasValue && ToDate.HasValue && FromDate.Value.Date > ToDate.Value.Date)
+            {
+                TempData["ErrorMessage"] = "Từ ngày không được lớn hơn Đến ngày. Hệ thống đã tự động đảo lại khoảng thời gian cho phù hợp.";
+                var temp = FromDate;
+                FromDate = ToDate;
+                ToDate = temp;
+            }
+
             await LoadStaffListAsync();
 
             try

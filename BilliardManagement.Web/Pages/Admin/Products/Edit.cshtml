@@ -106,6 +106,7 @@
 <div class="card shadow-sm col-md-8">
     <div class="card-body">
         <form method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="All" class="alert alert-danger mb-3" style="display:@(ViewData.ModelState.IsValid ? "none" : "block");"></div>
             <input type="hidden" asp-for="EditProduct.ExistingImageUrl" />
             
             <div class="row g-3">

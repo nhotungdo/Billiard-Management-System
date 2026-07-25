@@ -399,26 +399,35 @@
                 var startTime = new Date(startTimeStr);
                 var now = new Date();
                 
-                // Difference in milliseconds
                 var diffMs = now - startTime;
                 if (diffMs < 0) diffMs = 0;
                 
                 var diffSecs = Math.floor(diffMs / 1000);
-                var hrs = Math.floor(diffSecs / 3600);
-                var mins = Math.floor((diffSecs % 3600) / 60);
-                var secs = diffSecs % 60;
+
+                if (diffSecs <= 3600) {
+                    var remSecs = 3600 - diffSecs;
+                    var hrs = Math.floor(remSecs / 3600);
+                    var mins = Math.floor((remSecs % 3600) / 60);
+                    var secs = remSecs % 60;
+                    var hrsStr = hrs < 10 ? '0' + hrs : hrs;
+                    var minsStr = mins < 10 ? '0' + mins : mins;
+                    var secsStr = secs < 10 ? '0' + secs : secs;
+                    $(this).text(hrsStr + ':' + minsStr + ':' + secsStr);
+                } else {
+                    var hrs = Math.floor(diffSecs / 3600);
+                    var mins = Math.floor((diffSecs % 3600) / 60);
+                    var secs = diffSecs % 60;
+                    var hrsStr = hrs < 10 ? '0' + hrs : hrs;
+                    var minsStr = mins < 10 ? '0' + mins : mins;
+                    var secsStr = secs < 10 ? '0' + secs : secs;
+                    $(this).text(hrsStr + ':' + minsStr + ':' + secsStr);
+                }
                 
-                var hrsStr = hrs < 10 ? '0' + hrs : hrs;
-                var minsStr = mins < 10 ? '0' + mins : mins;
-                var secsStr = secs < 10 ? '0' + secs : secs;
-                
-                $(this).text(hrsStr + ':' + minsStr + ':' + secsStr);
-                
-                // Calculate estimated price
+                // Calculate estimated price (Minimum 1h rate)
                 var estPriceSpan = $(this).closest('.card-body').find('.est-price');
                 var hourlyRate = parseFloat(estPriceSpan.data('rate'));
                 var totalHours = diffSecs / 3600;
-                var estPrice = totalHours * hourlyRate;
+                var estPrice = Math.max(hourlyRate, Math.round(totalHours * hourlyRate));
                 
                 estPriceSpan.text(new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(estPrice));
             });

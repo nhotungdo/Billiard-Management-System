@@ -81,13 +81,13 @@
     <!-- Search & Filter Card -->
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-body p-3">
-            <form method="get" class="row g-3 align-items-center">
+            <form method="get" id="comboFilterForm" class="row g-3 align-items-center">
                 <div class="col-md-6 col-lg-5">
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0 text-muted">
                             <i class="fa-solid fa-magnifying-glass"></i>
                         </span>
-                        <input type="text" asp-for="Search" class="form-control bg-light border-start-0 ps-0" placeholder="Tìm theo mã Combo Code hoặc Tên Combo..." />
+                        <input type="text" id="comboSearchInput" asp-for="Search" class="form-control bg-light border-start-0 ps-0" placeholder="Tìm theo mã Combo Code hoặc Tên Combo..." />
                     </div>
                 </div>
                 <div class="col-md-4 col-lg-3">
@@ -113,7 +113,7 @@
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0" id="comboTable">
                     <thead class="bg-light text-muted small text-uppercase fw-bold border-bottom">
                         <tr>
                             <th class="ps-4">Mã Combo Code</th>
@@ -237,6 +237,10 @@
             </div>
             <div class="modal-body p-4">
                 <form id="comboForm">
+                    <div id="comboFormError" class="alert alert-danger alert-dismissible fade show d-none mb-3" role="alert">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i><span id="comboFormErrorText"></span>
+                        <button type="button" class="btn-close" onclick="document.getElementById('comboFormError').classList.add('d-none')"></button>
+                    </div>
                     <input type="hidden" id="comboId" value="" />
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
@@ -394,6 +398,10 @@
         }
 
         async function saveCombo() {
+            const errBox = document.getElementById('comboFormError');
+            const errText = document.getElementById('comboFormErrorText');
+            if (errBox) errBox.classList.add('d-none');
+
             const id = document.getElementById('comboId').value;
             const comboCode = document.getElementById('comboCode').value.trim();
             const name = document.getElementById('comboName').value.trim();
@@ -402,8 +410,29 @@
             const description = document.getElementById('comboDescription').value.trim();
             const isActive = document.getElementById('comboIsActive').checked;
 
-            if (!comboCode || !name || isNaN(price) || price < 0) {
-                alert('Vui lòng điền đầy đủ các thông tin bắt buộc (Mã Combo, Tên Combo, Giá Combo hợp lệ).');
+            function showComboError(msg) {
+                if (errBox && errText) {
+                    errText.textContent = msg;
+                    errBox.classList.remove('d-none');
+                } else {
+                    alert(msg);
+                }
+            }
+
+            if (!comboCode) {
+                showComboError('Vui lòng nhập Mã Combo Code (ví dụ: CB_SOLO_1H).');
+                return;
+            }
+            if (!name) {
+                showComboError('Vui lòng nhập Tên gói Combo.');
+                return;
+            }
+            if (isNaN(price) || price < 0) {
+                showComboError('Giá gói Combo phải là số hợp lệ lớn hơn hoặc bằng 0.');
+                return;
+            }
+            if (playingHours < 0 || playingHours > 24) {
+                showComboError('Số giờ chơi bàn đi kèm phải từ 0 đến 24 giờ.');
                 return;
             }
 
@@ -442,13 +471,12 @@
 
                 const resData = await response.json();
                 if (response.ok && resData.success) {
-                    alert(resData.message);
                     window.location.reload();
                 } else {
-                    alert('Lỗi: ' + (resData.message || 'Lưu thông tin thất bại.'));
+                    showComboError(resData.message || 'Lưu thông tin thất bại.');
                 }
             } catch (err) {
-                alert('Có lỗi xảy ra: ' + err.message);
+                showComboError('Có lỗi xảy ra: ' + err.message);
             }
         }
     </script>

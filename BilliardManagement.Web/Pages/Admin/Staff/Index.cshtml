@@ -114,11 +114,83 @@
     </div>
 }
 
+@if (Model.PendingPasswordResetRequests != null && Model.PendingPasswordResetRequests.Any())
+{
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-warning bg-opacity-10 border-start border-warning border-4">
+        <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h6 class="fw-bold text-warning mb-0">
+                    <i class="fa-solid fa-bell me-2"></i>Yêu cầu cấp lại mật khẩu từ nhân viên (@Model.PendingPasswordResetRequests.Count)
+                </h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0 bg-white rounded-3 shadow-xs">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tài khoản / SĐT</th>
+                            <th>Họ và tên</th>
+                            <th>Ghi chú</th>
+                            <th>Thời gian gửi</th>
+                            <th class="text-end pe-3">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var req in Model.PendingPasswordResetRequests)
+                        {
+                            <tr>
+                                <td><code class="fw-bold text-dark fs-6">@req.UsernameOrPhone</code></td>
+                                <td>@(req.FullName ?? "-")</td>
+                                <td>@(req.Note ?? "-")</td>
+                                <td class="small text-muted">@req.RequestedAt.ToString("HH:mm dd/MM/yyyy")</td>
+                                <td class="text-end pe-3">
+                                    <form method="post" asp-page-handler="ResolvePasswordReset" asp-route-requestId="@req.Id" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-success fw-bold py-1 px-3 me-1" title="Đánh dấu đã cấp lại mật khẩu">
+                                            <i class="fa-solid fa-check me-1"></i>Đã xử lý
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Search & Filter Card -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-3">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 text-muted">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input type="text" id="staffSearchInput" class="form-control bg-light border-start-0 ps-0" placeholder="Tìm theo tên, username, SĐT..." />
+                </div>
+            </div>
+            <div class="col-md-4 col-lg-4">
+                <select id="staffRoleFilter" class="form-select bg-light">
+                    <option value="">-- Tất cả vai trò --</option>
+                    <option value="admin">Admin</option>
+                    <option value="staff">Staff (Nhân viên)</option>
+                </select>
+            </div>
+            <div class="col-md-2 col-lg-3">
+                <button type="button" id="resetStaffFilter" class="btn btn-outline-secondary w-100" title="Đặt lại bộ lọc">
+                    <i class="fa-solid fa-rotate-left me-1"></i>Đặt lại
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="card-panel">
-    <div class="panel-header"><h5 class="panel-title">Danh sách nhân viên (@Model.StaffList.Count người)</h5></div>
+    <div class="panel-header"><h5 class="panel-title">Danh sách nhân viên (<span id="staff-count-display">@Model.StaffList.Count</span> người)</h5></div>
     <div class="panel-body p-0">
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table" id="staffDataTable">
                 <thead>
                     <tr><th>#</th><th>Họ tên</th><th>Tên đăng nhập</th><th>SĐT</th><th>Vai trò</th><th>Trạng thái</th><th>Hành động</th></tr>
                 </thead>
@@ -182,6 +254,7 @@
             </div>
             <form method="post" asp-page-handler="Create">
                 <div class="modal-body">
+                    <div asp-validation-summary="All" class="alert alert-danger mb-3" style="display:@(ViewData.ModelState.IsValid ? "none" : "block");"></div>
                     <div class="mb-3">
                         <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" asp-for="NewStaff.FullName" required placeholder="Nhập họ và tên..." />
@@ -381,6 +454,41 @@
                 setTimeout(() => {
                     btn.html(originalHtml).removeClass('btn-outline-success').addClass('btn-success');
                 }, 2000);
+            });
+
+            // Staff live search & role filter
+            function filterStaffTable() {
+                const query = ($('#staffSearchInput').val() || '').toLowerCase().trim();
+                const roleFilter = ($('#staffRoleFilter').val() || '').toLowerCase().trim();
+
+                let visibleCount = 0;
+                $('#staffDataTable tbody tr').each(function() {
+                    const row = $(this);
+                    const name = row.find('td:nth-child(2)').text().toLowerCase();
+                    const username = row.find('td:nth-child(3)').text().toLowerCase();
+                    const phone = row.find('td:nth-child(4)').text().toLowerCase();
+                    const roleBadge = row.find('td:nth-child(5)').text().toLowerCase();
+
+                    const matchesQuery = !query || name.includes(query) || username.includes(query) || phone.includes(query);
+                    const matchesRole = !roleFilter || roleBadge.includes(roleFilter);
+
+                    if (matchesQuery && matchesRole) {
+                        row.show();
+                        visibleCount++;
+                    } else {
+                        row.hide();
+                    }
+                });
+
+                $('#staff-count-display').text(visibleCount);
+            }
+
+            $('#staffSearchInput').on('input', filterStaffTable);
+            $('#staffRoleFilter').on('change', filterStaffTable);
+            $('#resetStaffFilter').on('click', function() {
+                $('#staffSearchInput').val('');
+                $('#staffRoleFilter').val('');
+                filterStaffTable();
             });
         });
     </script>

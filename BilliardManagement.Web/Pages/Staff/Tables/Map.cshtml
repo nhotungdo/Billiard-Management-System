@@ -949,7 +949,7 @@
                         </div>
 
                         <div class="start-paylater-notice alert alert-info py-2 px-3 small border-info-subtle mb-0 rounded-3">
-                            <i class="fa-solid fa-circle-info text-info me-1"></i> Khách hàng chơi tự do theo giờ. Tiền giờ sẽ tự động tính theo thời gian chơi thực tế đến khi trả bàn & thanh toán.
+                            <i class="fa-solid fa-circle-info text-info me-1"></i> Mặc định mở bàn 1 tiếng (tính phí 1 giờ tối thiểu). Khi trôi qua 1 tiếng, tiền giờ sẽ tự động tính thêm theo thời gian chơi thực tế.
                         </div>
 
                         <div class="start-prepaid-box mt-2" style="display:none;">
@@ -1620,7 +1620,12 @@
                     if (!startTimeStr) return;
                     const start = new Date(startTimeStr);
                     const elapsed = Math.max(0, Math.floor((now - start) / 1000));
-                    $(this).text(formatTimerString(elapsed));
+                    if (elapsed <= 3600) {
+                        const remFirstHour = 3600 - elapsed;
+                        $(this).text(formatTimerString(remFirstHour)).removeClass('timer-warning timer-expired').addClass('timer-ok text-primary');
+                    } else {
+                        $(this).text(formatTimerString(elapsed)).removeClass('timer-ok').addClass('text-teal fw-bold');
+                    }
                 } else {
                     const endTimeStr = $(this).attr('data-end-time');
                     if (!endTimeStr) return;
@@ -1683,7 +1688,7 @@
                     } else if (isPayLater) {
                         const hourlyRate = parseFloat($('#op-playing-view').data('hourly-rate')) || 0;
                         const ordersTotal = parseFloat($('#op-playing-view').data('orders-total')) || 0;
-                        const livePlayFee = Math.round(elapsed / 3600 * hourlyRate);
+                        const livePlayFee = Math.max(hourlyRate, Math.round(elapsed / 3600 * hourlyRate));
                         const liveTotal = livePlayFee + ordersTotal;
 
                         $('#detailsTablePrice').text(livePlayFee.toLocaleString('vi-VN') + ' đ');
@@ -2170,6 +2175,26 @@
         $('#startComboSelect').on('change', function () {
             const selected = $(this).find('option:selected');
             if (selected.val()) {
+                const table = tablesData.find(t => t.Id === selectedTableId || t.id === selectedTableId);
+                if (table) {
+                    const isVipTable = (table.TableType || table.tableType || '').toUpperCase().includes('VIP');
+                    const comboName = (selected.attr('data-name') || selected.text() || '').toUpperCase();
+                    const comboCode = (selected.attr('data-code') || '').toUpperCase();
+                    const isVipCombo = selected.attr('data-vip') === 'true' || comboName.includes('VIP') || comboCode.includes('VIP');
+
+                    if (isVipCombo && !isVipTable) {
+                        showNotification('Không tương thích', 'warning', `Gói Combo VIP '${selected.attr('data-name')}' chỉ áp dụng cho Bàn VIP. Vui lòng chọn bàn VIP hoặc chọn Combo thường!`);
+                        $(this).val('');
+                        $('#startComboInfo').slideUp();
+                        return;
+                    }
+                    if (!isVipCombo && isVipTable) {
+                        showNotification('Không tương thích', 'warning', `Gói Combo thường '${selected.attr('data-name')}' không áp dụng cho Bàn VIP (${table.TableName}). Vui lòng chọn Combo VIP!`);
+                        $(this).val('');
+                        $('#startComboInfo').slideUp();
+                        return;
+                    }
+                }
                 $('#startComboInfo').slideDown();
             } else {
                 $('#startComboInfo').slideUp();
