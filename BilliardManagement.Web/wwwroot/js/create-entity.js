@@ -83,6 +83,11 @@
         if (!form) return;
         form.addEventListener('submit', async function (e) {
             e.preventDefault();
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                window.showAppToast('Vui lòng kiểm tra và nhập đầy đủ các trường bắt buộc!', 'error');
+                return;
+            }
             const btn = form.querySelector('[type="submit"]');
             const spinner = document.getElementById(options.spinnerId || 'createTableSpinner');
             btn.disabled = true;
@@ -99,6 +104,7 @@
                 window.showAppToast('Tạo bàn mới thành công', 'success');
                 bootstrap.Modal.getInstance(document.getElementById(options.modalId || 'createTableModal'))?.hide();
                 form.reset();
+                form.classList.remove('was-validated');
                 if (form.status) form.status.value = 'Available';
                 if (typeof options.onCreated === 'function') options.onCreated(table);
             } catch (err) {
@@ -156,6 +162,11 @@
 
         form.addEventListener('submit', async function (e) {
             e.preventDefault();
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                window.showAppToast('Vui lòng kiểm tra và nhập đầy đủ các trường bắt buộc!', 'error');
+                return;
+            }
             if (nameInput && nameInput.classList.contains('is-invalid')) {
                 window.showAppToast('Vui lòng sửa các lỗi trước khi lưu', 'error');
                 return;

@@ -26,15 +26,22 @@ namespace BilliardManagement.Business.Services
 
         public async Task<BillDto> GenerateBillAsync(Guid sessionId, GenerateBillDto dto)
         {
-            var session = await _unitOfWork.Repository<TableSession>().GetFirstOrDefaultAsync(s => s.Id == sessionId, "Orders,Orders.OrderItems");
+            var session = await _unitOfWork.Repository<TableSession>().GetFirstOrDefaultAsync(
+                s => s.Id == sessionId, "Orders,Orders.OrderItems,SessionCombos,BilliardTable,User");
             if (session == null) throw new CustomException("Session not found", 404);
 
-            var orders = await _unitOfWork.Repository<Order>().GetAllAsync(o => o.TableSessionId == sessionId && o.Status != OrderStatus.Cancelled);
-            decimal ordersTotal = orders.Sum(o => o.TotalAmount);
-            decimal sessionTotal = session.TotalPrice;
-            decimal subtotal = ordersTotal + sessionTotal;
+            var orders = await _unitOfWork.Repository<Order>().GetAllAsync(
+                o => o.TableSessionId == sessionId && !o.IsComboOrder && o.Status != OrderStatus.Cancelled);
+
+            decimal foodPrice = orders.Sum(o => o.TotalAmount);
+            decimal comboPrice = session.SessionCombos != null && session.SessionCombos.Any() 
+                ? session.SessionCombos.Sum(sc => sc.Price) 
+                : session.ComboPrice;
+            decimal tableFeeAfterCombo = session.TotalPrice;
+            decimal subtotal = comboPrice + foodPrice + tableFeeAfterCombo;
 
             var existingInvoice = await _unitOfWork.Repository<Invoice>().GetFirstOrDefaultAsync(i => i.TableSessionId == sessionId);
+            Invoice invoice;
             if (existingInvoice != null)
             {
                 existingInvoice.Subtotal = subtotal;
@@ -43,42 +50,56 @@ namespace BilliardManagement.Business.Services
                 existingInvoice.IsPaid = true;
                 _unitOfWork.Repository<Invoice>().Update(existingInvoice);
                 await _unitOfWork.SaveChangesAsync();
-
-                return _mapper.Map<BillDto>(existingInvoice);
+                invoice = existingInvoice;
             }
-
-            var invoice = new Invoice
+            else
             {
-                TableSessionId = sessionId,
-                CustomerId = session.CustomerId,
-                Subtotal = subtotal,
-                TotalAmount = subtotal,
-                PaymentMethod = dto.PaymentMethod,
-                IsPaid = true
-            };
-
-            await _unitOfWork.Repository<Invoice>().AddAsync(invoice);
-
-            if (session.CustomerId.HasValue)
-            {
-                var customer = await _unitOfWork.Repository<Customer>().GetByIdAsync(session.CustomerId.Value);
-                if (customer != null)
+                invoice = new Invoice
                 {
-                    customer.TotalVisits += 1;
-                    customer.TotalPlayHours += (decimal)session.DurationHours;
-                    customer.TotalSpent += invoice.TotalAmount;
-                    customer.LastVisitDate = DateTime.UtcNow;
-                    if (!customer.FirstVisitDate.HasValue)
+                    TableSessionId = sessionId,
+                    CustomerId = session.CustomerId,
+                    Subtotal = subtotal,
+                    TotalAmount = subtotal,
+                    PaymentMethod = dto.PaymentMethod,
+                    IsPaid = true
+                };
+
+                await _unitOfWork.Repository<Invoice>().AddAsync(invoice);
+
+                if (session.CustomerId.HasValue)
+                {
+                    var customer = await _unitOfWork.Repository<Customer>().GetByIdAsync(session.CustomerId.Value);
+                    if (customer != null)
                     {
-                        customer.FirstVisitDate = DateTime.UtcNow;
+                        customer.TotalVisits += 1;
+                        customer.TotalPlayHours += (decimal)session.DurationHours;
+                        customer.TotalSpent += invoice.TotalAmount;
+                        customer.LastVisitDate = DateTime.UtcNow;
+                        if (!customer.FirstVisitDate.HasValue)
+                        {
+                            customer.FirstVisitDate = DateTime.UtcNow;
+                        }
+                        _unitOfWork.Repository<Customer>().Update(customer);
                     }
-                    _unitOfWork.Repository<Customer>().Update(customer);
                 }
+
+                await _unitOfWork.SaveChangesAsync();
             }
 
-            await _unitOfWork.SaveChangesAsync();
+            var billDto = _mapper.Map<BillDto>(invoice);
+            billDto.ComboFee = comboPrice;
+            billDto.ServiceFee = foodPrice;
+            billDto.PlayingFee = tableFeeAfterCombo;
+            billDto.TableFeeAfterCombo = tableFeeAfterCombo;
+            billDto.AppliedCombos = _mapper.Map<List<SessionComboDto>>(session.SessionCombos?.OrderBy(sc => sc.AppliedAt).ToList() ?? new List<SessionCombo>());
 
-            return _mapper.Map<BillDto>(invoice);
+            if (session.ComboEndTime.HasValue && session.EndTime.HasValue && session.EndTime.Value > session.ComboEndTime.Value)
+            {
+                var overSecs = (session.EndTime.Value - session.ComboEndTime.Value).TotalSeconds;
+                billDto.OverComboMinutes = (int)Math.Ceiling(overSecs / 60.0);
+            }
+
+            return billDto;
         }
 
         public async Task<IEnumerable<BillDto>> GetAllBillsAsync()

@@ -33,6 +33,16 @@ namespace BilliardManagement.Web.Pages.Admin.Customers
 
         public async Task<IActionResult> OnGetAsync()
         {
+            if (PageNumber < 1) PageNumber = 1;
+            if (PageSize < 1 || PageSize > 100) PageSize = 10;
+            SearchTerm = SearchTerm?.Trim();
+
+            var allowedSorts = new[] { "TotalSpent", "TotalVisits", "LastVisitDate", "CustomerName" };
+            if (!string.IsNullOrEmpty(SortBy) && !allowedSorts.Contains(SortBy))
+            {
+                SortBy = "TotalSpent";
+            }
+
             try
             {
                 Customers = await _customerService.GetPagedCustomersAsync(PageNumber, PageSize, SearchTerm, SortBy, IsDescending);

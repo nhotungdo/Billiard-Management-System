@@ -15,6 +15,7 @@ namespace BilliardManagement.Web.Pages.Admin.Staff
         }
 
         public List<StaffDto> StaffList { get; set; } = new();
+        public List<PasswordResetItem> PendingPasswordResetRequests { get; set; } = new();
         public string? ErrorMessage { get; set; }
 
         [BindProperty]
@@ -24,6 +25,7 @@ namespace BilliardManagement.Web.Pages.Admin.Staff
         {
             try
             {
+                PendingPasswordResetRequests = PasswordResetStore.GetPendingRequests();
                 var result = await _staffService.GetAllStaffAsync();
                 StaffList = result?.ToList() ?? new();
             }
@@ -66,6 +68,13 @@ namespace BilliardManagement.Web.Pages.Admin.Staff
             {
                 TempData["ErrorMessage"] = $"Lỗi khi xóa nhân viên: {ex.Message}";
             }
+            return RedirectToPage();
+        }
+
+        public IActionResult OnPostResolvePasswordReset(Guid requestId)
+        {
+            PasswordResetStore.MarkAsResolved(requestId);
+            TempData["SuccessMessage"] = "Đã đánh dấu xử lý xong yêu cầu cấp lại mật khẩu.";
             return RedirectToPage();
         }
     }

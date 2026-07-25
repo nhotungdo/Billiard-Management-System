@@ -117,6 +117,7 @@ namespace BilliardManagement.Business.DTOs
         public string? CustomerName { get; set; }
         public string? CustomerPhone { get; set; }
         public int PaymentMethod { get; set; } = 0;
+        public Guid? ComboId { get; set; }
     }
 
     public class ExtendSessionRequest
@@ -159,6 +160,17 @@ namespace BilliardManagement.Business.DTOs
         public bool IsFinished { get; set; }
         public bool IsExpired { get; set; }
         public SessionStatus Status { get; set; }
+        public Guid? ComboId { get; set; }
+        public int ComboHours { get; set; }
+        public int ComboDurationMinutes { get; set; }
+        public DateTime? ComboEndTime { get; set; }
+        public decimal ComboPrice { get; set; }
+        public bool IsUsingCombo { get; set; }
+        public bool IsOverComboTime { get; set; }
+        public int OverComboMinutes { get; set; }
+        public decimal TableFeeAfterCombo { get; set; }
+        public bool HasCombo => ComboDurationMinutes > 0 || ComboEndTime.HasValue || ComboHours > 0 || ComboId.HasValue;
+        public List<SessionComboDto> AppliedCombos { get; set; } = new();
         public List<SessionOrderLineDto> OrderLines { get; set; } = new();
     }
 
@@ -192,6 +204,17 @@ namespace BilliardManagement.Business.DTOs
         public string TimerLevel { get; set; } = "ok";
         public string? CustomerName { get; set; }
         public string? CustomerPhone { get; set; }
+        public Guid? ComboId { get; set; }
+        public int ComboHours { get; set; }
+        public int ComboDurationMinutes { get; set; }
+        public DateTime? ComboEndTime { get; set; }
+        public decimal ComboPrice { get; set; }
+        public bool IsUsingCombo { get; set; }
+        public bool IsOverComboTime { get; set; }
+        public int OverComboMinutes { get; set; }
+        public decimal TableFeeAfterCombo { get; set; }
+        public bool HasCombo => ComboDurationMinutes > 0 || ComboEndTime.HasValue || ComboHours > 0 || ComboId.HasValue;
+        public List<SessionComboDto> AppliedCombos { get; set; } = new();
         public List<SessionOrderLineDto> OrderLines { get; set; } = new();
     }
 
@@ -276,6 +299,10 @@ namespace BilliardManagement.Business.DTOs
         public string StaffName { get; set; } = string.Empty;
         public decimal PlayingFee { get; set; }
         public decimal ServiceFee { get; set; }
+        public decimal ComboFee { get; set; }
+        public decimal TableFeeAfterCombo { get; set; }
+        public int OverComboMinutes { get; set; }
+        public List<SessionComboDto> AppliedCombos { get; set; } = new();
     }
     public class GenerateBillDto { public PaymentMethod PaymentMethod { get; set; } }
     

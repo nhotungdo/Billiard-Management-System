@@ -21,6 +21,7 @@ namespace BilliardManagement.Business.DTOs
         public decimal Price { get; set; }
         public string? Description { get; set; }
         public int PlayingHours { get; set; }
+        public bool IsVip { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public List<ComboItemDto> Items { get; set; } = new();
@@ -56,6 +57,8 @@ namespace BilliardManagement.Business.DTOs
         [Range(0, 24)]
         public int PlayingHours { get; set; } = 0;
 
+        public bool IsVip { get; set; } = false;
+
         public bool IsActive { get; set; } = true;
 
         public List<CreateComboItemDto> Items { get; set; } = new();
@@ -81,6 +84,8 @@ namespace BilliardManagement.Business.DTOs
         [Range(0, 24)]
         public int PlayingHours { get; set; } = 0;
 
+        public bool IsVip { get; set; } = false;
+
         public bool IsActive { get; set; } = true;
 
         public List<CreateComboItemDto> Items { get; set; } = new();
@@ -101,5 +106,16 @@ namespace BilliardManagement.Business.DTOs
         public string Message { get; set; } = string.Empty;
         public ComboDto? Combo { get; set; }
         public Guid? OrderId { get; set; }
+    }
+
+    public class SessionComboDto
+    {
+        public Guid Id { get; set; }
+        public Guid TableSessionId { get; set; }
+        public Guid? ComboId { get; set; }
+        public string ComboName { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public int DurationMinutes { get; set; }
+        public DateTime AppliedAt { get; set; }
     }
 }

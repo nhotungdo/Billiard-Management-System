@@ -36,6 +36,19 @@ namespace BilliardManagement.Business.Services
             return _mapper.Map<IEnumerable<ProductDto>>(products);
         }
 
+        public async Task<ProductDto> GetProductByIdAsync(Guid id)
+        {
+            var product = await _unitOfWork.Repository<Product>().GetFirstOrDefaultAsync(
+                filter: p => p.Id == id && !p.IsDeleted,
+                includeProperties: "Category"
+            );
+
+            if (product == null)
+                throw new CustomException("Sản phẩm không tồn tại", 404);
+
+            return _mapper.Map<ProductDto>(product);
+        }
+
         public async Task<ProductDto> CreateProductAsync(CreateProductDto dto, Guid? createdBy = null)
         {
             if (string.IsNullOrWhiteSpace(dto.Name))

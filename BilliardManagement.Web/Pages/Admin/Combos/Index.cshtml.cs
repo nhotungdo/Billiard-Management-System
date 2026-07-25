@@ -38,6 +38,7 @@ namespace BilliardManagement.Web.Pages.Admin.Combos
         {
             try
             {
+                Search = Search?.Trim();
                 var combosResult = await _comboService.GetAllCombosAsync(Search, ActiveOnly);
                 Combos = combosResult ?? new();
 

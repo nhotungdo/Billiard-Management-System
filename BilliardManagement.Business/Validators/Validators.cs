@@ -16,7 +16,7 @@ namespace BilliardManagement.Business.Validators
     public class CreateTableDtoValidator : AbstractValidator<CreateTableDto>
     {
         private static readonly string[] AllowedTypes = { "Pool 8 Ball", "Pool 9 Ball", "Snooker", "VIP" };
-        private static readonly string[] AllowedStatuses = { "Available", "Reserved", "Maintenance" };
+        private static readonly string[] AllowedStatuses = { "Available", "Waiting", "Maintenance" };
 
         public CreateTableDtoValidator()
         {

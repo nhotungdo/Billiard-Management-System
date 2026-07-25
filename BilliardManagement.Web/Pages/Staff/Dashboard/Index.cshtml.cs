@@ -14,17 +14,20 @@ namespace BilliardManagement.Web.Pages.Staff.Dashboard
         private readonly OrderService _orderService;
         private readonly RevenueService _revenueService;
         private readonly ProductService _productService;
+        private readonly ComboService _comboService;
 
         public IndexModel(
             SessionService sessionService,
             OrderService orderService,
             RevenueService revenueService,
-            ProductService productService)
+            ProductService productService,
+            ComboService comboService)
         {
             _sessionService = sessionService;
             _orderService = orderService;
             _revenueService = revenueService;
             _productService = productService;
+            _comboService = comboService;
         }
 
         // Stats
@@ -37,6 +40,7 @@ namespace BilliardManagement.Web.Pages.Staff.Dashboard
         public List<TableDashboardDto> TableDashboard { get; set; } = new();
         public List<TableDashboardDto> MyActiveSessions { get; set; } = new();
         public List<ProductDto> Products { get; set; } = new();
+        public List<ComboDto> Combos { get; set; } = new();
         public List<ActivityItem> RecentActivities { get; set; } = new();
         public decimal[] HourlyRevenueData { get; set; } = new decimal[24];
         public string? ErrorMessage { get; set; }
@@ -150,9 +154,12 @@ namespace BilliardManagement.Web.Pages.Staff.Dashboard
 
                 ActiveTablesCount = MyActiveSessions.Count;
 
-                // 2. Fetch products for Quick Order popup
+                // 2. Fetch products for Quick Order popup & combos
                 var products = await _productService.GetAllProductsAsync();
                 Products = products?.Where(p => p.Stock > 0 && p.IsAvailable).OrderBy(p => p.Category).ThenBy(p => p.Name).ToList() ?? new();
+
+                var combos = await _comboService.GetAllCombosAsync(activeOnly: true);
+                Combos = combos ?? new();
 
                 // 3. Fetch personal revenue analytics
                 var personalRev = await _revenueService.GetPersonalRevenueAsync(null, null);

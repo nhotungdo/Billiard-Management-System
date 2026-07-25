@@ -62,6 +62,21 @@ CREATE TABLE [Customers] (
 GO
 
 
+CREATE TABLE [Combos] (
+    [Id]           uniqueidentifier NOT NULL,
+    [ComboCode]    nvarchar(50)     NOT NULL,
+    [Name]         nvarchar(150)    NOT NULL,
+    [Price]        decimal(18,2)    NOT NULL,
+    [Description]  nvarchar(500)    NULL,
+    [PlayingHours] int              NOT NULL,
+    [IsActive]     bit              NOT NULL,
+    [IsDeleted]    bit              NOT NULL,
+    [CreatedAt]    datetime2        NOT NULL,
+    CONSTRAINT [PK_Combos] PRIMARY KEY ([Id])
+);
+GO
+
+
 -- ============================================================
 -- BẢNG PHỤ THUỘC CẤP 1
 -- ============================================================
@@ -152,6 +167,18 @@ CREATE TABLE [Orders] (
 GO
 
 
+CREATE TABLE [ComboItems] (
+    [Id]        uniqueidentifier NOT NULL,
+    [ComboId]   uniqueidentifier NOT NULL,
+    [ProductId] uniqueidentifier NOT NULL,
+    [Quantity]  int              NOT NULL,
+    CONSTRAINT [PK_ComboItems] PRIMARY KEY ([Id]),
+    CONSTRAINT [FK_ComboItems_Combos_ComboId] FOREIGN KEY ([ComboId]) REFERENCES [Combos] ([Id]) ON DELETE CASCADE,
+    CONSTRAINT [FK_ComboItems_Products_ProductId] FOREIGN KEY ([ProductId]) REFERENCES [Products] ([Id]) ON DELETE NO ACTION
+);
+GO
+
+
 -- ============================================================
 -- BẢNG PHỤ THUỘC CẤP 3
 -- ============================================================
@@ -192,6 +219,15 @@ GO
 -- ============================================================
 
 CREATE UNIQUE INDEX [IX_BilliardTables_TableName]  ON [BilliardTables] ([TableName]);
+GO
+
+CREATE UNIQUE INDEX [IX_Combos_ComboCode] ON [Combos] ([ComboCode]);
+GO
+
+CREATE INDEX [IX_ComboItems_ComboId] ON [ComboItems] ([ComboId]);
+GO
+
+CREATE INDEX [IX_ComboItems_ProductId] ON [ComboItems] ([ProductId]);
 GO
 
 CREATE UNIQUE INDEX [IX_Customers_PhoneNumber] ON [Customers] ([PhoneNumber]);

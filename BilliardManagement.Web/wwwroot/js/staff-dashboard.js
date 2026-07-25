@@ -1,8 +1,8 @@
 (function () {
     'use strict';
 
-    const STATUS_TEXT = { 1: 'Trống bàn', 2: 'Đang chơi', 3: 'Đặt trước', 4: 'Bảo trì' };
-    const STATUS_CLASS = { 1: 'status-available', 2: 'status-playing', 3: 'status-reserved', 4: 'status-maintenance' };
+    const STATUS_TEXT = { 1: 'Trống bàn', 2: 'Đang chơi', 3: 'Chờ', 4: 'Bảo trì' };
+    const STATUS_CLASS = { 1: 'status-available', 2: 'status-playing', 3: 'status-waiting', 4: 'status-maintenance' };
 
     let pendingTableId = null;
     let pendingSessionId = null;
@@ -191,27 +191,36 @@
     }
 
     function tickAllTimers() {
-        document.querySelectorAll('.table-session-card').forEach(function (card) {
+        document.querySelectorAll('.table-session-card, [id^="session-card-"]').forEach(function (card) {
             const tableId = card.dataset.tableId;
             const timerEl = document.getElementById('timer-' + tableId);
-            if (!timerEl || !card.dataset.sessionId) return;
+            if (!timerEl) return;
 
-            const rem = getRemainingSeconds(card, timerEl);
-            card.dataset.remainingSeconds = rem;
-            timerEl.setAttribute('data-remaining', rem);
-            timerEl.textContent = formatTimer(rem);
-            timerEl.className = 'session-timer ' + getTimerLevel(rem);
-
-            if (rem <= 0) {
-                timerEl.classList.add('timer-blink');
-                const sid = card.dataset.sessionId;
-                if (sid && !alertedSessions.has(sid)) {
-                    alertedSessions.add(sid);
-                    const name = card.querySelector('.tsc-name')?.textContent || 'Bàn';
-                    showToast('<strong>Bàn sắp hết / đã hết giờ:</strong> ' + name, 'warning');
-                }
+            const mode = timerEl.getAttribute('data-mode');
+            if (mode === 'paylater') {
+                const startStr = timerEl.getAttribute('data-start');
+                if (!startStr) return;
+                const start = parseEndUtc(startStr) || new Date(startStr);
+                const elapsed = Math.max(0, Math.floor((new Date() - start) / 1000));
+                timerEl.textContent = formatTimer(elapsed);
             } else {
-                timerEl.classList.remove('timer-blink');
+                const rem = getRemainingSeconds(card, timerEl);
+                card.dataset.remainingSeconds = rem;
+                timerEl.setAttribute('data-remaining', rem);
+                timerEl.textContent = formatTimer(rem);
+                timerEl.className = 'session-timer ' + getTimerLevel(rem);
+
+                if (rem <= 0) {
+                    timerEl.classList.add('timer-blink');
+                    const sid = card.dataset.sessionId;
+                    if (sid && !alertedSessions.has(sid)) {
+                        alertedSessions.add(sid);
+                        const name = card.querySelector('.tsc-name')?.textContent || 'Bàn';
+                        showToast('<strong>Bàn sắp hết / đã hết giờ:</strong> ' + name, 'warning');
+                    }
+                } else {
+                    timerEl.classList.remove('timer-blink');
+                }
             }
         });
     }

@@ -220,7 +220,7 @@
                                                 data-tablename="@table.TableName"
                                                 data-tabletype="@table.TableType"
                                                 data-priceperhour="@table.PricePerHour"
-                                                data-status="@(table.Status switch { 1 => "Available", 2 => "Playing", 3 => "Reserved", 4 => "Maintenance", _ => "Available" })"
+                                                data-status="@(table.Status switch { 1 => "Available", 2 => "Playing", 3 => "Waiting", 4 => "Maintenance", _ => "Available" })"
                                                 data-description="@table.Description"
                                                 title="Chỉnh sửa bàn">
                                             <i class="fa-solid fa-pen-to-square me-1"></i> Sửa
@@ -275,7 +275,7 @@
                         <select asp-for="EditTable.Status" id="editStatus" class="form-select">
                             <option value="Available">Còn trống</option>
                             <option value="Playing">Đang chơi</option>
-                            <option value="Reserved">Đã đặt trước</option>
+                            <option value="Waiting">Chờ</option>
                             <option value="Maintenance">Bảo trì</option>
                         </select>
                     </div>

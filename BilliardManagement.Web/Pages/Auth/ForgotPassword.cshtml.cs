@@ -1,22 +1,27 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
+using BilliardManagement.Web.Services;
 
 namespace BilliardManagement.Web.Pages.Auth
 {
     public class ForgotPasswordModel : PageModel
     {
         [BindProperty]
-        [Required(ErrorMessage = "Email là bắt buộc")]
-        [EmailAddress(ErrorMessage = "Địa chỉ email không hợp lệ")]
-        public string Email { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Vui lòng nhập Tên đăng nhập hoặc Số điện thoại")]
+        public string UsernameOrPhone { get; set; } = string.Empty;
+
+        [BindProperty]
+        public string? FullName { get; set; }
+
+        [BindProperty]
+        public string? Note { get; set; }
 
         public string? SuccessMessage { get; set; }
         public string? ErrorMessage { get; set; }
 
         public void OnGet()
         {
-            // If already logged in, redirect to Dashboard
             var token = HttpContext.Session.GetString("JWToken");
             if (!string.IsNullOrEmpty(token))
             {
@@ -33,10 +38,9 @@ namespace BilliardManagement.Web.Pages.Auth
 
             try
             {
-                // Simulate sending recovery email since there's no backend endpoint
-                await Task.Delay(1000); // Simulate network delay
+                PasswordResetStore.AddRequest(UsernameOrPhone, FullName, Note);
 
-                SuccessMessage = "Một email khôi phục mật khẩu đã được gửi đến hòm thư của bạn. Vui lòng kiểm tra hộp thư.";
+                SuccessMessage = $"Yêu cầu cấp lại mật khẩu của bạn (Tài khoản/SĐT: {UsernameOrPhone}) đã được gửi thành công đến Quản trị viên (Admin). Vui lòng liên hệ Admin để nhận mật khẩu mới.";
                 return Page();
             }
             catch (Exception ex)

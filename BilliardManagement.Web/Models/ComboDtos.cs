@@ -21,6 +21,7 @@ namespace BilliardManagement.Web.Models
         public decimal Price { get; set; }
         public string? Description { get; set; }
         public int PlayingHours { get; set; }
+        public bool IsVip { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public List<ComboItemDto> Items { get; set; } = new();
@@ -55,6 +56,8 @@ namespace BilliardManagement.Web.Models
 
         [Range(0, 24, ErrorMessage = "Số giờ chơi từ 0 đến 24 giờ")]
         public int PlayingHours { get; set; } = 0;
+
+        public bool IsVip { get; set; } = false;
 
         public bool IsActive { get; set; } = true;
 

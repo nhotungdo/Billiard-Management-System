@@ -23,6 +23,7 @@ namespace BilliardManagement.Data
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Combo> Combos { get; set; }
         public DbSet<ComboItem> ComboItems { get; set; }
+        public DbSet<SessionCombo> SessionCombos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -64,6 +65,10 @@ namespace BilliardManagement.Data
 
             modelBuilder.Entity<TableSession>()
                 .Property(s => s.TotalPrice)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<TableSession>()
+                .Property(s => s.ComboPrice)
                 .HasPrecision(18, 2);
 
             modelBuilder.Entity<Product>()
@@ -143,6 +148,16 @@ namespace BilliardManagement.Data
                 .WithMany()
                 .HasForeignKey(ci => ci.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SessionCombo>()
+                .Property(sc => sc.Price)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<SessionCombo>()
+                .HasOne(sc => sc.TableSession)
+                .WithMany(ts => ts.SessionCombos)
+                .HasForeignKey(sc => sc.TableSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

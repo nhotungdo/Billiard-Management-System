@@ -20,7 +20,7 @@ namespace BilliardManagement.Web.Pages.Admin.Tables
 
         public int CountAvailable => Tables.Count(t => t.Status == 1);
         public int CountPlaying => Tables.Count(t => t.Status == 2);
-        public int CountReserved => Tables.Count(t => t.Status == 3);
+        public int CountWaiting => Tables.Count(t => t.Status == 3);
         public int CountMaintenance => Tables.Count(t => t.Status == 4);
 
         public async Task<IActionResult> OnGetAsync()

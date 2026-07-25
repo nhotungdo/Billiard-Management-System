@@ -46,6 +46,18 @@ namespace BilliardManagement.Models.Models
         [ForeignKey("CustomerId")]
         public virtual Customer? Customer { get; set; }
 
+        public Guid? ComboId { get; set; }
+        public int ComboHours { get; set; } = 0;
+        public int ComboDurationMinutes { get; set; } = 0;
+        public DateTime? ComboEndTime { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal ComboPrice { get; set; } = 0;
+
+        [ForeignKey("ComboId")]
+        public virtual Combo? Combo { get; set; }
+
+        public virtual ICollection<SessionCombo> SessionCombos { get; set; } = new List<SessionCombo>();
         public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
         public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
     }

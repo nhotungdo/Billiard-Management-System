@@ -28,6 +28,14 @@ namespace BilliardManagement.Web.Pages.Admin.Revenue
         {
             if (StaffId == Guid.Empty) return RedirectToPage("/Admin/Revenue/Index");
 
+            if (FromDate.HasValue && ToDate.HasValue && FromDate.Value.Date > ToDate.Value.Date)
+            {
+                TempData["ErrorMessage"] = "Từ ngày không được lớn hơn Đến ngày. Hệ thống đã tự động đảo lại khoảng thời gian cho phù hợp.";
+                var temp = FromDate;
+                FromDate = ToDate;
+                ToDate = temp;
+            }
+
             try
             {
                 StaffRevenueData = await _revenueService.GetStaffRevenueAsync(StaffId, FromDate, ToDate) ?? new();

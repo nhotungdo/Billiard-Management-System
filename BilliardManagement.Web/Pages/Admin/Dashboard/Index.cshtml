@@ -400,7 +400,7 @@
                             <div class="d-flex gap-2">
                                 <span class="badge bg-success-soft text-success">@Model.CountAvailable Trống</span>
                                 <span class="badge bg-danger-soft text-danger">@Model.CountPlaying Chơi</span>
-                                <span class="badge bg-warning-soft text-warning">@Model.CountReserved Đặt trước</span>
+                                <span class="badge bg-warning-soft text-warning">@Model.CountWaiting Chờ</span>
                                 <span class="badge bg-secondary-soft text-secondary">@Model.CountMaintenance Bảo trì</span>
                             </div>
                         </div>
@@ -936,20 +936,25 @@
                             if (diffMs < 0) return;
 
                             const diffSecs = Math.floor(diffMs / 1000);
-                            const hours = Math.floor(diffSecs / 3600);
-                            const minutes = Math.floor((diffSecs % 3600) / 60);
-                            const seconds = diffSecs % 60;
+                            let formatTime = '';
+                            if (diffSecs <= 3600) {
+                                const remFirstHour = 3600 - diffSecs;
+                                const hours = Math.floor(remFirstHour / 3600);
+                                const minutes = Math.floor((remFirstHour % 3600) / 60);
+                                const seconds = remFirstHour % 60;
+                                formatTime = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+                                row.querySelector('.live-timer').innerHTML = `<span class="timer-badge text-primary">${formatTime}</span>`;
+                            } else {
+                                const hours = Math.floor(diffSecs / 3600);
+                                const minutes = Math.floor((diffSecs % 3600) / 60);
+                                const seconds = diffSecs % 60;
+                                formatTime = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+                                row.querySelector('.live-timer').innerHTML = `<span class="timer-badge text-teal fw-bold">${formatTime}</span>`;
+                            }
 
-                            const formatTime = 
-                                String(hours).padStart(2, '0') + ':' + 
-                                String(minutes).padStart(2, '0') + ':' + 
-                                String(seconds).padStart(2, '0');
-
-                            row.querySelector('.live-timer').innerHTML = `<span class="timer-badge">${formatTime}</span>`;
-
-                            // Calculate temporary playing cost
+                            // Calculate temporary playing cost (Minimum 1h rate)
                             const durationHours = diffSecs / 3600.0;
-                            const playingFee = pricePerHour * durationHours;
+                            const playingFee = Math.max(pricePerHour, pricePerHour * durationHours);
                             const totalAmount = playingFee + ordersTotal;
 
                             row.querySelector('.live-revenue').textContent = formatVnd(totalAmount);
@@ -1020,7 +1025,7 @@
                         if (tables.length === 0) {
                             body.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Không có dữ liệu bàn.</td></tr>`;
                         } else {
-                            let countAvailable = 0, countPlaying = 0, countReserved = 0, countMaintenance = 0;
+                            let countAvailable = 0, countPlaying = 0, countWaiting = 0, countMaintenance = 0;
                             
                             tables.forEach(table => {
                                 const isPlaying = table.status === 2;
@@ -1032,14 +1037,14 @@
                                 // Keep status count
                                 if (table.status === 1) countAvailable++;
                                 else if (table.status === 2) countPlaying++;
-                                else if (table.status === 3) countReserved++;
+                                else if (table.status === 3) countWaiting++;
                                 else if (table.status === 4) countMaintenance++;
 
                                 let badgeHtml = '';
                                 switch(table.status) {
                                     case 1: badgeHtml = `<span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i>Trống</span>`; break;
                                     case 2: badgeHtml = `<span class="badge bg-danger animate-pulse-badge"><i class="fa-solid fa-play me-1"></i>Đang chơi</span>`; break;
-                                    case 3: badgeHtml = `<span class="badge bg-warning text-dark"><i class="fa-solid fa-calendar-check me-1"></i>Đặt trước</span>`; break;
+                                    case 3: badgeHtml = `<span class="badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i>Chờ</span>`; break;
                                     case 4: badgeHtml = `<span class="badge bg-secondary"><i class="fa-solid fa-screwdriver-wrench me-1"></i>Bảo trì</span>`; break;
                                     default: badgeHtml = `<span class="badge bg-light text-dark">Khác</span>`;
                                 }

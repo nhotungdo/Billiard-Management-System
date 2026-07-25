@@ -8,7 +8,7 @@
     public string GetStatusCssClass(int status) => status switch {
         1 => "available",
         2 => "playing",
-        3 => "reserved",
+        3 => "waiting",
         4 => "maintenance",
         _ => "unknown"
     };
@@ -24,7 +24,7 @@
     public string GetStatusText(int status) => status switch {
         1 => "Trống bàn",
         2 => "Đang chơi",
-        3 => "Đặt trước",
+        3 => "Chờ",
         4 => "Bảo trì",
         _ => "Không xác định"
     };
@@ -149,7 +149,7 @@
         }
         .dot-available { background-color: #10b981; box-shadow: 0 0 8px #10b981; }
         .dot-playing { background-color: #0ea5e9; box-shadow: 0 0 8px #0ea5e9; }
-        .dot-reserved { background-color: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
+        .dot-waiting { background-color: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
         .dot-maintenance { background-color: #ef4444; box-shadow: 0 0 8px #ef4444; }
 
         /* Premium Visual Table Grid Layout */
@@ -186,7 +186,7 @@
         /* Glowing and Colored Borders according to status */
         .billiard-table-card.status-available::before { background: #10b981; }
         .billiard-table-card.status-playing::before { background: #0ea5e9; }
-        .billiard-table-card.status-reserved::before { background: #f59e0b; }
+        .billiard-table-card.status-waiting::before { background: #f59e0b; }
         .billiard-table-card.status-maintenance::before { background: #ef4444; }
 
         .billiard-table-card.status-available:hover {
@@ -199,7 +199,7 @@
             box-shadow: 0 12px 24px -10px rgba(14, 165, 233, 0.3);
             border-color: rgba(14, 165, 233, 0.3);
         }
-        .billiard-table-card.status-reserved:hover {
+        .billiard-table-card.status-waiting:hover {
             transform: translateY(-5px);
             box-shadow: 0 12px 24px -10px rgba(245, 158, 11, 0.3);
             border-color: rgba(245, 158, 11, 0.3);
@@ -430,16 +430,29 @@
                             <div class="d-flex flex-wrap gap-2 mt-3 pt-2 border-top">
                                 @foreach (var c in Model.Combos)
                                 {
-                                    <div class="badge bg-white text-dark border p-2.5 rounded-3 shadow-xs d-flex align-items-center gap-2">
+                                    <div class="badge bg-white text-dark border border-primary-subtle p-2.5 rounded-3 shadow-xs d-flex align-items-center gap-2 combo-card-item"
+                                         onclick="openApplyComboModal('@c.ComboCode')"
+                                         style="cursor: pointer; transition: all 0.2s;"
+                                         onmouseover="this.classList.add('border-primary', 'shadow-sm')"
+                                         onmouseout="this.classList.remove('border-primary', 'shadow-sm')"
+                                         title="Bấm để mở màn thanh toán gói combo @c.Name">
                                         <span class="badge bg-primary font-monospace fs-6">@c.ComboCode</span>
                                         <span class="fw-bold fs-6 text-dark">@c.Name</span>
+                                        @if (c.IsVip || c.Name.Contains("VIP", StringComparison.OrdinalIgnoreCase) || c.ComboCode.Contains("VIP", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge bg-warning text-dark border border-warning-subtle fw-bold"><i class="fa-solid fa-crown me-1"></i>Combo VIP</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle fw-semibold">Combo Thường</span>
+                                        }
                                         <span class="text-success fw-bold fs-6">@c.Price.ToString("N0") đ</span>
                                         @if (c.PlayingHours > 0)
                                         {
-                                            <span class="badge bg-info-subtle text-info border border-info-subtle">+@c.PlayingHours giờ bàn</span>
+                                            <span class="badge bg-info-subtle text-info border border-info-subtle">+@c.PlayingHours giờ bàn (Miễn tiền giờ)</span>
                                         }
-                                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2 py-0 ms-1 fw-bold" onclick="openApplyComboModal('@c.ComboCode')">
-                                            <i class="fa-solid fa-wand-magic-sparkles me-1"></i>Áp dụng
+                                        <button type="button" class="btn btn-sm btn-success rounded-pill px-2.5 py-1 ms-1 fw-bold text-white shadow-xs">
+                                            <i class="fa-solid fa-credit-card me-1"></i>Thanh toán
                                         </button>
                                     </div>
                                 }
@@ -483,8 +496,8 @@
                                 <i class="fa-solid fa-clock"></i>
                             </div>
                             <div>
-                                <div class="text-muted small">Đặt trước</div>
-                                <div class="fw-bold fs-4" id="stat-reserved">@Model.CountReserved</div>
+                                <div class="text-muted small">Chờ</div>
+                                <div class="fw-bold fs-4" id="stat-waiting">@Model.CountWaiting</div>
                             </div>
                         </div>
                     </div>
@@ -520,13 +533,13 @@
                         <button class="btn-filter active" data-filter="all">Tất cả</button>
                         <button class="btn-filter" data-filter="available">Trống bàn</button>
                         <button class="btn-filter" data-filter="playing">Đang chơi</button>
-                        <button class="btn-filter" data-filter="reserved">Đặt trước</button>
+                        <button class="btn-filter" data-filter="waiting">Chờ</button>
                         <button class="btn-filter" data-filter="maintenance">Bảo trì</button>
                     </div>
                     <div class="legend-container">
                         <div class="legend-item"><span class="legend-dot dot-available"></span>Trống bàn</div>
                         <div class="legend-item"><span class="legend-dot dot-playing"></span>Đang chơi</div>
-                        <div class="legend-item"><span class="legend-dot dot-reserved"></span>Đặt trước</div>
+                        <div class="legend-item"><span class="legend-dot dot-waiting"></span>Chờ</div>
                         <div class="legend-item"><span class="legend-dot dot-maintenance"></span>Bảo trì</div>
                     </div>
                 </div>
@@ -592,21 +605,29 @@
                                     <div class="card-playing-info mt-2" id="playing-info-@table.Id" style="@(isPlaying ? "" : "display:none;")">
                                         @if (session != null)
                                         {
+                                            var comboEndTime = session.ComboEndTime ?? (session.ComboDurationMinutes > 0 ? session.StartTime.AddMinutes(session.ComboDurationMinutes) : (DateTime?)null);
+                                            var hasCombo = comboEndTime.HasValue;
+                                            var isPayLater = !hasCombo && (session.DurationHours == 0 || !session.EndTime.HasValue);
                                             var remaining = session.RemainingSeconds;
-                                            var elapsed = (int)(DateTime.UtcNow - session.StartTime).TotalSeconds;
+                                            var elapsed = Math.Max(0, (int)(DateTime.UtcNow - session.StartTime).TotalSeconds);
+                                            var remCombo = hasCombo ? (int)(comboEndTime.Value - DateTime.UtcNow).TotalSeconds : 0;
                                             
                                             <div class="d-flex justify-content-between small text-muted mb-1">
                                                 <span>Bắt đầu:</span>
                                                 <span class="text-dark fw-bold">@session.StartTime.ToLocalTime().ToString("HH:mm")</span>
                                             </div>
                                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <span class="small text-muted">Còn lại:</span>
-                                                <span class="card-timer-display @(remaining <= 0 ? "timer-expired" : remaining < 900 ? "timer-warning" : "timer-ok")"
+                                                <span class="small @(hasCombo ? (remCombo > 0 ? "text-success" : "text-danger") : "text-muted") fw-bold" id="card-timer-label-@table.Id">
+                                                    @(hasCombo ? (remCombo > 0 ? "Còn lại (Combo):" : "Quá giờ Combo:") : (isPayLater ? "Đã chơi:" : "Còn lại:"))
+                                                </span>
+                                                <span class="card-timer-display @(hasCombo ? (remCombo > 0 ? "text-success fw-bold" : "timer-expired") : (isPayLater ? "text-primary fw-bold fs-6" : (remaining <= 0 ? "timer-expired" : remaining < 900 ? "timer-warning" : "timer-ok")))"
                                                       id="card-timer-@table.Id"
+                                                      data-mode="@(hasCombo ? "combo" : (isPayLater ? "paylater" : "prepaid"))"
                                                       data-start-time="@session.StartTime.ToString("o")"
                                                       data-end-time="@(session.EndTime?.ToString("o") ?? session.StartTime.AddHours(session.DurationHours).ToString("o"))"
+                                                      data-combo-end-time="@(comboEndTime?.ToString("o") ?? "")"
                                                       data-remaining="@remaining">
-                                                    @FormatTimer(remaining)
+                                                    @(hasCombo ? (remCombo > 0 ? FormatTimer(remCombo) : "+" + FormatTimer(Math.Abs(remCombo))) : (isPayLater ? FormatTimer(elapsed) : FormatTimer(remaining)))
                                                 </span>
                                             </div>
                                             <div class="d-flex justify-content-between fw-bold text-success border-top pt-1 mt-1">
@@ -698,14 +719,30 @@
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label fw-bold small text-secondary">Số giờ chơi đăng ký</label>
-                                <div class="d-flex gap-2 mb-3">
-                                    <button type="button" class="btn btn-outline-secondary btn-hour-preset" data-hours="1">1h</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-hour-preset active" data-hours="2">2h</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-hour-preset" data-hours="3">3h</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-hour-preset" data-hours="4">4h</button>
+                                <label class="form-label fw-bold small text-secondary">Chế độ mở bàn</label>
+                                <div class="d-flex gap-2 mb-2">
+                                    <button type="button" class="btn btn-outline-primary active btn-details-mode flex-fill fw-bold py-2" data-mode="paylater">
+                                        ⚡ Mở bàn theo giờ (Thanh toán sau)
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-details-mode flex-fill fw-bold py-2" data-mode="prepaid">
+                                        ⏱️ Đặt giờ (Trả trước)
+                                    </button>
                                 </div>
-                                <input type="number" class="form-control" id="modalStartHoursInput" min="1" max="24" value="2" placeholder="Nhập số giờ (1 - 24)" />
+
+                                <div class="details-paylater-notice alert alert-info py-2 px-3 small border-info-subtle mb-0 rounded-3">
+                                    <i class="fa-solid fa-circle-info text-info me-1"></i> Khách hàng chơi tự do theo giờ. Tiền giờ sẽ tự động tính theo thời gian chơi thực tế đến khi trả bàn & thanh toán.
+                                </div>
+
+                                <div class="details-prepaid-box mt-2" style="display:none;">
+                                    <label class="form-label fw-bold small text-secondary">Số giờ chơi đăng ký ban đầu</label>
+                                    <div class="d-flex gap-2 mb-3">
+                                        <button type="button" class="btn btn-outline-secondary btn-hour-preset" data-hours="1">1h</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-hour-preset active" data-hours="2">2h</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-hour-preset" data-hours="3">3h</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-hour-preset" data-hours="4">4h</button>
+                                    </div>
+                                    <input type="number" class="form-control" id="modalStartHoursInput" min="1" max="24" value="2" placeholder="Nhập số giờ (1 - 24)" />
+                                </div>
                             </div>
 
                             <div class="mb-3 border-top pt-3">
@@ -728,9 +765,9 @@
                                 </div>
                             </div>
 
-                            <div class="mb-3 border-top pt-3 bg-white p-3 rounded border">
+                            <div class="mb-3 border-top pt-3 bg-white p-3 rounded border details-prepaid-payment-container" style="display:none;">
                                 <div class="d-flex justify-content-between align-items-center mb-3 pt-2">
-                                    <span class="fw-bold text-dark">Tổng tiền thanh toán:</span>
+                                    <span class="fw-bold text-dark">Tổng tiền trả trước:</span>
                                     <span class="fw-bold fs-5 text-success" id="detailsPrepaidTotal">0 đ</span>
                                 </div>
                                 <label class="form-label fw-bold small text-secondary">Phương thức thanh toán <span class="text-danger">*</span></label>
@@ -764,8 +801,8 @@
                         <div class="border-top pt-3">
                             <label class="form-label fw-bold small text-secondary mb-2">Thay đổi trạng thái bàn sang:</label>
                             <div class="d-flex gap-2">
-                                <button class="btn btn-sm btn-outline-warning flex-fill btn-change-status-direct" data-status-key="Reserved">
-                                    <i class="fa-solid fa-bookmark me-1"></i>Đặt trước
+                                <button class="btn btn-sm btn-outline-warning flex-fill btn-change-status-direct" data-status-key="Waiting">
+                                    <i class="fa-solid fa-clock me-1"></i>Chờ
                                 </button>
                                 <button class="btn btn-sm btn-outline-danger flex-fill btn-change-status-direct" data-status-key="Maintenance">
                                     <i class="fa-solid fa-wrench me-1"></i>Bảo trì
@@ -797,7 +834,7 @@
                                     <div class="details-stat-lbl">Đã chơi</div>
                                 </div>
                             </div>
-                            <div class="col">
+                            <div class="col" id="detailsRemainingTimeCol">
                                 <div class="details-stat-box">
                                     <div class="details-stat-val text-warning" id="detailsRemainingTime">00:00:00</div>
                                     <div class="details-stat-lbl">Còn lại</div>
@@ -898,14 +935,49 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-secondary">Thời gian chơi đăng ký ban đầu</label>
-                        <div class="d-flex gap-2 mb-3">
-                            <button type="button" class="btn btn-outline-secondary btn-hour-preset-direct" data-hours="1">1 giờ</button>
-                            <button type="button" class="btn btn-outline-secondary btn-hour-preset-direct active" data-hours="2">2 giờ</button>
-                            <button type="button" class="btn btn-outline-secondary btn-hour-preset-direct" data-hours="3">3 giờ</button>
-                            <button type="button" class="btn btn-outline-secondary btn-hour-preset-direct" data-hours="4">4 giờ</button>
+                        <label class="form-label fw-bold small text-secondary">Chế độ mở bàn</label>
+                        <div class="d-flex gap-2 mb-2 flex-wrap">
+                            <button type="button" class="btn btn-outline-primary active btn-start-mode flex-fill fw-bold py-2" data-mode="paylater">
+                                ⚡ Mở bàn theo giờ (Thanh toán sau)
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-start-mode flex-fill fw-bold py-2" data-mode="prepaid">
+                                ⏱️ Đặt giờ (Trả trước)
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-start-mode flex-fill fw-bold py-2" data-mode="combo">
+                                🎁 Mở bằng Combo
+                            </button>
                         </div>
-                        <input type="number" class="form-control" id="customHoursInput" placeholder="Số giờ tùy chỉnh (1 - 24)" min="1" max="24" value="2" />
+
+                        <div class="start-paylater-notice alert alert-info py-2 px-3 small border-info-subtle mb-0 rounded-3">
+                            <i class="fa-solid fa-circle-info text-info me-1"></i> Mặc định mở bàn 1 tiếng (tính phí 1 giờ tối thiểu). Khi trôi qua 1 tiếng, tiền giờ sẽ tự động tính thêm theo thời gian chơi thực tế.
+                        </div>
+
+                        <div class="start-prepaid-box mt-2" style="display:none;">
+                            <label class="form-label fw-bold small text-secondary">Số giờ chơi đăng ký ban đầu</label>
+                            <div class="d-flex gap-2 mb-3">
+                                <button type="button" class="btn btn-outline-secondary btn-hour-preset-direct" data-hours="1">1h</button>
+                                <button type="button" class="btn btn-outline-secondary btn-hour-preset-direct active" data-hours="2">2h</button>
+                                <button type="button" class="btn btn-outline-secondary btn-hour-preset-direct" data-hours="3">3h</button>
+                                <button type="button" class="btn btn-outline-secondary btn-hour-preset-direct" data-hours="4">4h</button>
+                            </div>
+                            <input type="number" class="form-control" id="customHoursInput" placeholder="Số giờ tùy chỉnh (1 - 24)" min="1" max="24" value="2" />
+                        </div>
+
+                        <div class="start-combo-box mt-2" id="startComboBox" style="display:none;">
+                            <label class="form-label fw-bold small text-secondary"><i class="fa-solid fa-layer-group text-success me-1"></i>Chọn gói Combo ưu đãi</label>
+                            <select class="form-select fw-bold text-success" id="startComboSelect">
+                                <option value="" selected>-- Chọn gói Combo --</option>
+                                @foreach (var c in (Model.Combos ?? new List<BilliardManagement.Web.Models.ComboDto>()).Where(c => c.IsActive))
+                                {
+                                    <option value="@c.Id" data-code="@c.ComboCode" data-price="@c.Price" data-hours="@c.PlayingHours" data-name="@c.Name" data-vip="@(c.IsVip ? "true" : "false")">
+                                        🎁 @c.ComboCode - @c.Name (@c.Price.ToString("N0") đ - @c.PlayingHours giờ chơi)
+                                    </option>
+                                }
+                            </select>
+                            <div class="alert alert-success py-2 px-3 small border-success-subtle mt-2 mb-0 rounded-3" id="startComboInfo" style="display:none;">
+                                <i class="fa-solid fa-circle-check text-success me-1"></i> Trong thời gian Combo, <strong>miễn phí hoàn toàn tiền bàn</strong>. Nếu chơi quá giờ Combo sẽ bắt đầu tính tiền bàn từ thời điểm hết Combo.
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mb-3 border-top pt-3">
@@ -928,9 +1000,9 @@
                         </div>
                     </div>
 
-                    <div class="mb-3 border-top pt-3 bg-light p-3 rounded">
+                    <div class="mb-3 border-top pt-3 bg-light p-3 rounded start-prepaid-payment-container" style="display:none;">
                         <div class="d-flex justify-content-between align-items-center mb-3 pt-2">
-                            <span class="fw-bold text-dark">Tổng tiền thanh toán:</span>
+                            <span class="fw-bold text-dark">Tổng tiền trả trước:</span>
                             <span class="fw-bold fs-5 text-success" id="startPrepaidTotal">0 đ</span>
                         </div>
                         <label class="form-label fw-bold small text-secondary">Phương thức thanh toán <span class="text-danger">*</span></label>
@@ -956,7 +1028,7 @@
                     </div>
 
                     <button type="button" class="btn btn-success w-100 fw-bold py-2.5 fs-6" id="btnConfirmStart">
-                        <i class="fa-solid fa-credit-card me-2"></i>Thanh toán & Mở bàn
+                        <i class="fa-solid fa-play me-2"></i>Mở Bàn Theo Giờ Ngay
                     </button>
                 </div>
             </div>
@@ -1077,17 +1149,21 @@
                     <h6 class="mb-3 text-dark">Bàn thanh toán: <strong id="endModalTableName" class="text-primary"></strong></h6>
                     
                     <div class="bg-light rounded border p-3 mb-3">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-secondary small">Tiền giờ chơi:</span>
-                            <span class="fw-bold text-dark" id="modalPlayingFee">0 đ</span>
+                        <div class="d-flex justify-content-between mb-2" id="modalComboFeeRow">
+                            <span class="text-secondary small"><i class="fa-solid fa-gift text-success me-1"></i>Tiền gói Combo:</span>
+                            <span class="fw-bold text-success" id="modalComboFee">0 đ</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
-                            <span class="text-secondary small">Tiền nước & dịch vụ:</span>
+                            <span class="text-secondary small"><i class="fa-solid fa-utensils text-primary me-1"></i>Đồ ăn & dịch vụ:</span>
                             <span class="fw-bold text-dark" id="modalServiceFee">0 đ</span>
                         </div>
-                        <div class="d-flex justify-content-between fw-bold text-dark border-top pt-2 mt-2">
-                            <span>Tổng tiền dịch vụ:</span>
-                            <span id="modalSubtotalFee">0 đ</span>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-secondary small" id="modalTableFeeLabel"><i class="fa-solid fa-clock text-warning me-1"></i>Tiền bàn sau Combo:</span>
+                            <span class="fw-bold text-dark" id="modalPlayingFee">0 đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between fw-bold text-dark border-top pt-2 mt-2 fs-6">
+                            <span>TỔNG THÀNH TIỀN:</span>
+                            <span id="modalSubtotalFee" class="text-primary fw-bold fs-5">0 đ</span>
                         </div>
                     </div>
 
@@ -1118,85 +1194,138 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
     <script src="/js/table-status.js" asp-append-version="true"></script>
 
-    <!-- APPLY COMBO MODAL FOR ACTIVE TABLES -->
+    <!-- APPLY & PAY COMBO MODAL -->
     <div class="modal fade" id="headerApplyComboModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header bg-primary text-white rounded-top-4">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-gradient bg-primary text-white p-3">
                     <h5 class="modal-title fw-bold">
-                        <i class="fa-solid fa-layer-group me-2"></i>Áp Dụng Gói Combo Cho Bàn
+                        <i class="fa-solid fa-credit-card me-2"></i>Thanh Toán & Áp Dụng Gói Combo
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small text-secondary">Chọn bàn áp dụng Combo <span class="text-danger">*</span></label>
-                        <select class="form-select" id="applyComboTableSelect" required>
-                            <option value="" selected>-- Chọn bàn áp dụng --</option>
-                            <optgroup label="Bàn đang chơi">
-                                @foreach (var t in Model.TableDashboard.Where(t => t.Status == 2 && t.ActiveSession != null))
-                                {
-                                    <option value="session:@(t.ActiveSession?.Id)" data-type="playing" data-table-id="@t.Id">
-                                        🎱 @t.TableName (Đang chơi)
-                                    </option>
-                                }
-                            </optgroup>
-                            <optgroup label="Bàn trống (Sẽ mở bàn mới)">
-                                @foreach (var t in Model.TableDashboard.Where(t => t.Status == 1))
-                                {
-                                    <option value="table:@t.Id" data-type="available" data-table-id="@t.Id">
-                                        🟢 @t.TableName (Trống bàn)
-                                    </option>
-                                }
-                            </optgroup>
-                        </select>
-                    </div>
-
-                    <div id="startSessionForComboFields" class="border-top pt-3 mt-3" style="display:none;">
-                        <h6 class="fw-bold small text-primary mb-2">
-                            <i class="fa-solid fa-play me-1"></i>Thông tin mở bàn mới
-                        </h6>
-                        <div class="row g-2 mb-2">
-                            <div class="col-6">
-                                <label class="form-label fw-bold small text-secondary">Tên khách hàng <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-sm" id="applyComboCustomerName" value="Khách vãng lai" placeholder="Tên khách hàng" required />
+                    <!-- Combo Summary & Payment Amount Header Box -->
+                    <div class="card border-success border-2 bg-success-subtle rounded-4 p-3 mb-4 shadow-sm" id="comboPaymentSummaryBox">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <span class="badge bg-primary font-monospace fs-6 mb-1" id="paymentComboCode">COMBO</span>
+                                <h5 class="fw-bold text-dark mb-0" id="paymentComboName">Chưa chọn gói Combo</h5>
+                                <div class="small text-muted mt-1" id="paymentComboDesc">Vui lòng chọn gói Combo bên dưới</div>
                             </div>
-                            <div class="col-6">
-                                <label class="form-label fw-bold small text-secondary">Số điện thoại <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control form-control-sm" id="applyComboCustomerPhone" value="0900000000" placeholder="0912345678" required pattern="0[0-9]{9}" maxlength="10" />
+                            <div class="text-end">
+                                <div class="small text-muted fw-semibold">TỔNG TIỀN THANH TOÁN</div>
+                                <div class="fs-2 fw-bold text-success" id="paymentComboAmount">0 đ</div>
                             </div>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label fw-bold small text-secondary">Phương thức thanh toán <span class="text-danger">*</span></label>
-                            <select class="form-select form-select-sm" id="applyComboPaymentMethod">
-                                <option value="0" selected>💵 Tiền mặt</option>
-                                <option value="2">📲 Chuyển khoản QR</option>
-                            </select>
                         </div>
                     </div>
 
-                    <div class="mb-3 mt-3">
-                        <label class="form-label fw-bold small text-secondary">Chọn gói Combo áp dụng <span class="text-danger">*</span></label>
-                        <select class="form-select" id="applyComboPackageSelect" required>
-                            <option value="" selected>-- Chọn gói Combo --</option>
-                            @foreach (var c in Model.Combos)
-                            {
-                                <option value="@c.ComboCode" data-price="@c.Price" data-hours="@c.PlayingHours" data-name="@c.Name">
-                                    🎁 @c.ComboCode - @c.Name (@c.Price.ToString("N0") đ@(c.PlayingHours > 0 ? $" | +{c.PlayingHours}h chơi" : ""))
-                                </option>
-                            }
-                        </select>
-                    </div>
-                    <div class="combo-preview-box p-3 bg-light rounded border border-primary-subtle" id="applyComboPreview" style="display:none;">
-                        <div class="fw-bold text-primary mb-1" id="previewComboName"></div>
-                        <div class="small text-muted mb-1" id="previewComboPrice"></div>
-                        <div class="small text-success fw-bold" id="previewComboHours"></div>
+                    <div class="row g-3">
+                        <!-- Left Column: Combo & Table Selection -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small text-secondary">
+                                    <i class="fa-solid fa-layer-group text-primary me-1"></i>Gói Combo áp dụng <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select form-select-lg fw-bold text-primary" id="applyComboPackageSelect" required>
+                                    <option value="" selected>-- Chọn gói Combo --</option>
+                                    @foreach (var c in Model.Combos)
+                                    {
+                                        <option value="@c.ComboCode" data-price="@c.Price" data-hours="@c.PlayingHours" data-name="@c.Name" data-desc="@c.Description">
+                                            🎁 @c.ComboCode - @c.Name (@c.Price.ToString("N0") đ)
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small text-secondary">
+                                    <i class="fa-solid fa-table-cells text-primary me-1"></i>Chọn bàn áp dụng <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select fw-semibold" id="applyComboTableSelect" required>
+                                    <option value="" selected>-- Chọn bàn áp dụng --</option>
+                                    <optgroup label="Bàn đang chơi (Cộng giờ & Đồ ăn vào bàn)">
+                                        @foreach (var t in Model.TableDashboard.Where(t => t.Status == 2 && t.ActiveSession != null))
+                                        {
+                                            <option value="session:@(t.ActiveSession?.Id)" data-type="playing" data-table-id="@t.Id">
+                                                🎱 @t.TableName (Đang chơi)
+                                            </option>
+                                        }
+                                    </optgroup>
+                                    <optgroup label="Bàn trống (Thanh toán & Mở bàn mới)">
+                                        @foreach (var t in Model.TableDashboard.Where(t => t.Status == 1))
+                                        {
+                                            <option value="table:@t.Id" data-type="available" data-table-id="@t.Id">
+                                                🟢 @t.TableName (Trống bàn)
+                                            </option>
+                                        }
+                                    </optgroup>
+                                </select>
+                            </div>
+
+                            <div id="startSessionForComboFields" class="card bg-light border-0 p-3 rounded-3 mb-3" style="display:none;">
+                                <h6 class="fw-bold small text-primary mb-2">
+                                    <i class="fa-solid fa-user-tag me-1"></i>Thông tin mở bàn mới
+                                </h6>
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold small text-secondary">Tên khách hàng <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="applyComboCustomerName" value="Khách vãng lai" placeholder="Tên khách hàng" required />
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label fw-bold small text-secondary">Số điện thoại <span class="text-danger">*</span></label>
+                                    <input type="tel" class="form-control form-control-sm" id="applyComboCustomerPhone" value="0900000000" placeholder="0912345678" required pattern="0[0-9]{9}" maxlength="10" />
+                                </div>
+                            </div>
+
+                            <!-- Quick Product Ordering in Combo Modal -->
+                            <div class="mb-3 border-top pt-3">
+                                <label class="form-label fw-bold small text-secondary d-block">
+                                    <i class="fa-solid fa-utensils text-primary me-1"></i>Gọi món kèm theo (Tuỳ chọn)
+                                </label>
+                                <div style="max-height: 140px; overflow-y: auto;" class="pe-2 border rounded p-2 bg-light">
+                                    @foreach (var p in Model.Products)
+                                    {
+                                        <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-1">
+                                            <div>
+                                                <span class="small fw-bold text-dark">@p.Name</span>
+                                                <span class="small text-primary fw-bold ms-2">@p.Price.ToString("N0") đ</span>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-1">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-qty-minus py-0 px-2" data-target="combo-quick-qty-@p.Id">-</button>
+                                                <input type="number" class="form-control form-control-sm quick-qty-input-combo" id="combo-quick-qty-@p.Id" data-product-id="@p.Id" data-price="@p.Price" value="0" min="0" max="@p.Stock" style="width: 45px; text-align: center;">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-qty-plus py-0 px-2" data-target="combo-quick-qty-@p.Id" data-max="@p.Stock">+</button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Payment Method & QR Checkout -->
+                        <div class="col-md-6 border-start-md">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small text-secondary">
+                                    <i class="fa-solid fa-wallet text-primary me-1"></i>Phương thức thanh toán <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select fw-semibold" id="applyComboPaymentMethod">
+                                    <option value="0" selected>💵 Tiền mặt (Cash)</option>
+                                    <option value="2">📲 Chuyển khoản QR (VietQR)</option>
+                                </select>
+                            </div>
+
+                            <!-- QR Code Payment Box -->
+                            <div id="comboQrPaymentContainer" class="text-center p-3 border rounded-4 bg-white shadow-xs" style="display:none;">
+                                <div class="small fw-bold text-primary mb-1">Mã QR Thanh Toán Chuyển Khoản</div>
+                                <img id="comboQrImage" src="" alt="Mã QR VietQR" class="img-fluid rounded border shadow-sm my-2" style="max-width: 210px; width: 100%;" />
+                                <div class="small text-muted mt-1">Quét mã QR để thanh toán đúng <strong id="comboQrAmountText" class="text-success fs-6">0 đ</strong></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light rounded-bottom-4">
+                <div class="modal-footer bg-light p-3">
                     <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-primary px-4 rounded-pill fw-bold" id="btnSubmitApplyCombo">
-                        <i class="fa-solid fa-check me-1"></i>Xác nhận áp dụng
+                    <button type="button" class="btn btn-success px-4 py-2.5 rounded-pill fw-bold shadow-sm" id="btnSubmitApplyCombo">
+                        <i class="fa-solid fa-circle-check me-2"></i>Duyệt Thanh Toán & Áp Dụng Combo
                     </button>
                 </div>
             </div>
@@ -1263,9 +1392,9 @@
             return json.data || json.Data || json;
         }
 
-        // Recalculate stats dashboard cards (Available, Playing, Reserved, Maintenance)
+        // Recalculate stats dashboard cards (Available, Playing, Waiting, Maintenance)
         function recalculateStats() {
-            let available = 0, playing = 0, reserved = 0, maintenance = 0, revenue = 0;
+            let available = 0, playing = 0, waiting = 0, maintenance = 0, revenue = 0;
             tablesData.forEach(t => {
                 if (t.Status === 1 || t.status === 1) available++;
                 else if (t.Status === 2 || t.status === 2) {
@@ -1275,13 +1404,13 @@
                         revenue += Number(session.CurrentTotal || session.currentTotal || 0);
                     }
                 }
-                else if (t.Status === 3 || t.status === 3) reserved++;
+                else if (t.Status === 3 || t.status === 3) waiting++;
                 else if (t.Status === 4 || t.status === 4) maintenance++;
             });
 
             $('#stat-available').text(available);
             $('#stat-playing').text(playing);
-            $('#stat-reserved').text(reserved);
+            $('#stat-waiting').text(waiting);
             $('#stat-maintenance').text(maintenance);
             $('#active-revenue-display').text(revenue.toLocaleString('vi-VN') + ' đ');
         }
@@ -1292,7 +1421,7 @@
             if (!card.length) return;
 
             // Remove previous status classes
-            card.removeClass('status-available status-playing status-reserved status-maintenance');
+            card.removeClass('status-available status-playing status-waiting status-maintenance');
             card.addClass('status-' + getStatusCssClass(status));
 
             // Badge text & color
@@ -1331,29 +1460,87 @@
                 `);
 
                 if (session) {
-                    const remaining = session.RemainingSeconds || session.remainingSeconds || 0;
-                    const endTime = session.EndTime || session.endTime || new Date(new Date(session.StartTime || session.startTime).getTime() + (session.DurationHours || session.durationHours) * 3600000).toISOString();
-                    
-                    playingInfo.empty().append(`
-                        <div class="d-flex justify-content-between small text-muted mb-1">
-                            <span>Bắt đầu:</span>
-                            <span class="text-dark fw-bold">${formatTime(session.StartTime || session.startTime)}</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="small text-muted">Còn lại:</span>
-                            <span class="card-timer-display"
-                                  id="card-timer-${tableId}"
-                                  data-start-time="${session.StartTime || session.startTime}"
-                                  data-end-time="${endTime}"
-                                  data-remaining="${remaining}">
-                                ${formatTimerString(remaining)}
-                            </span>
-                        </div>
-                        <div class="d-flex justify-content-between fw-bold text-success border-top pt-1 mt-1">
-                            <span class="small">Tạm tính:</span>
-                            <span class="small" id="card-total-price-${tableId}">${(session.CurrentTotal || session.currentTotal || 0).toLocaleString('vi-VN')} đ</span>
-                        </div>
-                    `);
+                    const startTimeStr = session.StartTime || session.startTime;
+                    const comboEndTimeStr = session.ComboEndTime || session.comboEndTime || (session.ComboDurationMinutes || session.comboDurationMinutes > 0 ? new Date(new Date(startTimeStr).getTime() + (session.ComboDurationMinutes || session.comboDurationMinutes) * 60000).toISOString() : null);
+                    const hasCombo = !!(comboEndTimeStr || session.ComboId || session.comboId || (session.ComboDurationMinutes || session.comboDurationMinutes) > 0);
+                    const durationHours = session.DurationHours !== undefined ? session.DurationHours : (session.durationHours || 0);
+                    const isPayLater = !hasCombo && (durationHours === 0 || !session.EndTime || !session.endTime);
+
+                    if (hasCombo && comboEndTimeStr) {
+                        const comboEnd = new Date(comboEndTimeStr);
+                        const remComboSecs = Math.floor((comboEnd - new Date()) / 1000);
+                        const isOverCombo = remComboSecs <= 0;
+
+                        playingInfo.empty().append(`
+                            <div class="d-flex justify-content-between small text-muted mb-1">
+                                <span>Bắt đầu:</span>
+                                <span class="text-dark fw-bold">${formatTime(startTimeStr)}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small ${isOverCombo ? 'text-danger' : 'text-success'} fw-bold" id="card-timer-label-${tableId}">
+                                    <i class="fa-solid ${isOverCombo ? 'fa-triangle-exclamation' : 'fa-gift'} me-1"></i>${isOverCombo ? 'Quá giờ Combo:' : 'Còn lại (Combo):'}
+                                </span>
+                                <span class="card-timer-display ${isOverCombo ? 'timer-expired' : 'text-success fw-bold'}"
+                                      id="card-timer-${tableId}"
+                                      data-mode="combo"
+                                      data-start-time="${startTimeStr}"
+                                      data-combo-end-time="${comboEndTimeStr}">
+                                    ${isOverCombo ? '+' + formatTimerString(Math.abs(remComboSecs)) : formatTimerString(remComboSecs)}
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between fw-bold text-success border-top pt-1 mt-1">
+                                <span class="small">Tạm tính:</span>
+                                <span class="small" id="card-total-price-${tableId}">${(session.CurrentTotal || session.currentTotal || 0).toLocaleString('vi-VN')} đ</span>
+                            </div>
+                        `);
+                    } else if (isPayLater) {
+                        const elapsedSecs = session.RemainingSeconds !== undefined ? session.RemainingSeconds : Math.max(0, Math.floor((new Date() - new Date(startTimeStr)) / 1000));
+                        playingInfo.empty().append(`
+                            <div class="d-flex justify-content-between small text-muted mb-1">
+                                <span>Bắt đầu:</span>
+                                <span class="text-dark fw-bold">${formatTime(startTimeStr)}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small text-primary fw-bold"><i class="fa-solid fa-clock me-1"></i>Đã chơi:</span>
+                                <span class="card-timer-display text-primary fw-bold"
+                                      id="card-timer-${tableId}"
+                                      data-mode="paylater"
+                                      data-start-time="${startTimeStr}"
+                                      data-remaining="${elapsedSecs}">
+                                    ${formatTimerString(elapsedSecs)}
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between fw-bold text-success border-top pt-1 mt-1">
+                                <span class="small">Tạm tính:</span>
+                                <span class="small" id="card-total-price-${tableId}">${(session.CurrentTotal || session.currentTotal || 0).toLocaleString('vi-VN')} đ</span>
+                            </div>
+                        `);
+                    } else {
+                        const remaining = session.RemainingSeconds || session.remainingSeconds || 0;
+                        const endTime = session.EndTime || session.endTime || new Date(new Date(startTimeStr).getTime() + durationHours * 3600000).toISOString();
+                        
+                        playingInfo.empty().append(`
+                            <div class="d-flex justify-content-between small text-muted mb-1">
+                                <span>Bắt đầu:</span>
+                                <span class="text-dark fw-bold">${formatTime(startTimeStr)}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small text-muted">Còn lại:</span>
+                                <span class="card-timer-display"
+                                      id="card-timer-${tableId}"
+                                      data-mode="prepaid"
+                                      data-start-time="${startTimeStr}"
+                                      data-end-time="${endTime}"
+                                      data-remaining="${remaining}">
+                                    ${formatTimerString(remaining)}
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between fw-bold text-success border-top pt-1 mt-1">
+                                <span class="small">Tạm tính:</span>
+                                <span class="small" id="card-total-price-${tableId}">${(session.CurrentTotal || session.currentTotal || 0).toLocaleString('vi-VN')} đ</span>
+                            </div>
+                        `);
+                    }
                 }
             } else {
                 playingInfo.hide();
@@ -1377,7 +1564,7 @@
             switch(status) {
                 case 1: return 'available';
                 case 2: return 'playing';
-                case 3: return 'reserved';
+                case 3: return 'waiting';
                 case 4: return 'maintenance';
                 default: return 'unknown';
             }
@@ -1395,7 +1582,7 @@
             switch(status) {
                 case 1: return 'Trống bàn';
                 case 2: return 'Đang chơi';
-                case 3: return 'Đặt trước';
+                case 3: return 'Chờ';
                 case 4: return 'Bảo trì';
                 default: return 'Không xác định';
             }
@@ -1403,26 +1590,57 @@
 
         // Ticking Timers implementation
         function tickAllTimers() {
+            const now = new Date();
             $('.card-timer-display').each(function () {
+                const mode = $(this).attr('data-mode') || $(this).data('mode');
                 const startTimeStr = $(this).attr('data-start-time');
-                const endTimeStr = $(this).attr('data-end-time');
-                if (!startTimeStr || !endTimeStr) return;
 
-                const start = new Date(startTimeStr);
-                const end = new Date(endTimeStr);
-                const now = new Date();
+                if (mode === 'combo') {
+                    const comboEndTimeStr = $(this).attr('data-combo-end-time') || $(this).data('combo-end-time');
+                    if (!comboEndTimeStr) return;
+                    const comboEnd = new Date(comboEndTimeStr);
+                    const rem = Math.floor((comboEnd - now) / 1000);
+                    const cardIdStr = $(this).attr('id');
+                    const tableId = cardIdStr ? cardIdStr.replace('card-timer-', '') : null;
+                    const label = tableId ? $('#card-timer-label-' + tableId) : null;
 
-                const rem = Math.max(0, Math.floor((end - now) / 1000));
-                $(this).text(formatTimerString(rem));
-
-                // Adjust color states
-                $(this).removeClass('timer-ok timer-warning timer-expired');
-                if (rem <= 0) {
-                    $(this).addClass('timer-expired');
-                } else if (rem < 900) {
-                    $(this).addClass('timer-warning');
+                    if (rem > 0) {
+                        $(this).text(formatTimerString(rem)).removeClass('timer-expired timer-warning text-danger text-primary').addClass('text-success fw-bold');
+                        if (label && label.length) {
+                            label.html('<i class="fa-solid fa-gift me-1"></i>Còn lại (Combo):').removeClass('text-primary text-danger').addClass('text-success fw-bold');
+                        }
+                    } else {
+                        const overSecs = Math.abs(rem);
+                        $(this).text('+' + formatTimerString(overSecs)).removeClass('timer-ok text-success text-primary').addClass('timer-expired text-danger fw-bold');
+                        if (label && label.length) {
+                            label.html('<i class="fa-solid fa-triangle-exclamation me-1"></i>Quá giờ Combo:').removeClass('text-primary text-success').addClass('text-danger fw-bold');
+                        }
+                    }
+                } else if (mode === 'paylater') {
+                    if (!startTimeStr) return;
+                    const start = new Date(startTimeStr);
+                    const elapsed = Math.max(0, Math.floor((now - start) / 1000));
+                    if (elapsed <= 3600) {
+                        const remFirstHour = 3600 - elapsed;
+                        $(this).text(formatTimerString(remFirstHour)).removeClass('timer-warning timer-expired').addClass('timer-ok text-primary');
+                    } else {
+                        $(this).text(formatTimerString(elapsed)).removeClass('timer-ok').addClass('text-teal fw-bold');
+                    }
                 } else {
-                    $(this).addClass('timer-ok');
+                    const endTimeStr = $(this).attr('data-end-time');
+                    if (!endTimeStr) return;
+                    const end = new Date(endTimeStr);
+                    const rem = Math.max(0, Math.floor((end - now) / 1000));
+                    $(this).text(formatTimerString(rem));
+
+                    $(this).removeClass('timer-ok timer-warning timer-expired');
+                    if (rem <= 0) {
+                        $(this).addClass('timer-expired');
+                    } else if (rem < 900) {
+                        $(this).addClass('timer-warning');
+                    } else {
+                        $(this).addClass('timer-ok');
+                    }
                 }
             });
 
@@ -1430,23 +1648,63 @@
             if ($('#tableDetailsModal').is(':visible') && $('#op-playing-view').is(':visible')) {
                 const startStr = $('#op-playing-view').data('start-time');
                 const endStr = $('#op-playing-view').data('end-time');
-                if (startStr && endStr) {
+                const comboEndStr = $('#op-playing-view').data('combo-end-time');
+                const isPayLater = $('#op-playing-view').data('is-paylater');
+                const hasCombo = !!$('#op-playing-view').data('has-combo') || !!comboEndStr;
+
+                if (startStr) {
                     const start = new Date(startStr);
-                    const end = new Date(endStr);
-                    const now = new Date();
-
                     const elapsed = Math.max(0, Math.floor((now - start) / 1000));
-                    const rem = Math.max(0, Math.floor((end - now) / 1000));
-
                     $('#detailsElapsedTime').text(formatTimerString(elapsed));
-                    $('#detailsRemainingTime').text(formatTimerString(rem));
 
-                    if (rem <= 0) {
-                        $('#detailsRemainingTime').removeClass('text-warning text-info').addClass('text-danger timer-blink');
-                    } else if (rem < 900) {
-                        $('#detailsRemainingTime').removeClass('text-danger text-info').addClass('text-warning');
-                    } else {
-                        $('#detailsRemainingTime').removeClass('text-danger text-warning').addClass('text-info');
+                    if (hasCombo && comboEndStr) {
+                        const comboEnd = new Date(comboEndStr);
+                        const remCombo = Math.floor((comboEnd - now) / 1000);
+
+                        $('#detailsRemainingTimeCol').show();
+
+                        if (remCombo > 0) {
+                            $('#detailsRemainingTime').text(formatTimerString(remCombo)).removeClass('text-danger timer-blink text-warning').addClass('text-success fw-bold');
+                            $('#detailsRemainingTimeLabel').text('Còn lại (Combo)');
+
+                            const comboPrice = parseFloat($('#op-playing-view').data('combo-price')) || 0;
+                            const ordersTotal = parseFloat($('#op-playing-view').data('orders-total')) || 0;
+                            $('#detailsTablePrice').text('0 đ (Combo)');
+                            $('#detailsTotalPrice').text((comboPrice + ordersTotal).toLocaleString('vi-VN') + ' đ');
+                        } else {
+                            const overSecs = Math.abs(remCombo);
+                            $('#detailsRemainingTime').text('+' + formatTimerString(overSecs)).removeClass('text-success text-warning').addClass('text-danger timer-blink');
+                            $('#detailsRemainingTimeLabel').text('Quá giờ Combo');
+
+                            const comboPrice = parseFloat($('#op-playing-view').data('combo-price')) || 0;
+                            const hourlyRate = parseFloat($('#op-playing-view').data('hourly-rate')) || 0;
+                            const ordersTotal = parseFloat($('#op-playing-view').data('orders-total')) || 0;
+                            const overHours = overSecs / 3600;
+                            const overPlayFee = Math.round(overHours * hourlyRate);
+
+                            $('#detailsTablePrice').text(overPlayFee.toLocaleString('vi-VN') + ' đ');
+                            $('#detailsTotalPrice').text((comboPrice + ordersTotal + overPlayFee).toLocaleString('vi-VN') + ' đ');
+                        }
+                    } else if (isPayLater) {
+                        const hourlyRate = parseFloat($('#op-playing-view').data('hourly-rate')) || 0;
+                        const ordersTotal = parseFloat($('#op-playing-view').data('orders-total')) || 0;
+                        const livePlayFee = Math.max(hourlyRate, Math.round(elapsed / 3600 * hourlyRate));
+                        const liveTotal = livePlayFee + ordersTotal;
+
+                        $('#detailsTablePrice').text(livePlayFee.toLocaleString('vi-VN') + ' đ');
+                        $('#detailsTotalPrice').text(liveTotal.toLocaleString('vi-VN') + ' đ');
+                    } else if (endStr) {
+                        const end = new Date(endStr);
+                        const rem = Math.max(0, Math.floor((end - now) / 1000));
+                        $('#detailsRemainingTime').text(formatTimerString(rem));
+
+                        if (rem <= 0) {
+                            $('#detailsRemainingTime').removeClass('text-warning text-info').addClass('text-danger timer-blink');
+                        } else if (rem < 900) {
+                            $('#detailsRemainingTime').removeClass('text-danger text-info').addClass('text-warning');
+                        } else {
+                            $('#detailsRemainingTime').removeClass('text-danger text-warning').addClass('text-info');
+                        }
                     }
                 }
             }
@@ -1506,18 +1764,52 @@
                         $('#playingCustomerInfo').hide();
                     }
 
+                    const durationHours = session.DurationHours !== undefined ? session.DurationHours : (session.durationHours || 0);
+                    const comboEndTimeStr = session.ComboEndTime || session.comboEndTime || (session.ComboDurationMinutes || session.comboDurationMinutes > 0 ? new Date(startTime.getTime() + (session.ComboDurationMinutes || session.comboDurationMinutes) * 60000).toISOString() : null);
+                    const hasCombo = !!(comboEndTimeStr || session.ComboId || session.comboId || (session.ComboDurationMinutes || session.comboDurationMinutes) > 0);
+                    const isPayLater = !hasCombo && (durationHours === 0 || !session.EndTime || !session.endTime);
+
+                    const comboHours = session.ComboHours !== undefined ? session.ComboHours : (session.comboHours || 0);
+
                     $('#op-playing-view').data('start-time', session.StartTime || session.startTime);
-                    const endTime = session.EndTime || session.endTime || new Date(startTime.getTime() + (session.DurationHours || session.durationHours) * 3600000).toISOString();
+                    const endTime = session.EndTime || session.endTime || new Date(startTime.getTime() + durationHours * 3600000).toISOString();
                     $('#op-playing-view').data('end-time', endTime);
+                    $('#op-playing-view').data('combo-end-time', comboEndTimeStr);
+                    $('#op-playing-view').data('combo-price', session.ComboPrice || session.comboPrice || 0);
+                    $('#op-playing-view').data('is-paylater', isPayLater);
+                    $('#op-playing-view').data('hourly-rate', table.HourlyRate || table.hourlyRate || 0);
+                    $('#op-playing-view').data('orders-total', session.OrdersTotal || session.ordersTotal || 0);
+                    $('#op-playing-view').data('combo-hours', comboHours);
+                    $('#op-playing-view').data('has-combo', hasCombo);
 
                     $('#detailsStartTime').text(startTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
 
                     // Dynamic elapsed and remaining
                     const now = new Date();
                     const elapsed = Math.max(0, Math.floor((now - startTime) / 1000));
-                    const rem = Math.max(0, Math.floor((new Date(endTime) - now) / 1000));
                     $('#detailsElapsedTime').text(formatTimerString(elapsed));
-                    $('#detailsRemainingTime').text(formatTimerString(rem));
+
+                    if (hasCombo && comboEndTimeStr) {
+                        $('#detailsRemainingTimeCol').show();
+                        const remCombo = Math.floor((new Date(comboEndTimeStr) - now) / 1000);
+                        if (remCombo > 0) {
+                            $('#detailsRemainingTime').text(formatTimerString(remCombo)).removeClass('text-danger timer-blink').addClass('text-success fw-bold');
+                            $('#detailsRemainingTimeLabel').text('Còn lại (Combo)');
+                        } else {
+                            $('#detailsRemainingTime').text('+' + formatTimerString(Math.abs(remCombo))).removeClass('text-success').addClass('text-danger timer-blink');
+                            $('#detailsRemainingTimeLabel').text('Quá giờ Combo');
+                        }
+                        $('#btnDetailsExtendTrigger').hide();
+                    } else if (isPayLater) {
+                        $('#detailsRemainingTimeCol').hide();
+                        $('#btnDetailsExtendTrigger').hide();
+                    } else {
+                        $('#detailsRemainingTimeCol').show();
+                        $('#detailsRemainingTimeLabel').text('Còn lại');
+                        const rem = Math.max(0, Math.floor((new Date(endTime) - now) / 1000));
+                        $('#detailsRemainingTime').text(formatTimerString(rem));
+                        $('#btnDetailsExtendTrigger').show();
+                    }
 
                     // Pricing summary
                     const playingFee = session.TotalPrice || session.totalPrice || 0;
@@ -1556,7 +1848,7 @@
                     $('#otherStatusMessage').text('Dữ liệu phiên chơi không tìm thấy hoặc đã lỗi. Vui lòng chuyển bàn về trạng thái trống.');
                 }
             } else {
-                // Reserved or Maintenance View
+                // Waiting or Maintenance View
                 const statusName = getStatusText(statusVal);
                 $('#otherStatusMessage').text(`Bàn đang ở trạng thái: ${statusName}.`);
                 $('#op-other-view').show();
@@ -1591,46 +1883,159 @@
             openEndSession();
         });
 
-        // Open specific modals and prepare details
-        function openApplyComboModal(defaultComboCode = '') {
-            const select = $('#applyComboTableSelect');
-            select.empty().append('<option value="" selected>-- Chọn bàn áp dụng --</option>');
+        // Helper to update Combo Payment Display & VietQR code
+        function updateComboPaymentDisplay() {
+            const selectedCombo = $('#applyComboPackageSelect option:selected');
+            const comboCode = $('#applyComboPackageSelect').val();
+            const paymentMethod = $('#applyComboPaymentMethod').val();
 
-            const playingGroup = $('<optgroup label="Bàn đang chơi"></optgroup>');
-            const availableGroup = $('<optgroup label="Bàn trống (Sẽ mở bàn mới)"></optgroup>');
+            let extraItemsFee = 0;
+            $('.quick-qty-input-combo').each(function () {
+                const qty = parseInt($(this).val()) || 0;
+                const price = parseFloat($(this).data('price')) || 0;
+                if (qty > 0) {
+                    extraItemsFee += qty * price;
+                }
+            });
 
-            tablesData.forEach(t => {
+            if (comboCode) {
+                const name = selectedCombo.data('name') || 'Gói Combo';
+                const price = parseFloat(selectedCombo.data('price')) || 0;
+                const hours = parseInt(selectedCombo.data('hours')) || 0;
+                const desc = selectedCombo.data('desc') || (hours > 0 ? `Bao gồm +${hours} giờ chơi bida & dịch vụ đi kèm` : 'Đồ ăn & Nước uống ưu đãi đi kèm');
+                const totalAmount = price + extraItemsFee;
+                const formattedPrice = totalAmount.toLocaleString('vi-VN') + ' đ';
+
+                $('#paymentComboCode').text(comboCode).show();
+                $('#paymentComboName').text(name);
+                $('#paymentComboAmount').text(formattedPrice);
+                $('#paymentComboDesc').text(desc + (extraItemsFee > 0 ? ` (+${extraItemsFee.toLocaleString('vi-VN')} đ gọi thêm)` : ''));
+                $('#btnSubmitApplyCombo').html(`<i class="fa-solid fa-credit-card me-2"></i>Duyệt Thanh Toán & Áp Dụng (${formattedPrice})`);
+
+                // QR Payment code update
+                if (paymentMethod === '2') {
+                    const qrUrl = `https://img.vietqr.io/image/BIDV-113366668888-compact2.png?amount=${totalAmount}&addInfo=THANH TOAN COMBO ${comboCode}`;
+                    $('#comboQrImage').attr('src', qrUrl);
+                    $('#comboQrAmountText').text(formattedPrice);
+                    $('#comboQrPaymentContainer').slideDown();
+                } else {
+                    $('#comboQrPaymentContainer').slideUp();
+                }
+            } else {
+                $('#paymentComboCode').hide();
+                $('#paymentComboName').text('Chưa chọn gói Combo');
+                $('#paymentComboAmount').text(extraItemsFee > 0 ? extraItemsFee.toLocaleString('vi-VN') + ' đ' : '0 đ');
+                $('#paymentComboDesc').text('Vui lòng chọn gói Combo để tiến hành thanh toán.');
+                $('#btnSubmitApplyCombo').html(`<i class="fa-solid fa-circle-check me-2"></i>Duyệt Thanh Toán & Áp Dụng (${extraItemsFee.toLocaleString('vi-VN')} đ)`);
+                $('#comboQrPaymentContainer').slideUp();
+            }
+        }
+
+        $(document).on('click', '.btn-quick-qty-plus', function () {
+            const targetId = $(this).data('target');
+            const max = parseInt($(this).data('max')) || 999;
+            const input = $('#' + targetId);
+            let val = parseInt(input.val()) || 0;
+            if (val < max) {
+                input.val(val + 1).trigger('change');
+            }
+        });
+
+        $(document).on('click', '.btn-quick-qty-minus', function () {
+            const targetId = $(this).data('target');
+            const input = $('#' + targetId);
+            let val = parseInt(input.val()) || 0;
+            if (val > 0) {
+                input.val(val - 1).trigger('change');
+            }
+        });
+
+        $(document).on('input change', '.quick-qty-input-combo', function () {
+            updateComboPaymentDisplay();
+        });
+
+        function populateTableDropdownOptions(tablesList, selectElem) {
+            selectElem.empty().append('<option value="" selected>-- Chọn bàn áp dụng --</option>');
+
+            const playingGroup = $('<optgroup label="Bàn đang chơi (Cộng giờ & Đồ ăn vào bàn)"></optgroup>');
+            const availableGroup = $('<optgroup label="Bàn trống (Thanh toán & Mở bàn mới)"></optgroup>');
+
+            tablesList.forEach(t => {
                 const status = (t.Status !== undefined ? t.Status : t.status);
                 const tableName = t.TableName || t.tableName;
+                const tableType = t.TableType || t.tableType || '';
                 const tableId = t.Id || t.id;
 
                 if (status === 2) {
                     const session = t.ActiveSession || t.activeSession;
                     if (session) {
                         const sId = session.Id || session.id;
-                        playingGroup.append(`<option value="session:${sId}" data-type="playing" data-table-id="${tableId}">🎱 ${tableName} (Đang chơi)</option>`);
+                        playingGroup.append(`<option value="session:${sId}" data-type="playing" data-table-id="${tableId}">🎱 ${tableName} (${tableType} - Đang chơi)</option>`);
                     }
                 } else if (status === 1) {
-                    availableGroup.append(`<option value="table:${tableId}" data-type="available" data-table-id="${tableId}">🟢 ${tableName} (Trống bàn)</option>`);
+                    availableGroup.append(`<option value="table:${tableId}" data-type="available" data-table-id="${tableId}">🟢 ${tableName} (${tableType} - Trống bàn)</option>`);
                 }
             });
 
-            if (playingGroup.children().length > 0) select.append(playingGroup);
-            if (availableGroup.children().length > 0) select.append(availableGroup);
+            if (playingGroup.children().length > 0) selectElem.append(playingGroup);
+            if (availableGroup.children().length > 0) selectElem.append(availableGroup);
+        }
 
-            $('#startSessionForComboFields').hide();
+        function filterTableDropdownBySelectedCombo() {
+            const comboCode = $('#applyComboPackageSelect').val();
+            const comboOption = $('#applyComboPackageSelect option:selected');
+            const select = $('#applyComboTableSelect');
+            
+            const currentTableVal = select.val();
 
-            if (defaultComboCode) {
-                $('#applyComboPackageSelect').val(defaultComboCode).trigger('change');
-            } else {
-                $('#applyComboPackageSelect').val('').trigger('change');
+            if (!comboCode) {
+                populateTableDropdownOptions(tablesData, select);
+                return;
             }
 
+            const isVipCombo = comboCode.toUpperCase().includes('VIP') || 
+                               comboOption.data('is-vip') === true || 
+                               comboOption.data('is-vip') === 'true' ||
+                               (comboOption.data('name') && comboOption.data('name').toUpperCase().includes('VIP'));
+
+            const filteredTables = tablesData.filter(t => {
+                const tableType = (t.TableType || t.tableType || '').toUpperCase();
+                const isVipTable = tableType.includes('VIP');
+                return isVipCombo ? isVipTable : !isVipTable;
+            });
+
+            populateTableDropdownOptions(filteredTables, select);
+
+            if (currentTableVal && select.find(`option[value="${currentTableVal}"]`).length > 0) {
+                select.val(currentTableVal);
+            }
+        }
+
+        // Open specific modals and prepare details
+        function openApplyComboModal(defaultComboCode = '') {
+            $('#startSessionForComboFields').hide();
+            $('.quick-qty-input-combo').val(0);
+
+            if (defaultComboCode) {
+                $('#applyComboPackageSelect').val(defaultComboCode);
+            } else {
+                $('#applyComboPackageSelect').val('');
+            }
+
+            filterTableDropdownBySelectedCombo();
+            updateComboPaymentDisplay();
             applyComboModalInstance.show();
         }
 
-        $('#applyComboTableSelect').on('change', function () {
-            const selectedOption = $(this).find('option:selected');
+        $('#applyComboPackageSelect').on('change', function () {
+            filterTableDropdownBySelectedCombo();
+            updateComboPaymentDisplay();
+        });
+
+        $('#applyComboPaymentMethod, #applyComboTableSelect').on('change', function () {
+            updateComboPaymentDisplay();
+
+            const selectedOption = $('#applyComboTableSelect option:selected');
             const type = selectedOption.data('type');
             if (type === 'available') {
                 $('#startSessionForComboFields').slideDown();
@@ -1639,39 +2044,16 @@
             }
         });
 
-        $('#applyComboPackageSelect').on('change', function () {
-            const selectedOption = $(this).find('option:selected');
-            const comboCode = $(this).val();
-            const previewBox = $('#applyComboPreview');
-
-            if (comboCode) {
-                const name = selectedOption.data('name');
-                const price = parseFloat(selectedOption.data('price')) || 0;
-                const hours = parseInt(selectedOption.data('hours')) || 0;
-
-                $('#previewComboName').text('🎁 ' + name);
-                $('#previewComboPrice').text('Giá gói: ' + price.toLocaleString('vi-VN') + ' VNĐ');
-                if (hours > 0) {
-                    $('#previewComboHours').text('Tự động cộng thêm +' + hours + ' giờ chơi vào bàn.').show();
-                } else {
-                    $('#previewComboHours').hide();
-                }
-                previewBox.slideDown();
-            } else {
-                previewBox.slideUp();
-            }
-        });
-
         $('#btnSubmitApplyCombo').on('click', async function () {
             const val = $('#applyComboTableSelect').val();
             const comboCode = $('#applyComboPackageSelect').val();
 
-            if (!val) {
-                showNotification('Chưa chọn bàn', 'warning', 'Vui lòng chọn bàn đang chơi hoặc bàn trống để áp dụng combo.');
+            if (!comboCode) {
+                showNotification('Chưa chọn combo', 'warning', 'Vui lòng chọn gói Combo cần thanh toán.');
                 return;
             }
-            if (!comboCode) {
-                showNotification('Chưa chọn combo', 'warning', 'Vui lòng chọn gói Combo cần áp dụng.');
+            if (!val) {
+                showNotification('Chưa chọn bàn', 'warning', 'Vui lòng chọn bàn đang chơi hoặc bàn trống để áp dụng combo.');
                 return;
             }
 
@@ -1732,7 +2114,26 @@
                     comboCode: comboCode
                 });
 
-                showNotification('Áp dụng Combo thành công!', 'success', res.message || 'Combo đã được áp dụng vào bàn.');
+                // Place extra food/drink orders if selected
+                const extraItems = [];
+                $('.quick-qty-input-combo').each(function () {
+                    const qty = parseInt($(this).val()) || 0;
+                    if (qty > 0) {
+                        extraItems.push({
+                            productId: $(this).data('product-id'),
+                            quantity: qty
+                        });
+                    }
+                });
+
+                if (extraItems.length > 0) {
+                    await makeApiCall('orders', 'POST', {
+                        sessionId: targetSessionId,
+                        items: extraItems
+                    });
+                }
+
+                showNotification('Thanh toán & Áp dụng Combo thành công!', 'success', res.message || 'Gói Combo và món gọi kèm đã được thanh toán và áp dụng.');
                 applyComboModalInstance.hide();
                 window.location.reload();
             } catch (err) {
@@ -1743,10 +2144,94 @@
             }
         });
 
+        let currentStartMode = 'paylater';
+        let currentDetailsMode = 'paylater';
+
+        $('.btn-start-mode').on('click', function () {
+            $('.btn-start-mode').removeClass('active btn-primary btn-success').addClass('btn-outline-secondary');
+            currentStartMode = $(this).data('mode');
+            if (currentStartMode === 'combo') {
+                $(this).removeClass('btn-outline-secondary').addClass('active btn-success');
+            } else {
+                $(this).removeClass('btn-outline-secondary').addClass('active btn-primary');
+            }
+
+            if (currentStartMode === 'paylater') {
+                $('.start-paylater-notice').slideDown();
+                $('.start-prepaid-box, .start-prepaid-payment-container, #startComboBox').slideUp();
+                $('#btnConfirmStart').html('<i class="fa-solid fa-play me-2"></i>Mở Bàn Theo Giờ Ngay');
+            } else if (currentStartMode === 'combo') {
+                $('.start-paylater-notice, .start-prepaid-box, .start-prepaid-payment-container').slideUp();
+                $('#startComboBox').slideDown();
+                $('#btnConfirmStart').html('<i class="fa-solid fa-gift me-2"></i>Mở Bàn Bằng Combo');
+            } else {
+                $('.start-paylater-notice, #startComboBox').slideUp();
+                $('.start-prepaid-box, .start-prepaid-payment-container').slideDown();
+                $('#btnConfirmStart').html('<i class="fa-solid fa-credit-card me-2"></i>Duyệt Thanh Toán & Mở Bàn');
+                updatePrepaidTotals();
+            }
+        });
+
+        $('#startComboSelect').on('change', function () {
+            const selected = $(this).find('option:selected');
+            if (selected.val()) {
+                const table = tablesData.find(t => t.Id === selectedTableId || t.id === selectedTableId);
+                if (table) {
+                    const isVipTable = (table.TableType || table.tableType || '').toUpperCase().includes('VIP');
+                    const comboName = (selected.attr('data-name') || selected.text() || '').toUpperCase();
+                    const comboCode = (selected.attr('data-code') || '').toUpperCase();
+                    const isVipCombo = selected.attr('data-vip') === 'true' || comboName.includes('VIP') || comboCode.includes('VIP');
+
+                    if (isVipCombo && !isVipTable) {
+                        showNotification('Không tương thích', 'warning', `Gói Combo VIP '${selected.attr('data-name')}' chỉ áp dụng cho Bàn VIP. Vui lòng chọn bàn VIP hoặc chọn Combo thường!`);
+                        $(this).val('');
+                        $('#startComboInfo').slideUp();
+                        return;
+                    }
+                    if (!isVipCombo && isVipTable) {
+                        showNotification('Không tương thích', 'warning', `Gói Combo thường '${selected.attr('data-name')}' không áp dụng cho Bàn VIP (${table.TableName}). Vui lòng chọn Combo VIP!`);
+                        $(this).val('');
+                        $('#startComboInfo').slideUp();
+                        return;
+                    }
+                }
+                $('#startComboInfo').slideDown();
+            } else {
+                $('#startComboInfo').slideUp();
+            }
+        });
+
+        $('.btn-details-mode').on('click', function () {
+            $('.btn-details-mode').removeClass('active btn-primary').addClass('btn-outline-secondary');
+            $(this).removeClass('btn-outline-secondary').addClass('active btn-primary');
+            currentDetailsMode = $(this).data('mode');
+
+            if (currentDetailsMode === 'paylater') {
+                $('.details-paylater-notice').slideDown();
+                $('.details-prepaid-box, .details-prepaid-payment-container').slideUp();
+                $('#btnDetailsStartSession').html('<i class="fa-solid fa-play me-2"></i>Mở Bàn Theo Giờ Ngay');
+            } else {
+                $('.details-paylater-notice').slideUp();
+                $('.details-prepaid-box, .details-prepaid-payment-container').slideDown();
+                $('#btnDetailsStartSession').html('<i class="fa-solid fa-credit-card me-2"></i>Duyệt Thanh Toán & Mở Bàn Ngay');
+                updatePrepaidTotals();
+            }
+        });
+
         function openStartSession(tableId) {
             selectedTableId = tableId;
             const table = tablesData.find(t => t.Id === tableId || t.id === tableId);
             if (!table) return;
+
+            const statusVal = table.Status !== undefined ? table.Status : table.status;
+            if (statusVal === 2) {
+                showNotification('Bàn đang có người chơi', 'warning', `Bàn ${table.TableName || table.tableName} đang trong phiên chơi. Không thể tạo thêm phiên chơi mới!`);
+                return;
+            }
+            if (statusVal === 4) {
+                showNotification('Bàn bảo trì', 'warning', `Bàn ${table.TableName || table.tableName} đang bảo trì. Không thể mở phiên chơi mới!`);
+                return;
+            }
 
             $('#startModalTableName').text(table.TableName || table.tableName);
             $('#startCustomerName').val('');
@@ -1754,9 +2239,18 @@
             $('.quick-qty-input-start').val(0);
             $('#startComboSelect').val('');
             $('#startComboInfo').hide();
+            $('#startComboBox').hide();
             $('#customHoursInput').val(2);
             $('.btn-hour-preset-direct').removeClass('active');
             $(`.btn-hour-preset-direct[data-hours="2"]`).addClass('active');
+
+            currentStartMode = 'paylater';
+            $('.btn-start-mode').removeClass('active btn-primary btn-success').addClass('btn-outline-secondary');
+            $('.btn-start-mode[data-mode="paylater"]').removeClass('btn-outline-secondary').addClass('active btn-primary');
+            $('.start-paylater-notice').show();
+            $('.start-prepaid-box, .start-prepaid-payment-container, #startComboBox').hide();
+            $('#btnConfirmStart').html('<i class="fa-solid fa-play me-2"></i>Mở Bàn Theo Giờ Ngay');
+
             updatePrepaidTotals();
             startModal.show();
         }
@@ -1863,22 +2357,38 @@
             if (!session) return;
             selectedSessionId = session.Id || session.id;
 
-            const playingFee = session.TotalPrice || session.totalPrice || 0;
+            const comboPrice = session.ComboPrice || session.comboPrice || 0;
             const serviceFee = session.OrdersTotal || session.ordersTotal || 0;
-            const subtotal = playingFee + serviceFee;
+            const tableFeeAfterCombo = session.TableFeeAfterCombo !== undefined ? session.TableFeeAfterCombo : (session.tableFeeAfterCombo || session.TotalPrice || session.totalPrice || 0);
+            const isOverCombo = session.IsOverComboTime || session.isOverComboTime;
+            const overMins = session.OverComboMinutes || session.overComboMinutes || 0;
 
-            $('#modalPlayingFee').text(playingFee.toLocaleString('vi-VN') + ' đ').data('val', playingFee);
-            $('#modalServiceFee').text(serviceFee.toLocaleString('vi-VN') + ' đ').data('val', serviceFee);
-            $('#modalSubtotalFee').text(subtotal.toLocaleString('vi-VN') + ' đ').data('val', subtotal);
+            if (comboPrice > 0) {
+                $('#modalComboFeeRow').show();
+                $('#modalComboFee').text(comboPrice.toLocaleString('vi-VN') + ' đ');
+            } else {
+                $('#modalComboFeeRow').hide();
+            }
+
+            $('#modalServiceFee').text(serviceFee.toLocaleString('vi-VN') + ' đ');
             
-            $('#modalGrandTotalFee').text(subtotal.toLocaleString('vi-VN') + ' đ');
+            if (isOverCombo || overMins > 0) {
+                $('#modalTableFeeLabel').html(`<i class="fa-solid fa-triangle-exclamation text-danger me-1"></i>Tiền bàn sau Combo (${overMins} phút quá giờ):`);
+            } else if (comboPrice > 0) {
+                $('#modalTableFeeLabel').html(`<i class="fa-solid fa-clock text-success me-1"></i>Tiền bàn (Trong giờ Combo - 0 đ):`);
+            } else {
+                $('#modalTableFeeLabel').html(`<i class="fa-solid fa-clock text-warning me-1"></i>Tiền bàn:`);
+            }
+            
+            $('#modalPlayingFee').text(tableFeeAfterCombo.toLocaleString('vi-VN') + ' đ');
+            const subtotal = comboPrice + serviceFee + tableFeeAfterCombo;
+            $('#modalSubtotalFee').text(subtotal.toLocaleString('vi-VN') + ' đ');
 
             endModal.show();
         }
 
         // Trigger clicks on cards
         $(document).on('click', '.billiard-table-card', function (e) {
-            // If click was on some child button, do nothing (handled separately)
             if ($(e.target).closest('button').length > 0) return;
             const tableId = $(this).data('table-id');
             showTableDetails(tableId);
@@ -1901,9 +2411,28 @@
         // Call Action: Start Session Confirm
         $('#btnConfirmStart, #btnDetailsStartSession').on('click', async function () {
             const isDetails = this.id === 'btnDetailsStartSession';
+            const mode = isDetails ? currentDetailsMode : currentStartMode;
             const hoursInputId = isDetails ? '#modalStartHoursInput' : '#customHoursInput';
-            const hours = parseInt($(hoursInputId).val()) || 2;
+            const hours = mode === 'paylater' || mode === 'combo' ? 0 : (parseInt($(hoursInputId).val()) || 2);
             
+            const targetTable = tablesData.find(t => t.Id === selectedTableId || t.id === selectedTableId);
+            if (targetTable) {
+                const statusVal = targetTable.Status !== undefined ? targetTable.Status : targetTable.status;
+                if (statusVal === 2) {
+                    showNotification('Bàn đang có người chơi', 'warning', `Bàn ${targetTable.TableName || targetTable.tableName} đang có phiên chơi hoạt động. Vui lòng kết thúc bàn hiện tại trước khi tạo phiên mới!`);
+                    return;
+                }
+            }
+
+            let comboId = null;
+            if (mode === 'combo') {
+                comboId = $('#startComboSelect').val();
+                if (!comboId) {
+                    showNotification('Chưa chọn Combo', 'warning', 'Vui lòng chọn gói Combo để mở bàn.');
+                    return;
+                }
+            }
+
             const customerName = $(isDetails ? '#detailsCustomerName' : '#startCustomerName').val();
             const customerPhone = $(isDetails ? '#detailsCustomerPhone' : '#startCustomerPhone').val();
 
@@ -1925,13 +2454,14 @@
 
             toggleLoading(true);
             try {
-                // 1. Start prepaid session & pay bill
+                // 1. Start session
                 const session = await makeApiCall('table-sessions/start', 'POST', {
                     tableId: selectedTableId,
                     durationHours: hours,
                     customerName: customerName,
                     customerPhone: customerPhone,
-                    paymentMethod: paymentMethod
+                    paymentMethod: paymentMethod,
+                    comboId: comboId
                 });
                 
                 // 2. Place Quick Orders if selected
