@@ -219,21 +219,6 @@
 
 .auth-note i { color: #34d399; margin-top: 2px; }
 
-.auth-demo {
-    margin-top: 16px;
-    border: 1px dashed rgba(52, 211, 153, .35);
-    border-radius: 12px;
-    padding: 11px 14px;
-    font-size: .8rem;
-    color: rgba(203, 213, 225, .85);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.auth-demo code { color: #6ee7b7; font-family: var(--font-mono, monospace); }
-
 .auth-alert {
     border-radius: 12px;
     padding: 12px 15px;

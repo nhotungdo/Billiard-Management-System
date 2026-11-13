@@ -21,7 +21,7 @@ namespace BilliardManagement.Business.Interfaces
         Task<UserDto> UpdateUserRoleAsync(Guid id, UserRole role);
         Task<UserDto> AssignAdminStoreAsync(Guid id, Guid storeId);
         Task<UserDto> UpdateStoreAdminAsync(Guid id, UpdateStoreAdminDto dto);
-        Task<UserDto> SetStoreAdminActiveAsync(Guid id, bool isActive);
+        Task<UserDto> SetUserActiveAsync(Guid id, bool isActive);
         Task<UserDeletionResultDto> DeleteUserAsync(Guid id);
         Task<UserDto> UpdateProfileAsync(Guid id, UpdateProfileDto dto);
         Task<bool> ChangePasswordAsync(Guid id, ChangePasswordDto dto);

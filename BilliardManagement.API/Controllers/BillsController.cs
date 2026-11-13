@@ -31,6 +31,22 @@ namespace BilliardManagement.API.Controllers
         [HttpPost("pay/{id}")]
         public async Task<IActionResult> PayBill(Guid id)
         {
+            var userId = GetUserId();
+            if (userId == null)
+            {
+                return Unauthorized(ApiResponse<object>.Fail("Unauthorized"));
+            }
+
+            // Staff chỉ được thanh toán hóa đơn của phiên chơi do mình phụ trách.
+            if (User.IsInRole("Staff"))
+            {
+                var existing = await _billingService.GetBillByIdAsync(id);
+                if (existing.StaffId != userId.Value)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Không có quyền thanh toán hóa đơn này"));
+                }
+            }
+
             var bill = await _billingService.PayBillAsync(id);
             return Ok(ApiResponse<BillDto>.Ok(bill, "Hóa đơn đã được thanh toán thành công"));
         }

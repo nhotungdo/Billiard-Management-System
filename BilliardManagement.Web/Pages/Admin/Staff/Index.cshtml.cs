@@ -62,6 +62,20 @@ namespace BilliardManagement.Web.Pages.Admin.Staff
             return RedirectToPage();
         }
 
+        public async Task<IActionResult> OnPostActivateAsync(Guid id)
+        {
+            try
+            {
+                await _staffService.SetActiveAsync(id, true);
+                TempData["SuccessMessage"] = "Đã kích hoạt lại tài khoản nhân viên.";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Lỗi khi kích hoạt nhân viên: {ex.Message}";
+            }
+            return RedirectToPage();
+        }
+
         public async Task<IActionResult> OnPostDeleteAsync(Guid id)
         {
             try

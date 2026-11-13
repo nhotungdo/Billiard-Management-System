@@ -133,7 +133,9 @@ namespace BilliardManagement.Business.Services
 
             if (query.IsPaid.HasValue)
             {
-                if (query.IsPaid.Value == false)
+                // Invoice.IsPaid là [NotMapped] (DB không có cột) nên không thể lọc ở tầng SQL.
+                // Mọi hóa đơn được tạo ra đều đã thanh toán, vì vậy "chưa thanh toán" luôn rỗng.
+                if (!query.IsPaid.Value)
                 {
                     filters.Add(i => false);
                 }

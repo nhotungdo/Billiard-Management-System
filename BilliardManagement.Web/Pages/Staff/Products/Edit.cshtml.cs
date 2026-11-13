@@ -23,6 +23,12 @@ namespace BilliardManagement.Web.Pages.Staff.Products
 
         public async Task<IActionResult> OnGetAsync()
         {
+            if (CurrentRole == "Staff")
+            {
+                TempData["ErrorMessage"] = "Chỉ Admin cửa hàng mới được sửa sản phẩm.";
+                return RedirectToPage("./Index");
+            }
+
             try
             {
                 var product = await _productService.GetProductByIdAsync(Id);
@@ -54,6 +60,12 @@ namespace BilliardManagement.Web.Pages.Staff.Products
 
         public async Task<IActionResult> OnPostAsync()
         {
+            if (CurrentRole == "Staff")
+            {
+                TempData["ErrorMessage"] = "Chỉ Admin cửa hàng mới được sửa sản phẩm.";
+                return RedirectToPage("./Index");
+            }
+
             if (!ModelState.IsValid)
             {
                 await LoadCategoriesAsync();

@@ -3,20 +3,25 @@
 @{
     ViewData["Title"] = "Quản lý bàn";
     var tableTypes = new[] { "Pool 8 Ball", "Pool 9 Ball", "Snooker", "Carom", "Libre", "English Billiards", "Russian Pyramid", "VIP", "Phòng đôi", "Bàn thi đấu" };
+    // API chỉ cho SuperAdmin/Admin tạo, sửa, xoá bàn — Staff chỉ được đổi trạng thái.
+    var canManageTables = Model.CurrentRole is "Admin" or "SuperAdmin";
 }
 
 <div class="page-head">
     <div>
         <h1 class="page-title"><i class="fa-solid fa-table-cells"></i>Quản lý Bàn</h1>
-        <p class="page-subtitle">Danh sách bàn dạng bảng — đổi trạng thái nhanh, thêm hoặc sửa cấu hình bàn.</p>
+        <p class="page-subtitle">@(canManageTables ? "Danh sách bàn dạng bảng — đổi trạng thái nhanh, thêm hoặc sửa cấu hình bàn." : "Danh sách bàn dạng bảng — đổi trạng thái nhanh khi khách vào/ra bàn.")</p>
     </div>
     <div class="page-actions">
         <a class="btn btn-soft" href="/Staff/Tables/Map">
             <i class="fa-solid fa-map-location-dot"></i>Sơ đồ bàn
         </a>
-        <button class="btn btn-accent" type="button" data-bs-toggle="modal" data-bs-target="#createTableModal">
-            <i class="fa-solid fa-plus"></i>Tạo bàn mới
-        </button>
+        @if (canManageTables)
+        {
+            <button class="btn btn-accent" type="button" data-bs-toggle="modal" data-bs-target="#createTableModal">
+                <i class="fa-solid fa-plus"></i>Tạo bàn mới
+            </button>
+        }
     </div>
 </div>
 
@@ -162,21 +167,24 @@
                                         <span class="status-spinner d-none" id="spinner-@t.Id">
                                             <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
                                         </span>
-                                        <button type="button" class="btn btn-icon sm edit-table-btn"
-                                                data-id="@t.Id"
-                                                data-tablename="@t.TableName"
-                                                data-tabletype="@t.TableType"
-                                                data-priceperhour="@t.PricePerHour"
-                                                data-status="@statusKey"
-                                                data-description="@t.Description"
-                                                title="Sửa bàn">
-                                            <i class="fa-solid fa-pen-to-square"></i>
-                                        </button>
-                                        <form method="post" asp-page-handler="Delete" asp-route-id="@t.Id" class="d-inline" data-confirm="Bạn có chắc chắn muốn xóa bàn này?">
-                                            <button type="submit" class="btn btn-icon sm danger" title="Xóa bàn">
-                                                <i class="fa-solid fa-trash"></i>
+                                        @if (canManageTables)
+                                        {
+                                            <button type="button" class="btn btn-icon sm edit-table-btn"
+                                                    data-id="@t.Id"
+                                                    data-tablename="@t.TableName"
+                                                    data-tabletype="@t.TableType"
+                                                    data-priceperhour="@t.PricePerHour"
+                                                    data-status="@statusKey"
+                                                    data-description="@t.Description"
+                                                    title="Sửa bàn">
+                                                <i class="fa-solid fa-pen-to-square"></i>
                                             </button>
-                                        </form>
+                                            <form method="post" asp-page-handler="Delete" asp-route-id="@t.Id" class="d-inline" data-confirm="Bạn có chắc chắn muốn xóa bàn này?">
+                                                <button type="submit" class="btn btn-icon sm danger" title="Xóa bàn">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -188,9 +196,14 @@
     </div>
 </div>
 
-<partial name="_CreateTableModal" />
+@if (canManageTables)
+{
+    <partial name="_CreateTableModal" />
+}
 
 <!-- Edit table -->
+@if (canManageTables)
+{
 <div class="modal fade" id="editTableModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -240,6 +253,8 @@
         </div>
     </div>
 </div>
+
+}
 
 @section Scripts {
     <script src="/js/table-status.js" asp-append-version="true"></script>
@@ -336,6 +351,7 @@
             document.addEventListener('click', function (e) {
                 const editBtn = e.target.closest('.edit-table-btn');
                 if (!editBtn) return;
+                if (!document.getElementById('editTableModal')) return;
                 document.getElementById('editId').value = editBtn.dataset.id;
                 document.getElementById('editTableName').value = editBtn.dataset.tablename;
                 document.getElementById('editTableType').value = editBtn.dataset.tabletype;

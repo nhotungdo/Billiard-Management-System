@@ -30,6 +30,11 @@ namespace BilliardManagement.Web.Services
             return await PutAsync<int, StaffDto>($"users/{id}/role", role);
         }
 
+        public async Task<StaffDto?> SetActiveAsync(Guid id, bool isActive)
+        {
+            return await PutAsync<bool, StaffDto>($"users/{id}/active", isActive);
+        }
+
         public async Task<UserDeletionResultDto?> DeleteStaffAsync(Guid id)
         {
             return await DeleteAsync<UserDeletionResultDto>($"users/{id}");

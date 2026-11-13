@@ -62,10 +62,17 @@ namespace BilliardManagement.API.Controllers
             }
         }
 
-        // lấy thông tin người dùng theo id
+        // lấy thông tin người dùng theo id (Admin/SuperAdmin xem mọi người, các role khác chỉ xem chính mình)
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
+            var currentUserId = GetUserId();
+            if (currentUserId == null)
+                return Unauthorized(ApiResponse<object>.Fail("Không xác định được người dùng"));
+
+            if (id != currentUserId.Value && !User.IsInRole("Admin") && !User.IsInRole("SuperAdmin"))
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Không có quyền xem thông tin người dùng khác"));
+
             var user = await _userService.GetUserByIdAsync(id);
             return Ok(ApiResponse<UserDto>.Ok(user));
         }
@@ -112,10 +119,11 @@ namespace BilliardManagement.API.Controllers
         public async Task<IActionResult> UpdateStoreAdmin(Guid id, [FromBody] UpdateStoreAdminDto dto) =>
             Ok(ApiResponse<UserDto>.Ok(await _userService.UpdateStoreAdminAsync(id, dto)));
 
+        // bật/tắt hoạt động: SuperAdmin với mọi tài khoản quản lý, Admin với Staff trong cửa hàng của mình
         [HttpPut("{id}/active")]
-        [Authorize(Roles = "SuperAdmin")]
-        public async Task<IActionResult> SetAdminActive(Guid id, [FromBody] bool isActive) =>
-            Ok(ApiResponse<UserDto>.Ok(await _userService.SetStoreAdminActiveAsync(id, isActive)));
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> SetUserActive(Guid id, [FromBody] bool isActive) =>
+            Ok(ApiResponse<UserDto>.Ok(await _userService.SetUserActiveAsync(id, isActive)));
 
         // PUT: api/users/profile
         [HttpPut("profile")]

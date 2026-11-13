@@ -163,6 +163,14 @@
                                     }
                                 </td>
                                 <td class="actions">
+                                    @if (!staff.IsActive)
+                                    {
+                                        <form method="post" asp-page-handler="Activate" asp-route-id="@staff.Id" class="d-inline">
+                                            <button type="submit" class="btn btn-icon sm" title="Kích hoạt lại tài khoản">
+                                                <i class="fa-solid fa-rotate-right"></i>
+                                            </button>
+                                        </form>
+                                    }
                                     <form method="post" asp-page-handler="Delete" asp-route-id="@staff.Id" class="d-inline" data-confirm="Bạn có chắc chắn muốn xóa nhân viên này?">
                                         <button type="submit" class="btn btn-icon sm danger" title="Xóa nhân viên">
                                             <i class="fa-solid fa-trash"></i>

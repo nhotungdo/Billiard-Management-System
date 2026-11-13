@@ -32,6 +32,12 @@ namespace BilliardManagement.Web.Pages.Staff.Tables
 
         public async Task<IActionResult> OnPostUpdateAsync()
         {
+            if (CurrentRole == "Staff")
+            {
+                TempData["ErrorMessage"] = "Chỉ Admin cửa hàng mới được sửa thông tin bàn.";
+                return RedirectToPage();
+            }
+
             if (!ModelState.IsValid)
             {
                 await OnGetAsync();
@@ -56,6 +62,12 @@ namespace BilliardManagement.Web.Pages.Staff.Tables
 
         public async Task<IActionResult> OnPostDeleteAsync(Guid id)
         {
+            if (CurrentRole == "Staff")
+            {
+                TempData["ErrorMessage"] = "Chỉ Admin cửa hàng mới được xoá bàn.";
+                return RedirectToPage();
+            }
+
             try
             {
                 var success = await _tableService.DeleteTableAsync(id);

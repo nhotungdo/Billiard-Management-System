@@ -215,11 +215,21 @@ namespace BilliardManagement.Business.Services
             return _mapper.Map<UserDto>(user);
         }
 
-        public async Task<UserDto> SetStoreAdminActiveAsync(Guid id, bool isActive)
+        // Bật/tắt hoạt động tài khoản: SuperAdmin quản lý Admin/Staff, Admin quản lý Staff của cửa hàng mình
+        public async Task<UserDto> SetUserActiveAsync(Guid id, bool isActive)
         {
-            var user = await FindStoreAdminAsync(id);
+            var user = await _unitOfWork.Repository<User>().GetByIdAsync(id);
+            if (user == null) throw new CustomException("Không tìm thấy người dùng", 404);
+
+            if (user.Role == UserRole.SuperAdmin)
+                throw new CustomException("Không thể thay đổi trạng thái tài khoản SuperAdmin", 403);
+
+            if (!_tenantContext.IsSuperAdmin && user.Role != UserRole.Staff)
+                throw new CustomException("Admin chỉ được quản lý tài khoản Staff trong cửa hàng của mình", 403);
+
             user.IsActive = isActive;
-            await _context.SaveChangesAsync();
+            _unitOfWork.Repository<User>().Update(user);
+            await _unitOfWork.SaveChangesAsync();
             return _mapper.Map<UserDto>(user);
         }
 
