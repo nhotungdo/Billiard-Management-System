@@ -20,6 +20,11 @@ namespace BilliardManagement.Web.Services
             return await GetAsync<StaffDto>($"users/{id}");
         }
 
+        public async Task<StaffDto?> CreateStaffAsync(CreateUserRequest request)
+        {
+            return await PostAsync<CreateUserRequest, StaffDto>("users", request);
+        }
+
         public async Task<StaffDto?> UpdateStaffRoleAsync(Guid id, int role)
         {
             return await PutAsync<int, StaffDto>($"users/{id}/role", role);

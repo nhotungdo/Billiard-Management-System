@@ -24,7 +24,7 @@ namespace BilliardManagement.Web.Pages
                 return;
             }
 
-            if (role != "Admin")
+            if (role != "Admin" && role != "SuperAdmin")
             {
                 context.Result = new RedirectToPageResult("/AccessDenied");
                 return;
@@ -45,6 +45,48 @@ namespace BilliardManagement.Web.Pages
             // Refresh last activity
             HttpContext.Session.SetString("LastActivity", DateTime.UtcNow.ToString("o"));
 
+            base.OnPageHandlerExecuting(context);
+        }
+    }
+
+    /// <summary>
+    /// Base page model for SuperAdmin-only pages (store management).
+    /// </summary>
+    public abstract class SuperAdminPageModel : PageModel
+    {
+        public string CurrentUsername => HttpContext.Session.GetString("Username") ?? "SuperAdmin";
+        public string CurrentFullName => HttpContext.Session.GetString("FullName") ?? "Super Admin";
+        public string CurrentRole => HttpContext.Session.GetString("UserRole") ?? "";
+
+        public override void OnPageHandlerExecuting(Microsoft.AspNetCore.Mvc.Filters.PageHandlerExecutingContext context)
+        {
+            var token = HttpContext.Session.GetString("JWToken");
+            var role = HttpContext.Session.GetString("UserRole");
+
+            if (string.IsNullOrEmpty(token))
+            {
+                context.Result = new RedirectToPageResult("/Auth/Login");
+                return;
+            }
+
+            if (role != "SuperAdmin")
+            {
+                context.Result = new RedirectToPageResult("/AccessDenied");
+                return;
+            }
+
+            var lastActivity = HttpContext.Session.GetString("LastActivity");
+            if (!string.IsNullOrEmpty(lastActivity) && DateTime.TryParse(lastActivity, out var lastTime))
+            {
+                if ((DateTime.UtcNow - lastTime).TotalMinutes > 30)
+                {
+                    HttpContext.Session.Clear();
+                    context.Result = new RedirectToPageResult("/Auth/Login");
+                    return;
+                }
+            }
+
+            HttpContext.Session.SetString("LastActivity", DateTime.UtcNow.ToString("o"));
             base.OnPageHandlerExecuting(context);
         }
     }

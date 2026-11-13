@@ -16,6 +16,7 @@ namespace BilliardManagement.Business.Interfaces
     public interface IUserService
     {
         Task<IEnumerable<UserDto>> GetAllUsersAsync();
+        Task<UserDto> CreateUserAsync(CreateUserDto dto);
         Task<UserDto> GetUserByIdAsync(Guid id);
         Task<UserDto> UpdateUserRoleAsync(Guid id, UserRole role);
         Task<UserDeletionResultDto> DeleteUserAsync(Guid id);

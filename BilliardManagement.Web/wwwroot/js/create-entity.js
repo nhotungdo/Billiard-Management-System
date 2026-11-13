@@ -194,7 +194,7 @@
     window.connectProductHub = function (options) {
         if (!window.signalR) return null;
         const conn = new signalR.HubConnectionBuilder()
-            .withUrl(HUB_BASE + '/hubs/product')
+            .withUrl(HUB_BASE + '/hubs/product', { accessTokenFactory: () => API_TOKEN })
             .withAutomaticReconnect()
             .build();
         conn.on('ProductCreated', function (payload) {

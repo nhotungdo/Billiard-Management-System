@@ -28,6 +28,8 @@ namespace BilliardManagement.Business
             services.AddScoped<IRevenueService, RevenueService>();
             services.AddScoped<ICustomerService, CustomerService>();
             services.AddScoped<IComboService, ComboService>();
+            services.AddScoped<IStoreService, StoreService>();
+            services.AddScoped<BilliardManagement.Common.Tenant.ITenantContext, BilliardManagement.Common.Tenant.TenantContext>();
 
             services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
             services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);

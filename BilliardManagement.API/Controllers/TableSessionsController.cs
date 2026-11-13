@@ -14,7 +14,7 @@ namespace BilliardManagement.API.Controllers
 {
     [Route("api/table-sessions")]
     [ApiController]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "SuperAdmin,Admin,Staff")]
     public class TableSessionsController : ControllerBase
     {
         private readonly ISessionService _sessionService;
@@ -153,7 +153,7 @@ namespace BilliardManagement.API.Controllers
                 Status = (int)table.Status,
                 StatusName = table.Status.ToString()
             };
-            await _hubContext.Clients.All.SendAsync("TableStatusChanged", statusPayload);
+            await _hubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("TableStatusChanged", statusPayload);
 
             var realtime = new SessionRealtimeDto
             {
@@ -188,8 +188,8 @@ namespace BilliardManagement.API.Controllers
                 OrderLines = session.OrderLines
             };
 
-            await _hubContext.Clients.All.SendAsync("SessionUpdated", realtime);
-            await _hubContext.Clients.All.SendAsync("ReceiveTableUpdate", eventName);
+            await _hubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("SessionUpdated", realtime);
+            await _hubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveTableUpdate", eventName);
         }
     }
 }

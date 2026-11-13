@@ -38,19 +38,19 @@ namespace BilliardManagement.API.Controllers
             return Ok(ApiResponse<TableDto>.Ok(table));
         }
 
-        // T?o m?i m?t b�n (ch? d�nh cho Admin)
+        // Tạo mới một bàn (Admin/SuperAdmin)
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Create([FromBody] CreateTableDto dto)
         {
             var table = await _tableService.CreateTableAsync(dto);
-            await _hubContext.Clients.All.SendAsync("ReceiveTableUpdate", $"Table {table.TableName} created.");
+            await _hubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveTableUpdate", $"Table {table.TableName} created.");
             return Ok(ApiResponse<TableDto>.Ok(table, "tạo bàn thành công"));
         }
 
-        // Cập nhật thông tin bàn (Admin, Staff)
+        // Cập nhật thông tin bàn (Admin/SuperAdmin)
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Update(Guid id, [FromBody] CreateTableDto dto)
         {
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -58,7 +58,7 @@ namespace BilliardManagement.API.Controllers
             try
             {
                 var table = await _tableService.UpdateTableAsync(id, dto, updatedBy);
-                await _hubContext.Clients.All.SendAsync("ReceiveTableUpdate", $"Table {table.TableName} updated.");
+                await _hubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveTableUpdate", $"Table {table.TableName} updated.");
                 return Ok(ApiResponse<TableDto>.Ok(table, "Cập nhật bàn thành công"));
             }
             catch (Exception ex)
@@ -67,16 +67,16 @@ namespace BilliardManagement.API.Controllers
             }
         }
 
-        // Xóa bàn (Admin)
+        // Xóa bàn (Admin/SuperAdmin)
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             try
             {
                 var result = await _tableService.DeleteTableAsync(id);
                 if (!result) return NotFound(ApiResponse<object>.Fail("Không tìm thấy bàn để xóa"));
-                await _hubContext.Clients.All.SendAsync("ReceiveTableUpdate", "Table deleted");
+                await _hubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveTableUpdate", "Table deleted");
                 return Ok(ApiResponse<bool>.Ok(true, "Xóa bàn thành công"));
             }
             catch (Exception ex)
@@ -85,9 +85,9 @@ namespace BilliardManagement.API.Controllers
             }
         }
 
-        // Cập nhật trạng thái bàn (chỉ dành cho Admin, Staff)
+        // Cập nhật trạng thái bàn (Admin, Staff, SuperAdmin)
         [HttpPut("{id}/status")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "SuperAdmin,Admin,Staff")]
         public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] TableStatusUpdateDto request)
         {
             if (!Enum.TryParse<TableStatus>(request.Status, true, out var status))
@@ -110,8 +110,8 @@ namespace BilliardManagement.API.Controllers
                     Status = (int)table.Status,
                     StatusName = table.Status.ToString()
                 };
-                await _hubContext.Clients.All.SendAsync("TableStatusChanged", statusPayload);
-                await _hubContext.Clients.All.SendAsync("ReceiveTableUpdate", $"Table {table.TableName} status updated to {status}.");
+                await _hubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("TableStatusChanged", statusPayload);
+                await _hubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveTableUpdate", $"Table {table.TableName} status updated to {status}.");
 
                 return Ok(ApiResponse<TableDto>.Ok(table, "Cập nhật trạng thái bàn thành công"));
             }
@@ -123,7 +123,7 @@ namespace BilliardManagement.API.Controllers
 
         // Lấy lịch sử thay đổi trạng thái bàn
         [HttpGet("{id}/history")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "SuperAdmin,Admin,Staff")]
         public async Task<IActionResult> GetHistory(Guid id)
         {
             try

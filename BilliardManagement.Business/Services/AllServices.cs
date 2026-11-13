@@ -9,6 +9,9 @@ using BilliardManagement.Data.Repositories.Interfaces;
 using BilliardManagement.Models.Enums;
 using BilliardManagement.Models.Models;
 using BilliardManagement.Common.Exceptions;
+using BilliardManagement.Common.Tenant;
+using BilliardManagement.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.IdentityModel.Tokens.Jwt;
@@ -24,18 +27,43 @@ namespace BilliardManagement.Business.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IConfiguration _config;
+        private readonly BilliardManagementDbContext _context;
+        private readonly ITenantContext _tenantContext;
 
-        public AuthService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration config)
+        public AuthService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            IConfiguration config,
+            BilliardManagementDbContext context,
+            ITenantContext tenantContext)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _config = config;
+            _context = context;
+            _tenantContext = tenantContext;
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
         {
-            var user = await _unitOfWork.Repository<User>().GetFirstOrDefaultAsync(u => u.Username == dto.Username);
-            if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash)) throw new CustomException("Invalid credentials", 401);
+            // Authentication is cross-tenant by design: the username identifies the account.
+            // This is the only controlled place where tenant filters must be bypassed.
+            var user = await _context.Users
+                .IgnoreQueryFilters()
+                .Include(u => u.Store)
+                .FirstOrDefaultAsync(u => u.Username == dto.Username);
+
+            if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+                throw new CustomException("Invalid credentials", 401);
+
+            if (!user.IsActive)
+                throw new CustomException("Tài khoản đã bị vô hiệu hóa", 403);
+
+            if (user.Role != UserRole.SuperAdmin && !user.StoreId.HasValue)
+                throw new CustomException("Tài khoản chưa được gán cửa hàng", 403);
+
+            if (user.Role != UserRole.SuperAdmin && user.Store != null && !user.Store.IsActive)
+                throw new CustomException("Cửa hàng đã ngừng hoạt động", 403);
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_config["JwtSettings:Secret"] ?? "SuperSecretKeyForBilliardManagementSystem12345");
@@ -44,7 +72,9 @@ namespace BilliardManagement.Business.Services
                 Subject = new ClaimsIdentity(new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Role, user.Role.ToString())
+                    new Claim(ClaimTypes.Name, user.Username),
+                    new Claim(ClaimTypes.Role, user.Role.ToString()),
+                    new Claim("store_id", user.StoreId?.ToString() ?? string.Empty)
                 }),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -56,8 +86,29 @@ namespace BilliardManagement.Business.Services
 
         public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
         {
-            var existing = await _unitOfWork.Repository<User>().GetFirstOrDefaultAsync(u => u.Username == dto.Username);
+            var existing = await _context.Users
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u => u.Username == dto.Username);
             if (existing != null) throw new CustomException("Username already exists", 400);
+
+            var role = UserRole.Staff;
+            if (dto.Role.HasValue)
+            {
+                if (!_tenantContext.IsSuperAdmin && dto.Role.Value != UserRole.Staff)
+                    throw new CustomException("Chỉ SuperAdmin mới được tạo tài khoản Admin", 403);
+                role = dto.Role.Value;
+            }
+
+            // Never trust StoreId from a non-SuperAdmin caller.
+            Guid? storeId = _tenantContext.IsSuperAdmin ? dto.StoreId : null;
+            if (!storeId.HasValue && _tenantContext.StoreId != Guid.Empty)
+                storeId = _tenantContext.StoreId;
+
+            if (_tenantContext.IsSuperAdmin && role != UserRole.SuperAdmin && !storeId.HasValue)
+                throw new CustomException("SuperAdmin phải chỉ định cửa hàng khi tạo Admin/Staff", 400);
+
+            if (role != UserRole.SuperAdmin && !storeId.HasValue)
+                throw new CustomException("Không xác định được cửa hàng để tạo tài khoản", 400);
 
             var user = new User
             {
@@ -65,7 +116,8 @@ namespace BilliardManagement.Business.Services
                 Username = dto.Username,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 PhoneNumber = dto.PhoneNumber,
-                Role = UserRole.Staff
+                Role = role,
+                StoreId = role == UserRole.SuperAdmin ? null : storeId
             };
             await _unitOfWork.Repository<User>().AddAsync(user);
             await _unitOfWork.SaveChangesAsync();
@@ -240,6 +292,7 @@ namespace BilliardManagement.Business.Services
             // Log status change history
             var history = new TableStatusHistory
             {
+                StoreId = table.StoreId,
                 TableId = id,
                 OldStatus = oldStatus,
                 NewStatus = status,

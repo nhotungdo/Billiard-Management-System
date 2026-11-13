@@ -46,8 +46,7 @@ namespace BilliardManagement.Web.Middlewares
                     var existingRole = context.Session.GetString("UserRole");
                     if (!string.IsNullOrEmpty(existingToken))
                     {
-                        var dest = existingRole == "Admin" ? "/Admin/Dashboard/Index" : "/Staff/Dashboard/Index";
-                        context.Response.Redirect(dest);
+                        context.Response.Redirect(GetHomePath(existingRole));
                         return;
                     }
                 }
@@ -62,8 +61,7 @@ namespace BilliardManagement.Web.Middlewares
                 var rootRole = context.Session.GetString("UserRole");
                 if (!string.IsNullOrEmpty(rootToken))
                 {
-                    var dest = rootRole == "Admin" ? "/Admin/Dashboard/Index" : "/Staff/Dashboard/Index";
-                    context.Response.Redirect(dest);
+                    context.Response.Redirect(GetHomePath(rootRole));
                 }
                 else
                 {
@@ -96,8 +94,8 @@ namespace BilliardManagement.Web.Middlewares
             // Role-based path enforcement
             var role = context.Session.GetString("UserRole");
 
-            // Admin routes — only Admin can access /Admin/*
-            if (path.StartsWith("/admin") && role != "Admin")
+            // Admin routes — Admin and SuperAdmin can access /Admin/*
+            if (path.StartsWith("/admin") && role != "Admin" && role != "SuperAdmin")
             {
                 context.Response.Redirect("/AccessDenied");
                 return;
@@ -117,5 +115,12 @@ namespace BilliardManagement.Web.Middlewares
                 context.Response.Redirect("/AccessDenied");
             }
         }
+
+        private static string GetHomePath(string? role) => role switch
+        {
+            "SuperAdmin" => "/Admin/Stores/Index",
+            "Admin" => "/Admin/Dashboard/Index",
+            _ => "/Staff/Dashboard/Index"
+        };
     }
 }

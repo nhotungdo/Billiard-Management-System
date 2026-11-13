@@ -37,7 +37,7 @@ namespace BilliardManagement.API.Controllers
         }
         // admin xem tất cả ca làm việc trong ngày
         [HttpGet("today")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> GetTodayShifts()
         {
             var shifts = await _shiftService.GetTodayShiftsAsync();

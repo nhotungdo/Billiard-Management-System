@@ -7,7 +7,7 @@ namespace BilliardManagement.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     public class ReportsController : ControllerBase
     {
         private readonly IReportService _reportService;

@@ -46,6 +46,9 @@ namespace BilliardManagement.Data.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("TableName")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -58,7 +61,9 @@ namespace BilliardManagement.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TableName")
+                    b.HasIndex("StoreId");
+
+                    b.HasIndex("StoreId", "TableName")
                         .IsUnique();
 
                     b.ToTable("BilliardTables");
@@ -79,7 +84,12 @@ namespace BilliardManagement.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("StoreId");
 
                     b.ToTable("Categories");
                 });
@@ -123,9 +133,14 @@ namespace BilliardManagement.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ComboCode")
+                    b.HasIndex("StoreId");
+
+                    b.HasIndex("StoreId", "ComboCode")
                         .IsUnique();
 
                     b.ToTable("Combos");
@@ -146,11 +161,16 @@ namespace BilliardManagement.Data.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ComboId");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("StoreId");
 
                     b.ToTable("ComboItems");
                 });
@@ -180,6 +200,9 @@ namespace BilliardManagement.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<decimal>("TotalPlayHours")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -196,7 +219,9 @@ namespace BilliardManagement.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PhoneNumber")
+                    b.HasIndex("StoreId");
+
+                    b.HasIndex("StoreId", "PhoneNumber")
                         .IsUnique();
 
                     b.ToTable("Customers");
@@ -348,11 +373,16 @@ namespace BilliardManagement.Data.Migrations
                     b.Property<int>("StockQuantity")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
 
-                    b.HasIndex("ProductName")
+                    b.HasIndex("StoreId");
+
+                    b.HasIndex("StoreId", "ProductName")
                         .IsUnique();
 
                     b.ToTable("Products");
@@ -414,6 +444,9 @@ namespace BilliardManagement.Data.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("StartShift");
 
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<decimal>("TotalRevenue")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -423,9 +456,51 @@ namespace BilliardManagement.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("StoreId");
+
                     b.HasIndex("UserId");
 
                     b.ToTable("Shifts");
+                });
+
+            modelBuilder.Entity("BilliardManagement.Models.Models.Store", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("Stores");
                 });
 
             modelBuilder.Entity("BilliardManagement.Models.Models.TableSession", b =>
@@ -477,6 +552,9 @@ namespace BilliardManagement.Data.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("TableId")
                         .HasColumnType("uniqueidentifier");
 
@@ -492,6 +570,8 @@ namespace BilliardManagement.Data.Migrations
                     b.HasIndex("ComboId");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("StoreId");
 
                     b.HasIndex("TableId");
 
@@ -522,12 +602,17 @@ namespace BilliardManagement.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("TableId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ChangedById");
+
+                    b.HasIndex("StoreId");
 
                     b.HasIndex("TableId");
 
@@ -570,6 +655,9 @@ namespace BilliardManagement.Data.Migrations
                     b.Property<int>("Role")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("StoreId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -577,7 +665,36 @@ namespace BilliardManagement.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("StoreId");
+
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("BilliardManagement.Models.Models.BilliardTable", b =>
+                {
+                    b.HasOne("BilliardManagement.Models.Models.Store", null)
+                        .WithMany("BilliardTables")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BilliardManagement.Models.Models.Category", b =>
+                {
+                    b.HasOne("BilliardManagement.Models.Models.Store", null)
+                        .WithMany("Categories")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BilliardManagement.Models.Models.Combo", b =>
+                {
+                    b.HasOne("BilliardManagement.Models.Models.Store", null)
+                        .WithMany("Combos")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("BilliardManagement.Models.Models.ComboItem", b =>
@@ -594,9 +711,24 @@ namespace BilliardManagement.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("BilliardManagement.Models.Models.Store", null)
+                        .WithMany("ComboItems")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Combo");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("BilliardManagement.Models.Models.Customer", b =>
+                {
+                    b.HasOne("BilliardManagement.Models.Models.Store", null)
+                        .WithMany("Customers")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("BilliardManagement.Models.Models.Invoice", b =>
@@ -669,6 +801,12 @@ namespace BilliardManagement.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("BilliardManagement.Models.Models.Store", null)
+                        .WithMany("Products")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Category");
                 });
 
@@ -691,6 +829,12 @@ namespace BilliardManagement.Data.Migrations
 
             modelBuilder.Entity("BilliardManagement.Models.Models.Shift", b =>
                 {
+                    b.HasOne("BilliardManagement.Models.Models.Store", null)
+                        .WithMany("Shifts")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("BilliardManagement.Models.Models.User", "User")
                         .WithMany("Shifts")
                         .HasForeignKey("UserId")
@@ -710,6 +854,12 @@ namespace BilliardManagement.Data.Migrations
                         .WithMany("TableSessions")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BilliardManagement.Models.Models.Store", null)
+                        .WithMany("TableSessions")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("BilliardManagement.Models.Models.BilliardTable", "BilliardTable")
                         .WithMany("TableSessions")
@@ -739,6 +889,12 @@ namespace BilliardManagement.Data.Migrations
                         .HasForeignKey("ChangedById")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("BilliardManagement.Models.Models.Store", null)
+                        .WithMany("TableStatusHistories")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("BilliardManagement.Models.Models.BilliardTable", "BilliardTable")
                         .WithMany()
                         .HasForeignKey("TableId")
@@ -748,6 +904,16 @@ namespace BilliardManagement.Data.Migrations
                     b.Navigation("BilliardTable");
 
                     b.Navigation("ChangedByUser");
+                });
+
+            modelBuilder.Entity("BilliardManagement.Models.Models.User", b =>
+                {
+                    b.HasOne("BilliardManagement.Models.Models.Store", "Store")
+                        .WithMany("Users")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Store");
                 });
 
             modelBuilder.Entity("BilliardManagement.Models.Models.BilliardTable", b =>
@@ -782,6 +948,29 @@ namespace BilliardManagement.Data.Migrations
             modelBuilder.Entity("BilliardManagement.Models.Models.Product", b =>
                 {
                     b.Navigation("OrderItems");
+                });
+
+            modelBuilder.Entity("BilliardManagement.Models.Models.Store", b =>
+                {
+                    b.Navigation("BilliardTables");
+
+                    b.Navigation("Categories");
+
+                    b.Navigation("ComboItems");
+
+                    b.Navigation("Combos");
+
+                    b.Navigation("Customers");
+
+                    b.Navigation("Products");
+
+                    b.Navigation("Shifts");
+
+                    b.Navigation("TableSessions");
+
+                    b.Navigation("TableStatusHistories");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("BilliardManagement.Models.Models.TableSession", b =>

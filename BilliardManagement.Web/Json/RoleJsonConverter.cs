@@ -18,6 +18,7 @@ namespace BilliardManagement.Web.Json
                 var s = reader.GetString();
                 if (string.IsNullOrWhiteSpace(s)) return 0;
                 if (int.TryParse(s, out var n)) return n;
+                if (s.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)) return 0;
                 if (s.Equals("Admin", StringComparison.OrdinalIgnoreCase)) return 1;
                 if (s.Equals("Staff", StringComparison.OrdinalIgnoreCase)) return 2;
             }

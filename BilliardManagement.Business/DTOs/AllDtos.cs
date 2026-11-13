@@ -11,9 +11,22 @@ namespace BilliardManagement.Business.DTOs
         public string Username { get; set; } = string.Empty;
         public string? PhoneNumber { get; set; }
         public UserRole Role { get; set; }
+        public Guid? StoreId { get; set; }
+        public string? StoreName { get; set; }
         public bool IsActive { get; set; }
         public string? Email { get; set; }
         public string? ProfilePictureUrl { get; set; }
+    }
+
+    public class CreateUserDto
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
+        public string? Email { get; set; }
+        public UserRole Role { get; set; } = UserRole.Staff;
+        public Guid? StoreId { get; set; }
     }
 
     public class UserDeletionResultDto
@@ -23,7 +36,7 @@ namespace BilliardManagement.Business.DTOs
     }
 
     public class LoginDto { public string Username { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; }
-    public class RegisterDto { public string FullName { get; set; } = string.Empty; public string Username { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; public string? PhoneNumber { get; set; } }
+    public class RegisterDto { public string FullName { get; set; } = string.Empty; public string Username { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; public string? PhoneNumber { get; set; } public Guid? StoreId { get; set; } public UserRole? Role { get; set; } }
     public class AuthResponseDto { public string Token { get; set; } = string.Empty; public UserDto User { get; set; } = default!; }
 
     public class UpdateProfileDto

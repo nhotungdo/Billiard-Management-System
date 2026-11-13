@@ -437,9 +437,11 @@
             updateTimers();
             setInterval(updateTimers, 1000);
 
+            const signalRToken = document.querySelector('meta[name="api-token"]')?.content || '';
+
             // SignalR Connection for Realtime Table updates
             const tableConnection = new signalR.HubConnectionBuilder()
-                .withUrl("http://localhost:8080/hubs/table")
+                .withUrl("http://localhost:8080/hubs/table", { accessTokenFactory: () => signalRToken })
                 .withAutomaticReconnect()
                 .build();
 
@@ -463,7 +465,7 @@
 
             // SignalR Connection for Realtime Order updates
             const orderConnection = new signalR.HubConnectionBuilder()
-                .withUrl("http://localhost:8080/hubs/order")
+                .withUrl("http://localhost:8080/hubs/order", { accessTokenFactory: () => signalRToken })
                 .withAutomaticReconnect()
                 .build();
 

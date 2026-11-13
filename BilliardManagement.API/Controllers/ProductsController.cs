@@ -80,7 +80,7 @@ namespace BilliardManagement.API.Controllers
         }
 
         [HttpGet("check-name")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "SuperAdmin,Admin,Staff")]
         public async Task<IActionResult> CheckName([FromQuery] string name, [FromQuery] Guid? excludeId = null)
         {
             var isDuplicate = await _productService.CheckDuplicateNameAsync(name, excludeId);
@@ -88,7 +88,7 @@ namespace BilliardManagement.API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         [RequestSizeLimit(5 * 1024 * 1024)]
         public async Task<IActionResult> Create([FromForm] CreateProductRequest request)
         {
@@ -144,8 +144,8 @@ namespace BilliardManagement.API.Controllers
                     IsAvailable = product.IsAvailable
                 };
 
-                await _productHub.Clients.All.SendAsync("ProductCreated", payload);
-                await _productHub.Clients.All.SendAsync("ReceiveProductUpdate", "Product created");
+                await _productHub.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ProductCreated", payload);
+                await _productHub.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveProductUpdate", "Product created");
 
                 return Ok(ApiResponse<ProductDto>.Ok(product, "Tạo thành công"));
             }
@@ -157,7 +157,7 @@ namespace BilliardManagement.API.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         [RequestSizeLimit(5 * 1024 * 1024)]
         public async Task<IActionResult> Update(Guid id, [FromForm] UpdateProductRequest request)
         {
@@ -202,7 +202,7 @@ namespace BilliardManagement.API.Controllers
                     "User {UserId} updated product {ProductId} ({ProductName}) at {Time}",
                     userId, product.Id, product.Name, DateTime.UtcNow);
 
-                await _productHub.Clients.All.SendAsync("ReceiveProductUpdate", "Product updated");
+                await _productHub.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveProductUpdate", "Product updated");
 
                 return Ok(ApiResponse<ProductDto>.Ok(product, "Cập nhật thành công"));
             }
@@ -214,7 +214,7 @@ namespace BilliardManagement.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             try
@@ -224,7 +224,7 @@ namespace BilliardManagement.API.Controllers
                     return NotFound(ApiResponse<object>.Fail("Product not found"));
 
                 _logger.LogInformation("Product {ProductId} deleted at {Time}", id, DateTime.UtcNow);
-                await _productHub.Clients.All.SendAsync("ReceiveProductUpdate", "Product deleted");
+                await _productHub.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveProductUpdate", "Product deleted");
 
                 return Ok(ApiResponse<object?>.Ok(null, "Xóa sản phẩm thành công"));
             }

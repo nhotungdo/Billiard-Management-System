@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using BilliardManagement.Business.Interfaces;
 using BilliardManagement.Business.DTOs;
 using BilliardManagement.Common.Responses;
@@ -25,6 +26,7 @@ namespace BilliardManagement.API.Controllers
 
         // POST: api/auth/register
         [HttpPost("register")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
             var result = await _authService.RegisterAsync(dto);

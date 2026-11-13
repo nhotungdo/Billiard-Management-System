@@ -93,7 +93,37 @@ namespace BilliardManagement.Data.Repositories
 
         public async Task<T?> GetByIdAsync(object id)
         {
-            return await dbSet.FindAsync(id);
+            // DbSet.FindAsync bypasses global query filters (tenant isolation),
+            // so resolve by primary key through a filtered query instead.
+            var entityType = _context.Model.FindEntityType(typeof(T));
+            var primaryKey = entityType?.FindPrimaryKey();
+
+            if (primaryKey == null || primaryKey.Properties.Count != 1)
+            {
+                return await dbSet.FindAsync(id);
+            }
+
+            var keyProperty = primaryKey.Properties[0];
+            var parameter = Expression.Parameter(typeof(T), "e");
+            var property = Expression.Property(parameter, keyProperty.Name);
+
+            object? convertedId;
+            try
+            {
+                convertedId = keyProperty.ClrType == id.GetType()
+                    ? id
+                    : Convert.ChangeType(id, keyProperty.ClrType);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+
+            var constant = Expression.Constant(convertedId, keyProperty.ClrType);
+            var body = Expression.Equal(property, constant);
+            var predicate = Expression.Lambda<Func<T, bool>>(body, parameter);
+
+            return await dbSet.FirstOrDefaultAsync(predicate);
         }
 
         public async Task<T?> GetFirstOrDefaultAsync(Expression<Func<T, bool>> filter, string? includeProperties = null)

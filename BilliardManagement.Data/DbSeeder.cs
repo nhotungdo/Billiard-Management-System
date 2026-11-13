@@ -11,6 +11,22 @@ namespace BilliardManagement.Data
     {
         public static void Seed(BilliardManagementDbContext context)
         {
+            // 0. Default store (legacy data migration target)
+            var defaultStore = context.Stores.FirstOrDefault(s => s.Id == BilliardManagementDbContext.DefaultStoreId);
+            if (defaultStore == null)
+            {
+                defaultStore = new Store
+                {
+                    Id = BilliardManagementDbContext.DefaultStoreId,
+                    Name = "Cửa hàng mặc định",
+                    Address = "Việt Nam",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.Stores.Add(defaultStore);
+                context.SaveChanges();
+            }
+
             // Migrate old order statuses if any (2 was Completed, now 3 is Completed; 3 was Cancelled, now 4 is Cancelled)
             var oldCancelledOrders = context.Orders.ToList().Where(o => (int)o.Status == 3).ToList();
             foreach (var o in oldCancelledOrders)
@@ -35,6 +51,28 @@ namespace BilliardManagement.Data
             }
 
             // 1. Seed Users
+            var superAdmin = context.Users.FirstOrDefault(u => u.Username == "superadmin");
+            if (superAdmin == null)
+            {
+                superAdmin = new User
+                {
+                    Id = Guid.NewGuid(),
+                    FullName = "System Super Admin",
+                    Username = "superadmin",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
+                    Role = UserRole.SuperAdmin,
+                    StoreId = null,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.Users.Add(superAdmin);
+            }
+            else if (!superAdmin.PasswordHash.StartsWith("$2"))
+            {
+                superAdmin.PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456");
+                context.Users.Update(superAdmin);
+            }
+
             var adminUser = context.Users.FirstOrDefault(u => u.Username == "admin");
             if (adminUser == null)
             {
@@ -45,14 +83,22 @@ namespace BilliardManagement.Data
                     Username = "admin",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
                     Role = UserRole.Admin,
+                    StoreId = defaultStore.Id,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 };
                 context.Users.Add(adminUser);
             }
-            else if (!adminUser.PasswordHash.StartsWith("$2"))
+            else
             {
-                adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456");
+                if (!adminUser.PasswordHash.StartsWith("$2"))
+                {
+                    adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456");
+                }
+                if (!adminUser.StoreId.HasValue)
+                {
+                    adminUser.StoreId = defaultStore.Id;
+                }
                 context.Users.Update(adminUser);
             }
 
@@ -66,14 +112,22 @@ namespace BilliardManagement.Data
                     Username = "staff01",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
                     Role = UserRole.Staff,
+                    StoreId = defaultStore.Id,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 };
                 context.Users.Add(staff01);
             }
-            else if (!staff01.PasswordHash.StartsWith("$2"))
+            else
             {
-                staff01.PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456");
+                if (!staff01.PasswordHash.StartsWith("$2"))
+                {
+                    staff01.PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456");
+                }
+                if (!staff01.StoreId.HasValue)
+                {
+                    staff01.StoreId = defaultStore.Id;
+                }
                 context.Users.Update(staff01);
             }
 
@@ -87,14 +141,22 @@ namespace BilliardManagement.Data
                     Username = "staff02",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
                     Role = UserRole.Staff,
+                    StoreId = defaultStore.Id,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 };
                 context.Users.Add(staff02);
             }
-            else if (!staff02.PasswordHash.StartsWith("$2"))
+            else
             {
-                staff02.PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456");
+                if (!staff02.PasswordHash.StartsWith("$2"))
+                {
+                    staff02.PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456");
+                }
+                if (!staff02.StoreId.HasValue)
+                {
+                    staff02.StoreId = defaultStore.Id;
+                }
                 context.Users.Update(staff02);
             }
             context.SaveChanges();

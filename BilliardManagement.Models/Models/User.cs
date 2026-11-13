@@ -32,11 +32,14 @@ namespace BilliardManagement.Models.Models
         [Required]
         public UserRole Role { get; set; }
 
+        public Guid? StoreId { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties
+        public virtual Store? Store { get; set; }
         public virtual ICollection<TableSession> TableSessions { get; set; } = new List<TableSession>();
         public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
         public virtual ICollection<Shift> Shifts { get; set; } = new List<Shift>();

@@ -36,13 +36,30 @@ namespace BilliardManagement.API.Controllers
             _logger = logger;
         }
 
-        // lấy tất cả người dùng (chỉ dành cho admin)
+        // lấy tất cả người dùng (chỉ dành cho admin/superadmin)
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> GetAll()
         {
             var users = await _userService.GetAllUsersAsync();
             return Ok(ApiResponse<IEnumerable<UserDto>>.Ok(users));
+        }
+
+        // tạo tài khoản: SuperAdmin tạo Admin cho cửa hàng, Admin tạo Staff trong cửa hàng của mình
+        [HttpPost]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> Create([FromBody] CreateUserDto dto)
+        {
+            try
+            {
+                var user = await _userService.CreateUserAsync(dto);
+                return Ok(ApiResponse<UserDto>.Ok(user, "Tạo tài khoản thành công"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Create user failed");
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
         }
 
         // lấy thông tin người dùng theo id
@@ -53,9 +70,9 @@ namespace BilliardManagement.API.Controllers
             return Ok(ApiResponse<UserDto>.Ok(user));
         }
 
-        // cập nhật vai trò người dùng (chỉ dành cho admin)
+        // cập nhật vai trò người dùng (admin/superadmin)
         [HttpPut("{id}/role")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> UpdateRole(Guid id, [FromBody] UserRole role)
         {
             var user = await _userService.UpdateUserRoleAsync(id, role);
@@ -64,6 +81,7 @@ namespace BilliardManagement.API.Controllers
 
         // Xóa 1 nhân viên (id) - trả về số khách hàng đã phục vụ và số mặt hàng đã bán 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _userService.DeleteUserAsync(id);
@@ -150,7 +168,7 @@ namespace BilliardManagement.API.Controllers
 
         // POST: api/users/{id}/reset-password
         [HttpPost("{id}/reset-password")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> ResetPassword(Guid id, [FromBody] ResetPasswordForUserDto dto)
         {
             try

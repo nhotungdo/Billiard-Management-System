@@ -14,9 +14,78 @@ namespace BilliardManagement.Web.Models
         public string? PhoneNumber { get; set; }
         [JsonConverter(typeof(RoleJsonConverter))]
         public int Role { get; set; }
+        public Guid? StoreId { get; set; }
+        public string? StoreName { get; set; }
         public bool IsActive { get; set; }
         public string? Email { get; set; }
         public string? ProfilePictureUrl { get; set; }
+    }
+
+    public class StoreDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Address { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? Email { get; set; }
+        public string? LogoUrl { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public int UserCount { get; set; }
+        public int TableCount { get; set; }
+    }
+
+    public class CreateStoreRequest
+    {
+        [Required(ErrorMessage = "Vui lòng nhập tên cửa hàng.")]
+        [StringLength(200, ErrorMessage = "Tên cửa hàng tối đa 200 ký tự.")]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(500, ErrorMessage = "Địa chỉ tối đa 500 ký tự.")]
+        public string? Address { get; set; }
+
+        [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự.")]
+        public string? PhoneNumber { get; set; }
+
+        [EmailAddress(ErrorMessage = "Định dạng email không hợp lệ.")]
+        public string? Email { get; set; }
+
+        public string? LogoUrl { get; set; }
+    }
+
+    public class UpdateStoreRequest : CreateStoreRequest
+    {
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class CreateStoreAdminRequest
+    {
+        [Required(ErrorMessage = "Vui lòng chọn cửa hàng.")]
+        public Guid StoreId { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng nhập họ và tên.")]
+        public string FullName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng nhập tên đăng nhập.")]
+        public string Username { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng nhập mật khẩu.")]
+        [MinLength(6, ErrorMessage = "Mật khẩu tối thiểu 6 ký tự.")]
+        public string Password { get; set; } = string.Empty;
+
+        public string? PhoneNumber { get; set; }
+        public string? Email { get; set; }
+    }
+
+    public class CreateUserRequest
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
+        public string? Email { get; set; }
+        public int Role { get; set; } = 2;
+        public Guid? StoreId { get; set; }
     }
 
     public class LoginRequest

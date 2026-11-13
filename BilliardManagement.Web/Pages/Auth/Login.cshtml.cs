@@ -30,7 +30,9 @@ namespace BilliardManagement.Web.Pages.Auth
             var role = HttpContext.Session.GetString("UserRole");
             if (!string.IsNullOrEmpty(token))
             {
-                if (role == "Admin")
+                if (role == "SuperAdmin")
+                    Response.Redirect("/Admin/Stores/Index");
+                else if (role == "Admin")
                     Response.Redirect("/Admin/Dashboard/Index");
                 else
                     Response.Redirect("/Staff/Dashboard/Index");
@@ -49,18 +51,26 @@ namespace BilliardManagement.Web.Pages.Auth
                 {
                     HttpContext.Session.SetString("JWToken", response.Token);
                     HttpContext.Session.SetString("Username", response.User.Username);
-                    var roleName = response.User.Role == 1 ? "Admin" : "Staff";
+                    var roleName = response.User.Role switch
+                    {
+                        0 => "SuperAdmin",
+                        1 => "Admin",
+                        _ => "Staff"
+                    };
                     HttpContext.Session.SetString("UserRole", roleName);
                     HttpContext.Session.SetString("FullName", response.User.FullName);
                     HttpContext.Session.SetString("UserId", response.User.Id.ToString());
+                    HttpContext.Session.SetString("StoreId", response.User.StoreId?.ToString() ?? "");
+                    HttpContext.Session.SetString("StoreName", response.User.StoreName ?? "");
                     HttpContext.Session.SetString("LastActivity", DateTime.UtcNow.ToString("o"));
                     TempData["SuccessMessage"] = "Đăng nhập thành công!";
 
                     // Redirect based on role
+                    if (roleName == "SuperAdmin")
+                        return RedirectToPage("/Admin/Stores/Index");
                     if (roleName == "Admin")
                         return RedirectToPage("/Admin/Dashboard/Index");
-                    else
-                        return RedirectToPage("/Staff/Dashboard/Index");
+                    return RedirectToPage("/Staff/Dashboard/Index");
                 }
                 else
                 {

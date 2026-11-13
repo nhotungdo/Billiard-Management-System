@@ -8,7 +8,10 @@ namespace BilliardManagement.Business.Mappings
     {
         public AutoMapperProfile()
         {
-            CreateMap<User, UserDto>().ReverseMap();
+            CreateMap<User, UserDto>()
+                .ForMember(dest => dest.StoreName, opt => opt.MapFrom(src => src.Store != null ? src.Store.Name : null))
+                .ReverseMap()
+                .ForMember(dest => dest.Store, opt => opt.Ignore());
 
             CreateMap<BilliardTable, TableDto>()
                 .ForMember(dest => dest.PricePerHour, opt => opt.MapFrom(src => src.HourlyRate));

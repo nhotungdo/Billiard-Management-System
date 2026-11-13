@@ -138,6 +138,7 @@ namespace BilliardManagement.Business.Services
 
             var session = new TableSession
             {
+                StoreId = table.StoreId,
                 TableId = tableId,
                 UserId = userId,
                 CustomerId = customerId,

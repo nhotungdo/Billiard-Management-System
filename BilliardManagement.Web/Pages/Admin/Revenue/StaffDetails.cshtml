@@ -379,7 +379,9 @@
             // SignalR Connection
             const hubBase = document.querySelector('meta[name="hub-base-url"]')?.content || 'http://localhost:8080';
             const connection = new signalR.HubConnectionBuilder()
-                .withUrl(hubBase + "/hubs/notification")
+                .withUrl(hubBase + "/hubs/notification", {
+                    accessTokenFactory: () => document.querySelector('meta[name="api-token"]')?.content || ''
+                })
                 .withAutomaticReconnect()
                 .build();
 

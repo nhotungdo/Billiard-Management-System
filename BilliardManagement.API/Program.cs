@@ -77,6 +77,20 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key)
     };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
 // Configure CORS
@@ -120,6 +134,7 @@ app.UseStaticFiles();
 app.UseCors("AllowAll");
 
 app.UseAuthentication();
+app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
@@ -128,9 +143,9 @@ app.MapControllers();
 app.MapGet("/", () => Results.Redirect("/swagger"));
 
 // Map Hubs
-app.MapHub<TableHub>("/hubs/table");
-app.MapHub<ProductHub>("/hubs/product");
-app.MapHub<OrderHub>("/hubs/order");
-app.MapHub<NotificationHub>("/hubs/notification");
+app.MapHub<TableHub>("/hubs/table").RequireAuthorization();
+app.MapHub<ProductHub>("/hubs/product").RequireAuthorization();
+app.MapHub<OrderHub>("/hubs/order").RequireAuthorization();
+app.MapHub<NotificationHub>("/hubs/notification").RequireAuthorization();
 
 app.Run();

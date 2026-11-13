@@ -38,7 +38,7 @@ namespace BilliardManagement.API.Controllers
 
         // POST: api/categories
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Create([FromBody] CreateCategoryDto dto)
         {
             try
@@ -55,7 +55,7 @@ namespace BilliardManagement.API.Controllers
 
         // PUT: api/categories/{id}
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Update(Guid id, [FromBody] CreateCategoryDto dto)
         {
             try
@@ -72,7 +72,7 @@ namespace BilliardManagement.API.Controllers
 
         // DELETE: api/categories/{id}
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             try

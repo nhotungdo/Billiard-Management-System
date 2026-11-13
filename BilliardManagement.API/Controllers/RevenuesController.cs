@@ -20,7 +20,7 @@ namespace BilliardManagement.API.Controllers
         }
 
         [HttpGet("personal")]
-        [Authorize(Roles = "Staff,Admin")]
+        [Authorize(Roles = "SuperAdmin,Staff,Admin")]
         public async Task<IActionResult> GetPersonalRevenue([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
         {
             try
@@ -41,7 +41,7 @@ namespace BilliardManagement.API.Controllers
         }
 
         [HttpGet("total")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> GetTotalRevenue([FromQuery] RevenueFilterQuery filter)
         {
             try
@@ -56,7 +56,7 @@ namespace BilliardManagement.API.Controllers
         }
 
         [HttpGet("staff/{staffId}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> GetRevenueByStaff(Guid staffId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
         {
             try

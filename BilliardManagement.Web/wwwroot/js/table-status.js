@@ -50,8 +50,9 @@ window.connectTableStatusHub = function (options) {
         return null;
     }
 
+    const apiToken = document.querySelector('meta[name="api-token"]')?.content || '';
     const connection = new signalR.HubConnectionBuilder()
-        .withUrl(hubUrl)
+        .withUrl(hubUrl, { accessTokenFactory: () => apiToken })
         .withAutomaticReconnect()
         .build();
 

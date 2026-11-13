@@ -54,7 +54,7 @@ namespace BilliardManagement.API.Controllers
             var order = await _orderService.CreateOrderAsync(dto, userId);
             
             // Notify Kitchen/Bar
-            await _orderHubContext.Clients.All.SendAsync("ReceiveOrderUpdate", $"New order {order.Id} created for session {dto.SessionId}");
+            await _orderHubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveOrderUpdate", $"New order {order.Id} created for session {dto.SessionId}");
 
             // Notify TableHub for active session updates on dashboard
             try
@@ -83,9 +83,9 @@ namespace BilliardManagement.API.Controllers
                         TimerLevel = sessionDto.IsExpired ? "expired" : sessionDto.RemainingMinutes < 15 ? "warning" : "ok",
                         OrderLines = sessionDto.OrderLines
                     };
-                    await _tableHubContext.Clients.All.SendAsync("SessionUpdated", realtime);
+                    await _tableHubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("SessionUpdated", realtime);
                 }
-                await _tableHubContext.Clients.All.SendAsync("ReceiveTableUpdate", "OrderCreated");
+                await _tableHubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveTableUpdate", "OrderCreated");
             }
             catch (Exception ex)
             {
@@ -111,7 +111,7 @@ namespace BilliardManagement.API.Controllers
         }
 
         [HttpPut("{id}/status")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "SuperAdmin,Admin,Staff")]
         public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateOrderStatusRequest request)
         {
             try
@@ -122,7 +122,7 @@ namespace BilliardManagement.API.Controllers
                 _logger.LogInformation("Order {OrderId} status updated to {Status}", id, newStatus);
 
                 // Notify OrderHub (kitchen/bar views)
-                await _orderHubContext.Clients.All.SendAsync("ReceiveOrderUpdate", $"Order {id} state changed to {newStatus}");
+                await _orderHubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveOrderUpdate", $"Order {id} state changed to {newStatus}");
 
                 // Notify TableHub for active session updates on dashboard
                 if (order.SessionId != Guid.Empty)
@@ -153,7 +153,7 @@ namespace BilliardManagement.API.Controllers
                                 TimerLevel = sessionDto.IsExpired ? "expired" : sessionDto.RemainingMinutes < 15 ? "warning" : "ok",
                                 OrderLines = sessionDto.OrderLines
                             };
-                            await _tableHubContext.Clients.All.SendAsync("SessionUpdated", realtime);
+                            await _tableHubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("SessionUpdated", realtime);
                         }
                     }
                     catch (Exception ex)
@@ -161,7 +161,7 @@ namespace BilliardManagement.API.Controllers
                         _logger.LogWarning(ex, "Failed to broadcast session update on order status change");
                     }
 
-                    await _tableHubContext.Clients.All.SendAsync("ReceiveTableUpdate", "OrderCompleted");
+                    await _tableHubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveTableUpdate", "OrderCompleted");
                 }
 
                 return Ok(ApiResponse<OrderDto>.Ok(order, "Cập nhật trạng thái đơn hàng thành công"));

@@ -7,11 +7,9 @@ namespace BilliardManagement.Web.Pages.Admin.Staff
     public class IndexModel : AdminPageModel
     {
         private readonly StaffService _staffService;
-        private readonly AuthService _authService;
-        public IndexModel(StaffService staffService, AuthService authService)
+        public IndexModel(StaffService staffService)
         {
             _staffService = staffService;
-            _authService = authService;
         }
 
         public List<StaffDto> StaffList { get; set; } = new();
@@ -43,7 +41,14 @@ namespace BilliardManagement.Web.Pages.Admin.Staff
 
             try
             {
-                await _authService.RegisterAsync(NewStaff);
+                await _staffService.CreateStaffAsync(new CreateUserRequest
+                {
+                    FullName = NewStaff.FullName,
+                    Username = NewStaff.Username,
+                    Password = NewStaff.Password,
+                    PhoneNumber = NewStaff.PhoneNumber,
+                    Role = 2
+                });
                 TempData["SuccessMessage"] = "Tạo nhân viên mới thành công.";
             }
             catch (Exception ex)

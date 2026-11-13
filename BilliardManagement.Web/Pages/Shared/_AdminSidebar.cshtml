@@ -1,5 +1,8 @@
 @{
     var currentPath = Context.Request.Path.Value?.ToLower() ?? "";
+    var currentRole = Context.Session.GetString("UserRole") ?? "";
+    var isSuperAdmin = currentRole == "SuperAdmin";
+    var storeName = Context.Session.GetString("StoreName") ?? "";
     string IsActive(string path) => currentPath.StartsWith(path.ToLower()) ? "active" : "";
 }
 
@@ -11,7 +14,7 @@
         </div>
         <div class="brand-text">
             <span class="brand-name">BilliardPro</span>
-            <span class="brand-sub">Admin Panel</span>
+            <span class="brand-sub">@(isSuperAdmin ? "System Admin" : (string.IsNullOrEmpty(storeName) ? "Admin Panel" : storeName))</span>
         </div>
         <button class="sidebar-close-btn d-md-none" id="sidebarClose">
             <i class="fa-solid fa-xmark"></i>
@@ -19,8 +22,31 @@
     </div>
 
     <!-- Menu -->
-    <div class="sidebar-menu-label">MENU CHÍNH</div>
+    <div class="sidebar-menu-label">@(isSuperAdmin ? "QUẢN TRỊ HỆ THỐNG" : "MENU CHÍNH")</div>
     <ul class="sidebar-nav">
+        @if (isSuperAdmin)
+        {
+            <li class="nav-item">
+                <a class="nav-link @IsActive("/admin/dashboard")" href="/Admin/Dashboard/Index">
+                    <span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span>
+                    <span class="nav-text">Tổng quan</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @IsActive("/admin/revenue")" href="/Admin/Revenue/Index">
+                    <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
+                    <span class="nav-text">Doanh thu</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @IsActive("/admin/stores")" href="/Admin/Stores/Index">
+                    <span class="nav-icon"><i class="fa-solid fa-store"></i></span>
+                    <span class="nav-text">Cửa hàng</span>
+                </a>
+            </li>
+        }
+        else
+        {
         <li class="nav-item">
             <a class="nav-link @IsActive("/admin/dashboard")" href="/Admin/Dashboard/Index">
                 <span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span>
@@ -63,6 +89,7 @@
                 <span class="nav-text">Khách Hàng</span>
             </a>
         </li>
+        }
     </ul>
 
     <div class="sidebar-divider"></div>

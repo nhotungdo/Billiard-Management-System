@@ -12,6 +12,7 @@ namespace BilliardManagement.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class CustomersController : ControllerBase
     {
         private readonly ICustomerService _customerService;
@@ -83,7 +84,7 @@ namespace BilliardManagement.API.Controllers
         }
 
         [HttpGet("top-spending")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> GetTopSpendingCustomers([FromQuery] int top = 10)
         {
             var result = await _customerService.GetTopSpendersAsync(top);
@@ -91,7 +92,7 @@ namespace BilliardManagement.API.Controllers
         }
 
         [HttpGet("dashboard")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> GetCustomerDashboard()
         {
             var result = await _customerService.GetCustomerDashboardAsync();

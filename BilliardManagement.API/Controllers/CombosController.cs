@@ -57,7 +57,7 @@ namespace BilliardManagement.API.Controllers
 
         // POST: api/combos
         [HttpPost]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Create([FromBody] CreateComboDto dto)
         {
             try
@@ -74,7 +74,7 @@ namespace BilliardManagement.API.Controllers
 
         // PUT: api/combos/{id}
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateComboDto dto)
         {
             try
@@ -94,7 +94,7 @@ namespace BilliardManagement.API.Controllers
 
         // PATCH: api/combos/{id}/toggle-status
         [HttpPatch("{id:guid}/toggle-status")]
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> ToggleStatus(Guid id)
         {
             var success = await _comboService.ToggleComboStatusAsync(id);
@@ -106,7 +106,7 @@ namespace BilliardManagement.API.Controllers
 
         // DELETE: api/combos/{id}
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var success = await _comboService.DeleteComboAsync(id);
