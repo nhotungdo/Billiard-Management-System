@@ -360,7 +360,7 @@
                 }
             }
 
-            document.addEventListener('change', function (e) {
+            document.addEventListener('change', async function (e) {
                 const select = e.target.closest('.status-select');
                 if (!select) return;
 
