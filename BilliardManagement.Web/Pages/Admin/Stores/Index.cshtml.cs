@@ -14,7 +14,11 @@ namespace BilliardManagement.Web.Pages.Admin.Stores
         }
 
         public List<StoreDto> Stores { get; set; } = new();
+        public List<StoreReportDto> Statistics { get; set; } = new();
+        public List<UserDto> Admins { get; set; } = new();
+        [BindProperty(SupportsGet = true)] public Guid? DetailId { get; set; }
         public string? ErrorMessage { get; set; }
+        public string? ActiveModal { get; set; }
 
         [BindProperty]
         public CreateStoreRequest NewStore { get; set; } = new();
@@ -36,8 +40,11 @@ namespace BilliardManagement.Web.Pages.Admin.Stores
 
         public async Task<IActionResult> OnPostCreateAsync()
         {
+            ModelState.Clear();
+            TryValidateModel(NewStore, nameof(NewStore));
             if (!ModelState.IsValid)
             {
+                ActiveModal = "createStoreModal";
                 await LoadAsync();
                 return Page();
             }
@@ -57,8 +64,11 @@ namespace BilliardManagement.Web.Pages.Admin.Stores
 
         public async Task<IActionResult> OnPostUpdateAsync()
         {
+            ModelState.Clear();
+            TryValidateModel(EditStore, nameof(EditStore));
             if (!ModelState.IsValid || EditStoreId == Guid.Empty)
             {
+                ActiveModal = "editStoreModal";
                 await LoadAsync();
                 return Page();
             }
@@ -120,8 +130,13 @@ namespace BilliardManagement.Web.Pages.Admin.Stores
 
         public async Task<IActionResult> OnPostCreateAdminAsync()
         {
+            ModelState.Clear();
+            TryValidateModel(NewAdmin, nameof(NewAdmin));
+            if (NewAdmin.StoreId == Guid.Empty)
+                ModelState.AddModelError("NewAdmin.StoreId", "Vui lòng chọn cửa hàng.");
             if (!ModelState.IsValid)
             {
+                ActiveModal = "createAdminModal";
                 await LoadAsync();
                 return Page();
             }
@@ -145,6 +160,9 @@ namespace BilliardManagement.Web.Pages.Admin.Stores
             {
                 var result = await _storeService.GetAllStoresAsync();
                 Stores = result ?? new List<StoreDto>();
+                var today = DateTime.UtcNow.Date;
+                Statistics = await _storeService.CompareAsync(null, new DateTime(today.Year, today.Month, 1), today) ?? new();
+                Admins = (await _storeService.GetUsersAsync() ?? new()).Where(u => u.Role == 1).ToList();
             }
             catch (Exception ex)
             {

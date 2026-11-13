@@ -9,10 +9,13 @@ namespace BilliardManagement.Web.Pages.Profile
     public class IndexModel : AdminOrStaffPageModel
     {
         private readonly AuthService _authService;
+        private readonly StoreService _stores;
+        public StoreDto? Store { get; set; }
 
-        public IndexModel(AuthService authService)
+        public IndexModel(AuthService authService, StoreService stores)
         {
             _authService = authService;
+            _stores = stores;
         }
 
         [BindProperty]
@@ -53,7 +56,8 @@ namespace BilliardManagement.Web.Pages.Profile
                 Email = profile.Email;
                 ProfilePictureUrl = profile.ProfilePictureUrl;
                 Username = profile.Username;
-                Role = profile.Role == 1 ? "Quản trị viên (Admin)" : "Nhân viên (Staff)";
+                Role = profile.Role switch { 0 => "Quản trị hệ thống (SuperAdmin)", 1 => "Quản trị viên (Admin)", _ => "Nhân viên (Staff)" };
+                await LoadStoreAsync();
 
                 return Page();
             }
@@ -156,12 +160,25 @@ namespace BilliardManagement.Web.Pages.Profile
                 {
                     ProfilePictureUrl = profile.ProfilePictureUrl;
                     Username = profile.Username;
-                    Role = profile.Role == 1 ? "Quản trị viên (Admin)" : "Nhân viên (Staff)";
+                    Role = profile.Role switch { 0 => "Quản trị hệ thống (SuperAdmin)", 1 => "Quản trị viên (Admin)", _ => "Nhân viên (Staff)" };
+                    await LoadStoreAsync();
                 }
             }
             catch
             {
                 // Ignore secondary errors on refresh
+            }
+        }
+        private async Task LoadStoreAsync()
+        {
+            if (CurrentRole != "SuperAdmin")
+            {
+                Store = await _stores.GetCurrentAsync();
+                if (Store != null)
+                {
+                    HttpContext.Session.SetString("StoreName", Store.Name);
+                    HttpContext.Session.SetString("StoreLogoUrl", Store.LogoUrl ?? "");
+                }
             }
         }
     }

@@ -13,6 +13,8 @@ namespace BilliardManagement.Web.Pages.Admin.Dashboard
         private readonly StaffService _staffService;
         private readonly SessionService _sessionService;
         private readonly InvoiceService _invoiceService;
+        private readonly StoreService _stores;
+        public SystemOverviewDto SystemOverview { get; set; } = new();
 
         public IndexModel(
             RevenueService revenueService,
@@ -20,7 +22,7 @@ namespace BilliardManagement.Web.Pages.Admin.Dashboard
             ProductService productService,
             StaffService staffService,
             SessionService sessionService,
-            InvoiceService invoiceService)
+            InvoiceService invoiceService, StoreService stores)
         {
             _revenueService = revenueService;
             _tableService = tableService;
@@ -28,6 +30,7 @@ namespace BilliardManagement.Web.Pages.Admin.Dashboard
             _staffService = staffService;
             _sessionService = sessionService;
             _invoiceService = invoiceService;
+            _stores = stores;
         }
 
         // Stats Cards properties
@@ -62,6 +65,11 @@ namespace BilliardManagement.Web.Pages.Admin.Dashboard
         {
             try
             {
+                if (CurrentRole == "SuperAdmin")
+                {
+                    SystemOverview = await _stores.GetOverviewAsync() ?? new();
+                    return Page();
+                }
                 // 1. Fetch dashboard/revenue summary from RevenueService
                 var summary = await _revenueService.GetTotalRevenueAsync(null, null, null);
                 if (summary != null)

@@ -32,7 +32,9 @@ namespace BilliardManagement.API.Controllers
         [HttpPost("checkout/{shiftId}")]
         public async Task<IActionResult> CheckOut(Guid shiftId)
         {
-            var shift = await _shiftService.CheckOutAsync(shiftId);
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return Unauthorized();
+            var shift = await _shiftService.CheckOutAsync(shiftId, userId,
+                User.IsInRole("Admin") || User.IsInRole("SuperAdmin"));
             return Ok(ApiResponse<ShiftDto>.Ok(shift, "Kết thúc ca làm việc thành công"));
         }
         // admin xem tất cả ca làm việc trong ngày

@@ -3,7 +3,7 @@
 @{
     Layout = null;
     var userRole = HttpContext.Session.GetString("UserRole");
-    var isAdmin = userRole == "Admin";
+    var isAdmin = userRole == "Admin" || userRole == "SuperAdmin";
     var sidebarName = isAdmin ? "_AdminSidebar" : "_StaffSidebar";
     var bodyClass = isAdmin ? "admin-body" : "staff-body";
     var wrapperId = isAdmin ? "admin-wrapper" : "staff-wrapper";
@@ -108,6 +108,10 @@
                 </div>
 
                 <div class="row g-4">
+                    @if (Model.Store != null)
+                    {
+                        <div class="col-12"><div class="card-panel"><div class="panel-header"><h5 class="panel-title">Thông tin cửa hàng</h5></div><div class="panel-body"><h6><i class="fa-solid fa-store me-2"></i>@Model.Store.Name</h6><p class="mb-1">Địa chỉ: @(Model.Store.Address ?? "—")</p><p class="mb-1">Điện thoại: @(Model.Store.PhoneNumber ?? "—")</p><p class="mb-0">Email: @(Model.Store.Email ?? "—")</p></div></div></div>
+                    }
                     <!-- Avatar Card -->
                     <div class="col-lg-4">
                         <div class="card-panel text-center">

@@ -29,7 +29,7 @@ namespace BilliardManagement.Business.Interfaces
     public interface IShiftService
     {
         Task<ShiftDto> CheckInAsync(Guid userId);
-        Task<ShiftDto> CheckOutAsync(Guid shiftId);
+        Task<ShiftDto> CheckOutAsync(Guid shiftId, Guid callerId, bool canManageStore);
         Task<IEnumerable<ShiftDto>> GetTodayShiftsAsync();
     }
 

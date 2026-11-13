@@ -26,8 +26,13 @@ namespace BilliardManagement.Web.Services
             AttachToken();
         }
 
-        protected void AttachToken()
+        protected virtual void AttachToken()
         {
+            _httpClient.DefaultRequestHeaders.Remove("X-Store-Id");
+            var session = _httpContextAccessor.HttpContext?.Session;
+            if (session?.GetString("UserRole") == "SuperAdmin" &&
+                Guid.TryParse(session.GetString("ViewAsStoreId"), out var selectedStore))
+                _httpClient.DefaultRequestHeaders.Add("X-Store-Id", selectedStore.ToString());
             var token = _httpContextAccessor.HttpContext?.Session.GetString("JWToken");
             if (!string.IsNullOrEmpty(token))
             {

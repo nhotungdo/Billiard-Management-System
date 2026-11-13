@@ -34,7 +34,7 @@ namespace BilliardManagement.API.Controllers
                 var result = await _revenueService.GetPersonalRevenueAsync(userId, fromDate, toDate);
                 return Ok(ApiResponse<PersonalRevenueDto>.Ok(result));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not BilliardManagement.Common.Exceptions.CustomException)
             {
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
@@ -49,7 +49,7 @@ namespace BilliardManagement.API.Controllers
                 var result = await _revenueService.GetTotalRevenueAsync(filter);
                 return Ok(ApiResponse<RevenueSummaryDto>.Ok(result));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not BilliardManagement.Common.Exceptions.CustomException)
             {
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
@@ -64,7 +64,7 @@ namespace BilliardManagement.API.Controllers
                 var result = await _revenueService.GetRevenueByStaffAsync(staffId, fromDate, toDate);
                 return Ok(ApiResponse<PersonalRevenueDto>.Ok(result));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not BilliardManagement.Common.Exceptions.CustomException)
             {
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }

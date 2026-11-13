@@ -72,6 +72,8 @@ namespace BilliardManagement.Business.Services
             var store = await _context.Stores.FirstOrDefaultAsync(s => s.Id == id);
             if (store == null) throw new CustomException("Không tìm thấy cửa hàng", 404);
 
+            if (!dto.IsActive) await EnsureCanDeactivateAsync(id);
+
             store.Name = dto.Name.Trim();
             store.Address = dto.Address?.Trim();
             store.PhoneNumber = dto.PhoneNumber?.Trim();
@@ -88,16 +90,18 @@ namespace BilliardManagement.Business.Services
             var store = await _context.Stores.FirstOrDefaultAsync(s => s.Id == id);
             if (store == null) return false;
 
-            var hasActiveSessions = await _context.TableSessions
-                .IgnoreQueryFilters()
-                .AnyAsync(s => s.StoreId == id && s.Status == SessionStatus.Active && !s.IsFinished);
-
-            if (hasActiveSessions)
-                throw new CustomException("Không thể vô hiệu hóa cửa hàng đang có phiên chơi hoạt động", 400);
+            await EnsureCanDeactivateAsync(id);
 
             store.IsActive = false;
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        private async Task EnsureCanDeactivateAsync(Guid id)
+        {
+            if (await _context.TableSessions.IgnoreQueryFilters()
+                .AnyAsync(s => s.StoreId == id && s.Status == SessionStatus.Active && !s.IsFinished))
+                throw new CustomException("Không thể vô hiệu hóa cửa hàng đang có phiên chơi hoạt động", 400);
         }
 
         private async Task<StoreDto> MapAsync(Store store)

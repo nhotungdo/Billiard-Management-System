@@ -5,6 +5,11 @@ namespace BilliardManagement.Web.Services
 {
     public class StoreService : BaseApiService
     {
+        protected override void AttachToken()
+        {
+            base.AttachToken();
+            _httpClient.DefaultRequestHeaders.Remove("X-Store-Id");
+        }
         public StoreService(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
             : base(httpClientFactory, httpContextAccessor)
         {
@@ -14,6 +19,26 @@ namespace BilliardManagement.Web.Services
         {
             return await GetAsync<List<StoreDto>>("stores");
         }
+
+        public Task<List<UserDto>?> GetUsersAsync() => GetAsync<List<UserDto>>("users");
+
+        public Task<StoreDto?> GetCurrentAsync() => GetAsync<StoreDto>("stores/current");
+        public Task<SystemOverviewDto?> GetOverviewAsync() => GetAsync<SystemOverviewDto>("reports/system-overview");
+        public Task<List<StoreReportDto>?> CompareAsync(IEnumerable<Guid>? ids, DateTime from, DateTime to)
+        {
+            var query = $"reports/compare?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}";
+            if (ids != null) foreach (var id in ids) query += $"&storeIds={id}";
+            return GetAsync<List<StoreReportDto>>(query);
+        }
+        public Task<UserDto?> UpdateAdminAsync(Guid id, UpdateStoreAdminRequest request) =>
+            PutAsync<UpdateStoreAdminRequest, UserDto>($"users/{id}/admin", request);
+        public Task<UserDto?> SetAdminActiveAsync(Guid id, bool active) =>
+            PutAsync<bool, UserDto>($"users/{id}/active", active);
+        public Task<string?> ResetAdminPasswordAsync(Guid id, ResetPasswordForUserDto request) =>
+            PostAsync<ResetPasswordForUserDto, string>($"users/{id}/reset-password", request);
+
+        public Task<UserDto?> AssignAdminAsync(Guid userId, Guid storeId) =>
+            PutAsync<Guid, UserDto>($"users/{userId}/store", storeId);
 
         public async Task<StoreDto?> GetStoreByIdAsync(Guid id)
         {

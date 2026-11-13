@@ -128,7 +128,8 @@ namespace BilliardManagement.Web.Models
     public class ResetPasswordForUserDto
     {
         [Required(ErrorMessage = "Vui lòng nhập mật khẩu mới.")]
-        [MinLength(6, ErrorMessage = "Mật khẩu mới tối thiểu 6 ký tự.")]
+        [MinLength(8, ErrorMessage = "Mật khẩu mới tối thiểu 8 ký tự.")]
+        [RegularExpression(@"^(?=.*\p{L})(?=.*\d).+$", ErrorMessage = "Mật khẩu phải chứa cả chữ và số.")]
         public string NewPassword { get; set; } = string.Empty;
     }
 

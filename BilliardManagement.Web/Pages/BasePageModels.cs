@@ -30,6 +30,15 @@ namespace BilliardManagement.Web.Pages
                 return;
             }
 
+            var storePages = new[] { "/Admin/Tables", "/Admin/Products", "/Admin/Categories",
+                "/Admin/Combos", "/Admin/Staff", "/Admin/Customers" };
+            if (role == "SuperAdmin" && storePages.Any(path => HttpContext.Request.Path.StartsWithSegments(path)) &&
+                !Guid.TryParse(HttpContext.Session.GetString("ViewAsStoreId"), out _))
+            {
+                context.Result = new RedirectToPageResult("/SuperAdmin/StoreSelect");
+                return;
+            }
+
             // Session timeout check (30 minutes)
             var lastActivity = HttpContext.Session.GetString("LastActivity");
             if (!string.IsNullOrEmpty(lastActivity) && DateTime.TryParse(lastActivity, out var lastTime))
@@ -111,7 +120,8 @@ namespace BilliardManagement.Web.Pages
                 return;
             }
 
-            if (role != "Admin" && role != "Staff")
+            if (role != "Admin" && role != "Staff" &&
+                !(role == "SuperAdmin" && HttpContext.Request.Path.StartsWithSegments("/Profile")))
             {
                 context.Result = new RedirectToPageResult("/AccessDenied");
                 return;

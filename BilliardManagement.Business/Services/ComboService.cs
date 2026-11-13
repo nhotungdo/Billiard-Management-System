@@ -60,6 +60,7 @@ namespace BilliardManagement.Business.Services
 
         public async Task<ComboDto> CreateComboAsync(CreateComboDto dto)
         {
+            await ValidateItemsAsync(dto.Items);
             var codeNormalized = dto.ComboCode.Trim().ToUpper();
             var existing = await _unitOfWork.Repository<Combo>()
                 .AnyAsync(c => c.ComboCode.ToUpper() == codeNormalized && !c.IsDeleted);
@@ -104,6 +105,7 @@ namespace BilliardManagement.Business.Services
 
         public async Task<ComboDto?> UpdateComboAsync(Guid id, UpdateComboDto dto)
         {
+            await ValidateItemsAsync(dto.Items);
             var combo = await _unitOfWork.Repository<Combo>().GetFirstOrDefaultAsync(
                 filter: c => c.Id == id && !c.IsDeleted,
                 includeProperties: "ComboItems"
@@ -151,6 +153,15 @@ namespace BilliardManagement.Business.Services
             await _unitOfWork.SaveChangesAsync();
 
             return await GetComboByIdAsync(combo.Id);
+        }
+
+        private async Task ValidateItemsAsync(IEnumerable<CreateComboItemDto>? items)
+        {
+            foreach (var id in (items ?? Enumerable.Empty<CreateComboItemDto>()).Select(i => i.ProductId).Distinct())
+            {
+                if (!await _unitOfWork.Repository<Product>().AnyAsync(p => p.Id == id && !p.IsDeleted))
+                    throw new InvalidOperationException("Sản phẩm trong combo không tồn tại trong cửa hàng đã chọn.");
+            }
         }
 
         public async Task<bool> ToggleComboStatusAsync(Guid id)

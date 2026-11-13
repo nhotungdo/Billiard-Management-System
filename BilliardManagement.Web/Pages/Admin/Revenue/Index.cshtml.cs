@@ -9,11 +9,15 @@ namespace BilliardManagement.Web.Pages.Admin.Revenue
     {
         private readonly RevenueService _revenueService;
         private readonly StaffService _staffService;
+        private readonly StoreService _stores;
+        public StoreComparisonViewModel SystemReport { get; set; } = new();
+        [BindProperty(SupportsGet = true)] public Guid[] StoreIds { get; set; } = Array.Empty<Guid>();
 
-        public IndexModel(RevenueService revenueService, StaffService staffService)
+        public IndexModel(RevenueService revenueService, StaffService staffService, StoreService stores)
         {
             _revenueService = revenueService;
             _staffService = staffService;
+            _stores = stores;
         }
 
         public RevenueSummaryDto SummaryData { get; set; } = new();
@@ -31,6 +35,20 @@ namespace BilliardManagement.Web.Pages.Admin.Revenue
 
         public async Task<IActionResult> OnGetAsync()
         {
+            if (CurrentRole == "SuperAdmin")
+            {
+                SystemReport.FromDate = FromDate?.Date ?? DateTime.UtcNow.Date.AddDays(-6);
+                SystemReport.ToDate = ToDate?.Date ?? DateTime.UtcNow.Date;
+                SystemReport.StoreIds = StoreIds;
+                try
+                {
+                    SystemReport.Stores = await _stores.GetAllStoresAsync() ?? new();
+                    if (!ModelState.IsValid) throw new Exception("Bộ lọc không hợp lệ.");
+                    SystemReport.Rows = await _stores.CompareAsync(StoreIds, SystemReport.FromDate, SystemReport.ToDate) ?? new();
+                }
+                catch (Exception ex) { SystemReport.ErrorMessage = ex.Message; }
+                return Page();
+            }
             if (FromDate.HasValue && ToDate.HasValue && FromDate.Value.Date > ToDate.Value.Date)
             {
                 TempData["ErrorMessage"] = "Từ ngày không được lớn hơn Đến ngày. Hệ thống đã tự động đảo lại khoảng thời gian cho phù hợp.";

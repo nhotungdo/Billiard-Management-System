@@ -32,7 +32,8 @@ namespace BilliardManagement.Business.Services
             var shift = new Shift
             {
                 UserId = userId,
-                StartTime = DateTime.UtcNow
+                StartTime = DateTime.UtcNow,
+                ShiftDate = DateTime.UtcNow.Date
             };
 
             await _unitOfWork.Repository<Shift>().AddAsync(shift);
@@ -42,15 +43,20 @@ namespace BilliardManagement.Business.Services
         }
 
         // khi nhân viên check-out, cập nhật thời gian kết thúc của ca làm việc và tính toán doanh thu nếu cần thiết
-        public async Task<ShiftDto> CheckOutAsync(Guid shiftId)
+        public async Task<ShiftDto> CheckOutAsync(Guid shiftId, Guid callerId, bool canManageStore)
         {
             var shift = await _unitOfWork.Repository<Shift>().GetByIdAsync(shiftId);
-            if (shift == null || shift.EndTime != null) throw new CustomException("Invalid or already ended shift", 400);
+            if (shift == null) throw new CustomException("Không tìm thấy ca làm việc", 404);
+            if (!canManageStore && shift.UserId != callerId)
+                throw new CustomException("Bạn chỉ được kết thúc ca làm việc của mình", 403);
+            if (shift.EndTime != null) throw new CustomException("Ca làm việc đã kết thúc", 400);
 
             shift.EndTime = DateTime.UtcNow;
 
-            // Tính doanh thu của ca làm việc bằng cách lấy tất cả hóa đơn đã thanh toán trong khoảng thời gian của ca và tính tổng doanh thu
-            var invoices = await _unitOfWork.Repository<Invoice>().GetAllAsync(i => i.CreatedAt >= shift.StartTime && i.CreatedAt <= shift.EndTime);
+            // Match personal revenue attribution: the session owner, within this store and shift.
+            var invoices = await _unitOfWork.Repository<Invoice>().GetAllAsync(i =>
+                i.TableSession != null && i.TableSession.StoreId == shift.StoreId &&
+                i.TableSession.UserId == shift.UserId && i.CreatedAt >= shift.StartTime && i.CreatedAt <= shift.EndTime);
             shift.TotalRevenue = invoices.Sum(i => i.TotalAmount);
 
             _unitOfWork.Repository<Shift>().Update(shift);

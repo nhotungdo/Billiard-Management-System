@@ -262,31 +262,32 @@ namespace BilliardManagement.Data
 
             // Users can belong to no store (SuperAdmin), so they need a custom filter
             modelBuilder.Entity<User>().HasQueryFilter(u =>
-                !Tenant.IsResolved || Tenant.IsSuperAdmin ||
+                !Tenant.IsResolved || (Tenant.IsSuperAdmin && Tenant.StoreId == Guid.Empty) ||
+                u.Role == BilliardManagement.Models.Enums.UserRole.SuperAdmin ||
                 (u.StoreId.HasValue && u.StoreId.Value == Tenant.StoreId));
 
             // Derived tenant data inherits isolation through its aggregate root
             modelBuilder.Entity<Order>().HasQueryFilter(o =>
-                !Tenant.IsResolved || Tenant.IsSuperAdmin ||
+                !Tenant.IsResolved || (Tenant.IsSuperAdmin && Tenant.StoreId == Guid.Empty) ||
                 (o.TableSession != null && o.TableSession.StoreId == Tenant.StoreId));
 
             modelBuilder.Entity<OrderItem>().HasQueryFilter(oi =>
-                !Tenant.IsResolved || Tenant.IsSuperAdmin ||
+                !Tenant.IsResolved || (Tenant.IsSuperAdmin && Tenant.StoreId == Guid.Empty) ||
                 (oi.Order != null && oi.Order.TableSession != null && oi.Order.TableSession.StoreId == Tenant.StoreId));
 
             modelBuilder.Entity<Invoice>().HasQueryFilter(i =>
-                !Tenant.IsResolved || Tenant.IsSuperAdmin ||
+                !Tenant.IsResolved || (Tenant.IsSuperAdmin && Tenant.StoreId == Guid.Empty) ||
                 (i.TableSession != null && i.TableSession.StoreId == Tenant.StoreId));
 
             modelBuilder.Entity<SessionCombo>().HasQueryFilter(sc =>
-                !Tenant.IsResolved || Tenant.IsSuperAdmin ||
+                !Tenant.IsResolved || (Tenant.IsSuperAdmin && Tenant.StoreId == Guid.Empty) ||
                 (sc.TableSession != null && sc.TableSession.StoreId == Tenant.StoreId));
         }
 
         private void ApplyTenantFilter<TEntity>(ModelBuilder modelBuilder) where TEntity : class, ITenantEntity
         {
             modelBuilder.Entity<TEntity>().HasQueryFilter(e =>
-                !Tenant.IsResolved || Tenant.IsSuperAdmin || e.StoreId == Tenant.StoreId);
+                !Tenant.IsResolved || (Tenant.IsSuperAdmin && Tenant.StoreId == Guid.Empty) || e.StoreId == Tenant.StoreId);
         }
 
         public override int SaveChanges()
@@ -317,11 +318,16 @@ namespace BilliardManagement.Data
         {
             foreach (var entry in ChangeTracker.Entries<ITenantEntity>())
             {
+                if (Tenant.IsResolved && (!Tenant.IsSuperAdmin || Tenant.StoreId != Guid.Empty) &&
+                    (entry.State == EntityState.Modified || entry.State == EntityState.Deleted) &&
+                    entry.Entity.StoreId != Tenant.StoreId)
+                    throw new CustomException("Không được phép sửa hoặc xóa dữ liệu cửa hàng khác.", 403);
+
                 if (entry.State == EntityState.Added)
                 {
                     if (entry.Entity.StoreId != Guid.Empty)
                     {
-                        if (Tenant.IsResolved && !Tenant.IsSuperAdmin &&
+                        if (Tenant.IsResolved && (!Tenant.IsSuperAdmin || Tenant.StoreId != Guid.Empty) &&
                             entry.Entity.StoreId != Tenant.StoreId)
                             throw new CustomException("Không được phép tạo dữ liệu cho cửa hàng khác.", 403);
 

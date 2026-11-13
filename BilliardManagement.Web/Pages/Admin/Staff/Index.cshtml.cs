@@ -23,9 +23,10 @@ namespace BilliardManagement.Web.Pages.Admin.Staff
         {
             try
             {
-                PendingPasswordResetRequests = PasswordResetStore.GetPendingRequests();
                 var result = await _staffService.GetAllStaffAsync();
                 StaffList = result?.ToList() ?? new();
+                PendingPasswordResetRequests = PasswordResetStore.GetPendingRequests(
+                    StaffList.Where(s => s.Role == 2).Select(s => s.Username));
             }
             catch (Exception ex) { ErrorMessage = ex.Message; }
             return Page();
@@ -47,7 +48,8 @@ namespace BilliardManagement.Web.Pages.Admin.Staff
                     Username = NewStaff.Username,
                     Password = NewStaff.Password,
                     PhoneNumber = NewStaff.PhoneNumber,
-                    Role = 2
+                    Role = 2,
+                    StoreId = CurrentRole == "SuperAdmin" && Guid.TryParse(HttpContext.Session.GetString("ViewAsStoreId"), out var storeId) ? storeId : null
                 });
                 TempData["SuccessMessage"] = "Tạo nhân viên mới thành công.";
             }
@@ -76,10 +78,16 @@ namespace BilliardManagement.Web.Pages.Admin.Staff
             return RedirectToPage();
         }
 
-        public IActionResult OnPostResolvePasswordReset(Guid requestId)
+        public async Task<IActionResult> OnPostResolvePasswordResetAsync(Guid requestId)
         {
-            PasswordResetStore.MarkAsResolved(requestId);
-            TempData["SuccessMessage"] = "Đã đánh dấu xử lý xong yêu cầu cấp lại mật khẩu.";
+            try
+            {
+                var staff = await _staffService.GetAllStaffAsync() ?? new();
+                if (!PasswordResetStore.MarkAsResolved(requestId, staff.Where(s => s.Role == 2).Select(s => s.Username)))
+                    return NotFound();
+                TempData["SuccessMessage"] = "Đã đánh dấu xử lý xong yêu cầu cấp lại mật khẩu.";
+            }
+            catch (Exception ex) { TempData["ErrorMessage"] = ex.Message; }
             return RedirectToPage();
         }
     }

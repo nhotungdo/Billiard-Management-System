@@ -24,6 +24,7 @@ namespace BilliardManagement.Business
             services.AddScoped<IBillingService, BillingService>();
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<IReportService, ReportService>();
+            services.AddScoped<SystemReportService>();
             services.AddScoped<IShiftService, ShiftService>();
             services.AddScoped<IRevenueService, RevenueService>();
             services.AddScoped<ICustomerService, CustomerService>();

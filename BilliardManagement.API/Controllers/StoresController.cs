@@ -8,7 +8,7 @@ namespace BilliardManagement.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize]
     public class StoresController : ControllerBase
     {
         private readonly IStoreService _storeService;
@@ -19,6 +19,7 @@ namespace BilliardManagement.API.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "SuperAdmin")]
         public async Task<IActionResult> GetAll()
         {
             var stores = await _storeService.GetAllAsync();
@@ -26,13 +27,23 @@ namespace BilliardManagement.API.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "SuperAdmin")]
         public async Task<IActionResult> GetById(Guid id)
         {
             var store = await _storeService.GetByIdAsync(id);
             return Ok(ApiResponse<StoreDto>.Ok(store));
         }
 
+        [HttpGet("current")]
+        [Authorize(Roles = "Admin,Staff,SuperAdmin")]
+        public async Task<IActionResult> Current([FromServices] BilliardManagement.Common.Tenant.ITenantContext tenant)
+        {
+            if (tenant.StoreId == Guid.Empty) return NotFound(ApiResponse<object>.Fail("Chưa chọn cửa hàng"));
+            return Ok(ApiResponse<StoreDto>.Ok(await _storeService.GetByIdAsync(tenant.StoreId)));
+        }
+
         [HttpPost]
+        [Authorize(Roles = "SuperAdmin")]
         public async Task<IActionResult> Create([FromBody] CreateStoreDto dto)
         {
             var store = await _storeService.CreateAsync(dto);
@@ -40,6 +51,7 @@ namespace BilliardManagement.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "SuperAdmin")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateStoreDto dto)
         {
             var store = await _storeService.UpdateAsync(id, dto);
@@ -47,6 +59,7 @@ namespace BilliardManagement.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "SuperAdmin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var success = await _storeService.DeleteAsync(id);

@@ -73,7 +73,7 @@ namespace BilliardManagement.API.Controllers
 
                 return Ok(ApiResponse<ProductDto>.Ok(product));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not BilliardManagement.Common.Exceptions.CustomException)
             {
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
@@ -144,12 +144,12 @@ namespace BilliardManagement.API.Controllers
                     IsAvailable = product.IsAvailable
                 };
 
-                await _productHub.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ProductCreated", payload);
-                await _productHub.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveProductUpdate", "Product created");
+                await _productHub.Clients.Groups(StoreGroups.ForRequest(HttpContext)).SendAsync("ProductCreated", payload);
+                await _productHub.Clients.Groups(StoreGroups.ForRequest(HttpContext)).SendAsync("ReceiveProductUpdate", "Product created");
 
                 return Ok(ApiResponse<ProductDto>.Ok(product, "Tạo thành công"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not BilliardManagement.Common.Exceptions.CustomException)
             {
                 _logger.LogWarning(ex, "Create product failed");
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
@@ -202,11 +202,11 @@ namespace BilliardManagement.API.Controllers
                     "User {UserId} updated product {ProductId} ({ProductName}) at {Time}",
                     userId, product.Id, product.Name, DateTime.UtcNow);
 
-                await _productHub.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveProductUpdate", "Product updated");
+                await _productHub.Clients.Groups(StoreGroups.ForRequest(HttpContext)).SendAsync("ReceiveProductUpdate", "Product updated");
 
                 return Ok(ApiResponse<ProductDto>.Ok(product, "Cập nhật thành công"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not BilliardManagement.Common.Exceptions.CustomException)
             {
                 _logger.LogWarning(ex, "Update product failed for {ProductId}", id);
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
@@ -224,11 +224,11 @@ namespace BilliardManagement.API.Controllers
                     return NotFound(ApiResponse<object>.Fail("Product not found"));
 
                 _logger.LogInformation("Product {ProductId} deleted at {Time}", id, DateTime.UtcNow);
-                await _productHub.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveProductUpdate", "Product deleted");
+                await _productHub.Clients.Groups(StoreGroups.ForRequest(HttpContext)).SendAsync("ReceiveProductUpdate", "Product deleted");
 
                 return Ok(ApiResponse<object?>.Ok(null, "Xóa sản phẩm thành công"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not BilliardManagement.Common.Exceptions.CustomException)
             {
                 _logger.LogWarning(ex, "Delete product failed for {ProductId}", id);
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));

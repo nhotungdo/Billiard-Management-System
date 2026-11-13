@@ -45,7 +45,7 @@ namespace BilliardManagement.API.Controllers
                 _logger.LogInformation("bắt đầu phiên chơi thành công: sessionId={SessionId}", session.Id);
                 return Ok(ApiResponse<SessionDto>.Ok(session, "bắt đầu phiên chơi thành công"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not BilliardManagement.Common.Exceptions.CustomException)
             {
                 _logger.LogError(ex, "bắt đầu phiên chơi lỗi: tableId={TableId}: {Message}", tableId, ex.Message);
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
@@ -64,7 +64,7 @@ namespace BilliardManagement.API.Controllers
                 _logger.LogInformation("kết thúc phiên chơi thành công: sessionId={SessionId}, totalPrice={TotalPrice}", session.Id, session.TotalPrice);
                 return Ok(ApiResponse<SessionDto>.Ok(session, "kết thúc phiên chơi thành công"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not BilliardManagement.Common.Exceptions.CustomException)
             {
                 _logger.LogError(ex, "kết thúc phiên chơi lỗi: sessionId={SessionId}: {Message}", sessionId, ex.Message);
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
@@ -80,7 +80,7 @@ namespace BilliardManagement.API.Controllers
                 var sessions = await _sessionService.GetActiveSessionsAsync();
                 return Ok(ApiResponse<IEnumerable<SessionDto>>.Ok(sessions));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not BilliardManagement.Common.Exceptions.CustomException)
             {
                 _logger.LogError(ex, "lấy danh sách các phiên chơi đang hoạt động lỗi: {Message}", ex.Message);
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
@@ -96,7 +96,7 @@ namespace BilliardManagement.API.Controllers
                 var pagedResult = await _sessionService.GetPagedSessionsAsync(query);
                 return Ok(ApiResponse<PagedResult<SessionDto>>.Ok(pagedResult));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not BilliardManagement.Common.Exceptions.CustomException)
             {
                 _logger.LogError(ex, "Lấy danh sách các phiên chơi lỗi: {Message}", ex.Message);
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));

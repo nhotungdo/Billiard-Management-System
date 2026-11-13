@@ -1,5 +1,12 @@
 @page
 @model BilliardManagement.Web.Pages.Admin.Revenue.IndexModel
+@if (Model.CurrentRole == "SuperAdmin")
+{
+    Layout = "_Layout";
+    ViewData["Title"] = "Doanh thu hệ thống";
+    <partial name="_StoreComparison" model="Model.SystemReport" />
+    return;
+}
 @{ Layout = null; }
 <!DOCTYPE html>
 <html lang="vi">

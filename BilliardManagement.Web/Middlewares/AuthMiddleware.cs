@@ -118,7 +118,7 @@ namespace BilliardManagement.Web.Middlewares
 
         private static string GetHomePath(string? role) => role switch
         {
-            "SuperAdmin" => "/Admin/Stores/Index",
+            "SuperAdmin" => "/Admin/Dashboard/Index",
             "Admin" => "/Admin/Dashboard/Index",
             _ => "/Staff/Dashboard/Index"
         };

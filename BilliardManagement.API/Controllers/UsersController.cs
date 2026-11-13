@@ -89,6 +89,15 @@ namespace BilliardManagement.API.Controllers
         }
 
         // GET: api/users/profile
+        [HttpPut("{id}/store")]
+        [Authorize(Roles = "SuperAdmin")]
+        public async Task<IActionResult> AssignStore(Guid id, [FromBody] Guid storeId)
+        {
+            var user = await _userService.AssignAdminStoreAsync(id, storeId);
+            return Ok(ApiResponse<UserDto>.Ok(user, "Đã gán Admin vào cửa hàng"));
+        }
+
+        // GET: api/users/profile
         [HttpGet("profile")]
         public async Task<IActionResult> GetProfile()
         {
@@ -97,6 +106,16 @@ namespace BilliardManagement.API.Controllers
             var user = await _userService.GetUserByIdAsync(userId.Value);
             return Ok(ApiResponse<UserDto>.Ok(user));
         }
+
+        [HttpPut("{id}/admin")]
+        [Authorize(Roles = "SuperAdmin")]
+        public async Task<IActionResult> UpdateStoreAdmin(Guid id, [FromBody] UpdateStoreAdminDto dto) =>
+            Ok(ApiResponse<UserDto>.Ok(await _userService.UpdateStoreAdminAsync(id, dto)));
+
+        [HttpPut("{id}/active")]
+        [Authorize(Roles = "SuperAdmin")]
+        public async Task<IActionResult> SetAdminActive(Guid id, [FromBody] bool isActive) =>
+            Ok(ApiResponse<UserDto>.Ok(await _userService.SetStoreAdminActiveAsync(id, isActive)));
 
         // PUT: api/users/profile
         [HttpPut("profile")]

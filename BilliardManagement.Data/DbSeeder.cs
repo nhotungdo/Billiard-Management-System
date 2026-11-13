@@ -4,12 +4,13 @@ using System.Linq;
 using BilliardManagement.Models.Models;
 using BilliardManagement.Models.Enums;
 using BCrypt.Net;
+using Microsoft.Extensions.Configuration;
 
 namespace BilliardManagement.Data
 {
     public static class DbSeeder
     {
-        public static void Seed(BilliardManagementDbContext context)
+        public static void Seed(BilliardManagementDbContext context, IConfiguration configuration)
         {
             // 0. Default store (legacy data migration target)
             var defaultStore = context.Stores.FirstOrDefault(s => s.Id == BilliardManagementDbContext.DefaultStoreId);
@@ -27,39 +28,22 @@ namespace BilliardManagement.Data
                 context.SaveChanges();
             }
 
-            // Migrate old order statuses if any (2 was Completed, now 3 is Completed; 3 was Cancelled, now 4 is Cancelled)
-            var oldCancelledOrders = context.Orders.ToList().Where(o => (int)o.Status == 3).ToList();
-            foreach (var o in oldCancelledOrders)
-            {
-                o.Status = OrderStatus.Cancelled; // 4
-            }
-            context.SaveChanges();
-
-            var oldCompletedOrders = context.Orders.ToList().Where(o => (int)o.Status == 2).ToList();
-            foreach (var o in oldCompletedOrders)
-            {
-                o.Status = OrderStatus.Completed; // 3
-            }
-            context.SaveChanges();
-
-            // Clean up old plain text 'staff' user if exists
-            var oldStaff = context.Users.FirstOrDefault(u => u.Username == "staff");
-            if (oldStaff != null)
-            {
-                context.Users.Remove(oldStaff);
-                context.SaveChanges();
-            }
+            // Startup seeding must not rewrite live orders or delete existing accounts.
+            // Any legacy data conversion belongs in an explicit, one-time migration.
 
             // 1. Seed Users
             var superAdmin = context.Users.FirstOrDefault(u => u.Username == "superadmin");
             if (superAdmin == null)
             {
+                var password = configuration["Seed:SuperAdminPassword"];
+                if (string.IsNullOrWhiteSpace(password) || password.Length < 6)
+                    throw new InvalidOperationException("Cấu hình Seed:SuperAdminPassword phải có ít nhất 6 ký tự.");
                 superAdmin = new User
                 {
                     Id = Guid.NewGuid(),
                     FullName = "System Super Admin",
                     Username = "superadmin",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
                     Role = UserRole.SuperAdmin,
                     StoreId = null,
                     IsActive = true,
@@ -69,7 +53,10 @@ namespace BilliardManagement.Data
             }
             else if (!superAdmin.PasswordHash.StartsWith("$2"))
             {
-                superAdmin.PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456");
+                var password = configuration["Seed:SuperAdminPassword"];
+                if (string.IsNullOrWhiteSpace(password) || password.Length < 6)
+                    throw new InvalidOperationException("Cấu hình Seed:SuperAdminPassword phải có ít nhất 6 ký tự.");
+                superAdmin.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
                 context.Users.Update(superAdmin);
             }
 
@@ -162,6 +149,13 @@ namespace BilliardManagement.Data
             context.SaveChanges();
 
             // 2. Seed BilliardTables
+            if (string.Equals(configuration["Seed:SampleData"], "false", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            // Sample catalog/session lookups must never select another store's same-named data.
+            // This startup scope is disposed by Program after seeding.
+            context.Tenant.Resolve(defaultStore.Id, false);
+
             if (!context.BilliardTables.Any())
             {
                 var tables = new List<BilliardTable>
@@ -502,7 +496,6 @@ namespace BilliardManagement.Data
             }
             else
             {
-                UpgradeActiveSessions(context);
                 SeedCombos(context);
             }
         }
@@ -577,33 +570,5 @@ namespace BilliardManagement.Data
             context.SaveChanges();
         }
 
-        private static void UpgradeActiveSessions(BilliardManagementDbContext context)
-        {
-            var activeSessions = context.TableSessions
-                .Where(s => s.Status == SessionStatus.Active && !s.IsFinished)
-                .ToList();
-            if (!activeSessions.Any()) return;
-
-            var now = DateTime.UtcNow;
-            foreach (var session in activeSessions)
-            {
-                var table = context.BilliardTables.Find(session.TableId);
-                if (table == null) continue;
-
-                if (session.DurationHours <= 0)
-                    session.DurationHours = 2;
-
-                if (!session.EndTime.HasValue)
-                    session.EndTime = session.StartTime.AddHours(session.DurationHours);
-
-                if (session.TotalPrice <= 0)
-                    session.TotalPrice = table.HourlyRate * session.DurationHours;
-
-                session.DurationMinutes = session.DurationHours * 60;
-                session.RemainingMinutes = Math.Max(0, (int)(session.EndTime.Value - now).TotalMinutes);
-                table.Status = TableStatus.Playing;
-            }
-            context.SaveChanges();
-        }
     }
 }

@@ -112,7 +112,7 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<BilliardManagementDbContext>();
     dbContext.Database.Migrate();
-    DbSeeder.Seed(dbContext);
+    DbSeeder.Seed(dbContext, app.Configuration);
 }
 
 // Use Custom Exception Middleware

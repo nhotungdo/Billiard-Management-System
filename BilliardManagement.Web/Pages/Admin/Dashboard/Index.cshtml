@@ -1,6 +1,13 @@
 @page
 @model BilliardManagement.Web.Pages.Admin.Dashboard.IndexModel
 @using System.Text.Json
+@if (Model.CurrentRole == "SuperAdmin")
+{
+    Layout = "_Layout";
+    ViewData["Title"] = "Tổng quan hệ thống";
+    <partial name="_SystemDashboard" model="Model" />
+    return;
+}
 @{
     Layout = null;
     var userRole = HttpContext.Session.GetString("UserRole") ?? "Admin";

@@ -6,6 +6,11 @@ namespace BilliardManagement.Web.Services
 {
     public class AuthService : BaseApiService
     {
+        protected override void AttachToken()
+        {
+            base.AttachToken();
+            _httpClient.DefaultRequestHeaders.Remove("X-Store-Id");
+        }
         public AuthService(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
             : base(httpClientFactory, httpContextAccessor)
         {

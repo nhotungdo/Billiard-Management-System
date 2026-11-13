@@ -37,12 +37,18 @@ namespace BilliardManagement.Business.Services
         // Methods
         public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
         {
-            var users = await _unitOfWork.Repository<User>().GetAllAsync(includeProperties: "Store");
+            // SuperAdmin actors remain visible to required navigation joins; root user
+            // endpoints still expose only accounts belonging to the caller's store.
+            var users = await _context.Users.Include(u => u.Store)
+                .Where(u => (_tenantContext.IsSuperAdmin && _tenantContext.StoreId == Guid.Empty) ||
+                    u.StoreId == _tenantContext.StoreId).ToListAsync();
             return _mapper.Map<IEnumerable<UserDto>>(users);
         }
 
         public async Task<UserDto> CreateUserAsync(CreateUserDto dto)
         {
+            if (!Enum.IsDefined(typeof(UserRole), dto.Role))
+                throw new CustomException("Vai trò không hợp lệ", 400);
             if (string.IsNullOrWhiteSpace(dto.FullName))
                 throw new CustomException("Họ tên không được để trống", 400);
             if (string.IsNullOrWhiteSpace(dto.Username))
@@ -117,7 +123,10 @@ namespace BilliardManagement.Business.Services
         // Lấy thông tin người dùng theo ID
         public async Task<UserDto> GetUserByIdAsync(Guid id)
         {
-            var user = await _unitOfWork.Repository<User>().GetFirstOrDefaultAsync(u => u.Id == id, "Store");
+            var user = await _context.Users.Include(u => u.Store)
+                .FirstOrDefaultAsync(u => u.Id == id &&
+                    ((_tenantContext.IsSuperAdmin && _tenantContext.StoreId == Guid.Empty) ||
+                     u.StoreId == _tenantContext.StoreId));
             if (user == null) throw new CustomException("User not found", 404);
             return _mapper.Map<UserDto>(user);
         }
@@ -125,6 +134,8 @@ namespace BilliardManagement.Business.Services
         // Cập nhật vai trò người dùng
         public async Task<UserDto> UpdateUserRoleAsync(Guid id, UserRole role)
         {
+            if (!Enum.IsDefined(typeof(UserRole), role))
+                throw new CustomException("Vai trò không hợp lệ", 400);
             var user = await _unitOfWork.Repository<User>().GetFirstOrDefaultAsync(u => u.Id == id, "Store");
             if (user == null) throw new CustomException("User not found", 404);
 
@@ -153,6 +164,62 @@ namespace BilliardManagement.Business.Services
             _unitOfWork.Repository<User>().Update(user);
             await _unitOfWork.SaveChangesAsync();
 
+            return _mapper.Map<UserDto>(user);
+        }
+
+        public async Task<UserDto> AssignAdminStoreAsync(Guid id, Guid storeId)
+        {
+            if (!_tenantContext.IsSuperAdmin)
+                throw new CustomException("Chỉ SuperAdmin được gán Admin vào cửa hàng", 403);
+
+            var user = await _context.Users.IgnoreQueryFilters().Include(u => u.Store)
+                .FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null) throw new CustomException("Không tìm thấy người dùng", 404);
+            if (user.Role == UserRole.SuperAdmin)
+                throw new CustomException("SuperAdmin không thuộc cửa hàng", 400);
+            var store = await _context.Stores.FirstOrDefaultAsync(s => s.Id == storeId && s.IsActive);
+            if (store == null) throw new CustomException("Cửa hàng không tồn tại hoặc đã ngừng hoạt động", 400);
+
+            // Existing operational history must remain attached to its original store.
+            if (user.StoreId != storeId &&
+                (await _context.TableSessions.IgnoreQueryFilters().AnyAsync(s => s.UserId == id) ||
+                 await _context.Orders.IgnoreQueryFilters().AnyAsync(o => o.OrderedBy == id) ||
+                 await _context.Shifts.IgnoreQueryFilters().AnyAsync(s => s.UserId == id) ||
+                 await _context.TableStatusHistories.IgnoreQueryFilters().AnyAsync(h => h.ChangedById == id)))
+                throw new CustomException("Tài khoản đã có lịch sử nghiệp vụ; hãy tạo Admin mới cho cửa hàng đích", 400);
+
+            user.StoreId = store.Id;
+            user.Store = store;
+            user.Role = UserRole.Admin;
+            await _context.SaveChangesAsync();
+            return _mapper.Map<UserDto>(user);
+        }
+
+        private async Task<User> FindStoreAdminAsync(Guid id)
+        {
+            if (!_tenantContext.IsSuperAdmin)
+                throw new CustomException("Chỉ SuperAdmin được quản lý Admin cửa hàng", 403);
+            var user = await _context.Users.IgnoreQueryFilters().Include(u => u.Store)
+                .FirstOrDefaultAsync(u => u.Id == id && u.Role == UserRole.Admin);
+            return user ?? throw new CustomException("Không tìm thấy Admin cửa hàng", 404);
+        }
+
+        public async Task<UserDto> UpdateStoreAdminAsync(Guid id, UpdateStoreAdminDto dto)
+        {
+            var user = await FindStoreAdminAsync(id);
+            if (string.IsNullOrWhiteSpace(dto.FullName)) throw new CustomException("Vui lòng nhập họ tên", 400);
+            user.FullName = dto.FullName.Trim();
+            user.PhoneNumber = dto.PhoneNumber?.Trim();
+            user.Email = dto.Email?.Trim();
+            await _context.SaveChangesAsync();
+            return _mapper.Map<UserDto>(user);
+        }
+
+        public async Task<UserDto> SetStoreAdminActiveAsync(Guid id, bool isActive)
+        {
+            var user = await FindStoreAdminAsync(id);
+            user.IsActive = isActive;
+            await _context.SaveChangesAsync();
             return _mapper.Map<UserDto>(user);
         }
 

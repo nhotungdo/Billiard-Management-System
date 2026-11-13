@@ -1,0 +1,39 @@
+@model BilliardManagement.Web.Models.StoreComparisonViewModel
+@using System.Text.Json
+<div class="dashboard-header mb-4"><h1 class="page-title">@Model.Title</h1><p class="text-muted">Doanh thu hóa đơn và phiên chơi theo ngày UTC · Tối đa 366 ngày</p></div>
+<form method="get" class="card-panel p-4 mb-4">
+    <div class="row g-3">
+        <div class="col-md-5"><fieldset><legend class="fs-6">Cửa hàng (bỏ chọn tất cả để xem toàn hệ thống)</legend><div class="d-flex flex-wrap gap-3" style="max-height:160px;overflow:auto">
+        @foreach (var store in Model.Stores)
+        {
+            <label class="form-check"><input class="form-check-input" type="checkbox" name="StoreIds" value="@store.Id" checked="@Model.StoreIds.Contains(store.Id)" /> @store.Name @(!store.IsActive ? "(Ngừng)" : "")</label>
+        }
+        </div></fieldset></div>
+        <div class="col-md-3"><label for="reportFrom" class="form-label">Từ ngày</label><input id="reportFrom" name="FromDate" value="@Model.FromDate.ToString("yyyy-MM-dd")" type="date" class="form-control" required /></div>
+        <div class="col-md-3"><label for="reportTo" class="form-label">Đến ngày</label><input id="reportTo" name="ToDate" value="@Model.ToDate.ToString("yyyy-MM-dd")" type="date" class="form-control" required /></div>
+        <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary">Lọc</button></div>
+    </div>
+</form>
+@if (Model.ErrorMessage != null) { <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div> }
+else if (!Model.Rows.Any()) { <div class="alert alert-info">Chưa có cửa hàng để hiển thị báo cáo.</div> }
+else
+{
+    <div class="card-panel p-4 mb-4"><h5>Doanh thu theo ngày — @Model.Rows.Sum(s => s.Revenue).ToString("N0") đ</h5><div style="height:350px"><canvas id="storeComparisonChart"></canvas></div></div>
+    <div class="row g-4"><div class="col-lg-8"><div class="card-panel"><div class="panel-body table-responsive"><table class="data-table">
+    <thead><tr><th>Cửa hàng</th><th>Doanh thu</th><th>Phiên trong kỳ</th><th>Bàn đang chơi / tổng</th><th>Tỷ trọng</th></tr></thead><tbody>
+    @foreach (var store in Model.Rows.OrderByDescending(s => s.Revenue))
+    {
+        var total = Model.Rows.Sum(s => s.Revenue);
+        <tr><td>@store.StoreName</td><td>@store.Revenue.ToString("N0") đ</td><td>@store.Sessions</td><td>@store.ActiveTables / @store.TableCount</td><td>@(total == 0 ? "0" : (store.Revenue / total * 100).ToString("N1"))%</td></tr>
+    }
+    </tbody></table></div></div></div><div class="col-lg-4"><div class="card-panel p-4"><h5>Tỷ trọng doanh thu</h5><div style="height:280px"><canvas id="storeComparisonShare"></canvas></div></div></div></div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    (() => {
+        const rows = @Html.Raw(JsonSerializer.Serialize(Model.Rows, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+        const colors = ['#4f46e5','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6'];
+        new Chart(document.getElementById('storeComparisonChart'), {type:'bar',data:{labels:rows[0].dailyRevenues.map(d=>d.date.slice(0,10)),datasets:rows.map((s,i)=>({label:s.storeName,data:s.dailyRevenues.map(d=>d.totalRevenue),backgroundColor:colors[i%colors.length]}))},options:{maintainAspectRatio:false,scales:{y:{beginAtZero:true}},plugins:{legend:{position:'bottom'}}}});
+        new Chart(document.getElementById('storeComparisonShare'), {type:'doughnut',data:{labels:rows.map(s=>s.storeName),datasets:[{data:rows.map(s=>s.revenue),backgroundColor:colors}]},options:{maintainAspectRatio:false}});
+    })();
+    </script>
+}

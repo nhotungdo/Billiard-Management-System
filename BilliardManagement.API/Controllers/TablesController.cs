@@ -44,7 +44,7 @@ namespace BilliardManagement.API.Controllers
         public async Task<IActionResult> Create([FromBody] CreateTableDto dto)
         {
             var table = await _tableService.CreateTableAsync(dto);
-            await _hubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveTableUpdate", $"Table {table.TableName} created.");
+            await _hubContext.Clients.Groups(StoreGroups.ForRequest(HttpContext)).SendAsync("ReceiveTableUpdate", $"Table {table.TableName} created.");
             return Ok(ApiResponse<TableDto>.Ok(table, "tạo bàn thành công"));
         }
 
@@ -58,7 +58,7 @@ namespace BilliardManagement.API.Controllers
             try
             {
                 var table = await _tableService.UpdateTableAsync(id, dto, updatedBy);
-                await _hubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveTableUpdate", $"Table {table.TableName} updated.");
+                await _hubContext.Clients.Groups(StoreGroups.ForRequest(HttpContext)).SendAsync("ReceiveTableUpdate", $"Table {table.TableName} updated.");
                 return Ok(ApiResponse<TableDto>.Ok(table, "Cập nhật bàn thành công"));
             }
             catch (Exception ex)
@@ -76,7 +76,7 @@ namespace BilliardManagement.API.Controllers
             {
                 var result = await _tableService.DeleteTableAsync(id);
                 if (!result) return NotFound(ApiResponse<object>.Fail("Không tìm thấy bàn để xóa"));
-                await _hubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveTableUpdate", "Table deleted");
+                await _hubContext.Clients.Groups(StoreGroups.ForRequest(HttpContext)).SendAsync("ReceiveTableUpdate", "Table deleted");
                 return Ok(ApiResponse<bool>.Ok(true, "Xóa bàn thành công"));
             }
             catch (Exception ex)
@@ -97,7 +97,7 @@ namespace BilliardManagement.API.Controllers
 
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             Guid? updatedBy = Guid.TryParse(userIdStr, out var uId) ? uId : null;
-            var isAdmin = User.IsInRole("Admin");
+            var isAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
 
             try
             {
@@ -110,8 +110,8 @@ namespace BilliardManagement.API.Controllers
                     Status = (int)table.Status,
                     StatusName = table.Status.ToString()
                 };
-                await _hubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("TableStatusChanged", statusPayload);
-                await _hubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveTableUpdate", $"Table {table.TableName} status updated to {status}.");
+                await _hubContext.Clients.Groups(StoreGroups.ForRequest(HttpContext)).SendAsync("TableStatusChanged", statusPayload);
+                await _hubContext.Clients.Groups(StoreGroups.ForRequest(HttpContext)).SendAsync("ReceiveTableUpdate", $"Table {table.TableName} status updated to {status}.");
 
                 return Ok(ApiResponse<TableDto>.Ok(table, "Cập nhật trạng thái bàn thành công"));
             }

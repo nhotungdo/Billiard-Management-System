@@ -81,7 +81,7 @@ namespace BilliardManagement.Business.Services
 
         public async Task<CustomerDto> GetCustomerByIdAsync(Guid id)
         {
-            var customer = await _context.Customers.FindAsync(id);
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Id == id);
             if (customer == null) throw new KeyNotFoundException("Customer not found.");
             return _mapper.Map<CustomerDto>(customer);
         }
@@ -114,7 +114,7 @@ namespace BilliardManagement.Business.Services
 
         public async Task<CustomerDto> UpdateCustomerAsync(Guid id, CustomerUpdateDto dto)
         {
-            var customer = await _context.Customers.FindAsync(id);
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Id == id);
             if (customer == null) throw new KeyNotFoundException("Customer not found.");
 
             if (customer.PhoneNumber != dto.PhoneNumber && await _context.Customers.AnyAsync(c => c.PhoneNumber == dto.PhoneNumber))
@@ -132,7 +132,7 @@ namespace BilliardManagement.Business.Services
 
         public async Task<bool> DeleteCustomerAsync(Guid id)
         {
-            var customer = await _context.Customers.FindAsync(id);
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Id == id);
             if (customer == null) return false;
 
             _context.Customers.Remove(customer);

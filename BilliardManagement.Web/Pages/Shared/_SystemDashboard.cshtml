@@ -1,0 +1,27 @@
+@model BilliardManagement.Web.Pages.Admin.Dashboard.IndexModel
+@using System.Text.Json
+<div class="dashboard-header mb-4"><h1 class="page-title">Tổng quan hệ thống</h1><p class="text-muted">BilliardPro — System Admin · Thống kê theo ngày UTC</p></div>
+@if (Model.ErrorMessage != null) { <div class="alert alert-danger">@Model.ErrorMessage</div> }
+<div class="row g-3 mb-4">
+    @foreach (var card in new[] { ("Tổng cửa hàng", Model.SystemOverview.TotalStores.ToString()), ("Bàn đang chơi", Model.SystemOverview.ActiveTables.ToString()), ("Doanh thu hôm nay", Model.SystemOverview.TodayRevenue.ToString("N0") + " đ"), ("Tài khoản hoạt động", Model.SystemOverview.ActiveUsers.ToString()) })
+    {
+        <div class="col-sm-6 col-xl-3"><div class="card-panel p-4 stat-card-system"><div class="text-muted mb-2">@card.Item1</div><h3>@card.Item2</h3></div></div>
+    }
+</div>
+<div class="card-panel mb-4"><div class="panel-header"><h5 class="panel-title">Cửa hàng theo doanh thu 7 ngày gần nhất</h5></div><div class="panel-body table-responsive">
+<table class="data-table"><thead><tr><th>Cửa hàng</th><th>Bàn</th><th>Phiên hôm nay</th><th>Doanh thu 7 ngày</th><th>So với 7 ngày trước</th></tr></thead><tbody>
+@foreach (var store in Model.SystemOverview.Stores.OrderByDescending(s => s.Revenue))
+{
+    <tr><td><a href="/Admin/Stores/Index?detailId=@store.StoreId">@store.StoreName</a></td><td>@store.TableCount</td><td>@store.SessionsToday</td><td>@store.Revenue.ToString("N0") đ</td><td>@(store.GrowthPercent.HasValue ? store.GrowthPercent.Value.ToString("+0.0;-0.0;0") + "%" : "Chưa có kỳ gốc")</td></tr>
+}
+@if (!Model.SystemOverview.Stores.Any()) { <tr><td colspan="5" class="text-center text-muted">Chưa có cửa hàng</td></tr> }
+</tbody></table></div></div>
+<div class="row g-4"><div class="col-lg-8"><div class="card-panel p-4"><h5>Doanh thu 30 ngày</h5><div style="height:300px"><canvas id="systemTrend"></canvas></div></div></div><div class="col-lg-4"><div class="card-panel p-4"><h5>Tỷ trọng doanh thu 7 ngày</h5><div style="height:300px"><canvas id="systemShare"></canvas></div></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(() => {
+    const data = @Html.Raw(JsonSerializer.Serialize(Model.SystemOverview, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+    new Chart(document.getElementById('systemTrend'), {type:'line', data:{labels:data.dailyRevenues.map(d=>d.date.slice(0,10)),datasets:[{label:'Doanh thu (đ)',data:data.dailyRevenues.map(d=>d.totalRevenue),borderColor:'#4f46e5',tension:0.3}]},options:{maintainAspectRatio:false}});
+    new Chart(document.getElementById('systemShare'), {type:'doughnut', data:{labels:data.stores.map(s=>s.storeName),datasets:[{data:data.stores.map(s=>s.revenue)}]},options:{maintainAspectRatio:false}});
+})();
+</script>

@@ -1,0 +1,17 @@
+@page
+@model BilliardManagement.Web.Pages.SuperAdmin.StoreSelectModel
+@{ ViewData["Title"] = "Chọn cửa hàng"; }
+<h1 class="page-title mb-3">Chọn cửa hàng để xem chi tiết</h1>
+<p class="text-muted">Ngữ cảnh cửa hàng áp dụng cho các màn hình nghiệp vụ. Dashboard và báo cáo hệ thống luôn tổng hợp toàn hệ thống.</p>
+@if (Model.ErrorMessage != null) { <div class="alert alert-danger">@Model.ErrorMessage</div> }
+<form method="post" asp-page-handler="Clear" class="mb-4"><button class="btn btn-outline-secondary">Về ngữ cảnh toàn hệ thống</button></form>
+<div class="row g-3">
+@foreach (var store in Model.Stores)
+{
+    <div class="col-md-6 col-xl-4"><div class="card-panel p-4"><h5>@store.Name</h5><p class="text-muted">@store.Address</p><p>@store.TableCount bàn · @store.UserCount tài khoản</p>
+    @if (store.IsActive) { <form method="post" asp-page-handler="Select"><input type="hidden" name="storeId" value="@store.Id" /><button class="btn btn-primary">Xem cửa hàng <i class="fa-solid fa-arrow-right ms-1"></i></button></form> }
+    else { <span class="status-dot inactive">Ngừng hoạt động</span> }
+    </div></div>
+}
+@if (!Model.Stores.Any() && Model.ErrorMessage == null) { <p class="text-muted">Chưa có cửa hàng.</p> }
+</div>

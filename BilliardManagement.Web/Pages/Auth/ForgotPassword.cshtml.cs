@@ -8,7 +8,7 @@ namespace BilliardManagement.Web.Pages.Auth
     public class ForgotPasswordModel : PageModel
     {
         [BindProperty]
-        [Required(ErrorMessage = "Vui lòng nhập Tên đăng nhập hoặc Số điện thoại")]
+        [Required(ErrorMessage = "Vui lòng nhập tên đăng nhập")]
         public string UsernameOrPhone { get; set; } = string.Empty;
 
         [BindProperty]
@@ -29,7 +29,7 @@ namespace BilliardManagement.Web.Pages.Auth
             }
         }
 
-        public async Task<IActionResult> OnPostAsync()
+        public IActionResult OnPost()
         {
             if (!ModelState.IsValid)
             {
@@ -40,7 +40,7 @@ namespace BilliardManagement.Web.Pages.Auth
             {
                 PasswordResetStore.AddRequest(UsernameOrPhone, FullName, Note);
 
-                SuccessMessage = $"Yêu cầu cấp lại mật khẩu của bạn (Tài khoản/SĐT: {UsernameOrPhone}) đã được gửi thành công đến Quản trị viên (Admin). Vui lòng liên hệ Admin để nhận mật khẩu mới.";
+                SuccessMessage = "Yêu cầu đã được ghi nhận. Vui lòng liên hệ Admin cửa hàng với tên đăng nhập chính xác để được hỗ trợ; nếu là Admin, hãy liên hệ SuperAdmin.";
                 return Page();
             }
             catch (Exception ex)

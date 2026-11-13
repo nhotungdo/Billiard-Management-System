@@ -6,22 +6,27 @@ using BilliardManagement.Business.DTOs;
 using BilliardManagement.Business.Interfaces;
 using BilliardManagement.Data.Repositories.Interfaces;
 using BilliardManagement.Models.Models;
+using BilliardManagement.Common.Tenant;
+using BilliardManagement.Common.Exceptions;
 
 namespace BilliardManagement.Business.Services
 {
     public class RevenueService : IRevenueService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ITenantContext _tenant;
 
-        public RevenueService(IUnitOfWork unitOfWork)
+        public RevenueService(IUnitOfWork unitOfWork, ITenantContext tenant)
         {
             _unitOfWork = unitOfWork;
+            _tenant = tenant;
         }
 
         public async Task<PersonalRevenueDto> GetPersonalRevenueAsync(Guid userId, DateTime? fromDate, DateTime? toDate)
         {
-            var user = await _unitOfWork.Repository<User>().GetByIdAsync(userId);
-            if (user == null) throw new Exception("User not found");
+            var user = await _unitOfWork.Repository<User>().GetFirstOrDefaultAsync(u => u.Id == userId &&
+                ((_tenant.IsSuperAdmin && _tenant.StoreId == Guid.Empty) || u.StoreId == _tenant.StoreId));
+            if (user == null) throw new CustomException("Không tìm thấy người dùng", 404);
 
             var invoices = await _unitOfWork.Repository<Invoice>().GetAllAsync(
                 i => i.TableSession != null && i.TableSession.UserId == userId,

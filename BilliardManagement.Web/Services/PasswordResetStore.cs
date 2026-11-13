@@ -25,7 +25,7 @@ namespace BilliardManagement.Web.Services
             {
                 _requests.Add(new PasswordResetItem
                 {
-                    UsernameOrPhone = usernameOrPhone,
+                    UsernameOrPhone = usernameOrPhone.Trim(),
                     FullName = fullName,
                     Note = note,
                     RequestedAt = DateTime.Now
@@ -33,23 +33,28 @@ namespace BilliardManagement.Web.Services
             }
         }
 
-        public static List<PasswordResetItem> GetPendingRequests()
+        public static List<PasswordResetItem> GetPendingRequests(IEnumerable<string> allowedUsernames)
         {
+            var allowed = new HashSet<string>(allowedUsernames, StringComparer.OrdinalIgnoreCase);
             lock (_lock)
             {
-                return _requests.Where(r => !r.IsResolved).OrderByDescending(r => r.RequestedAt).ToList();
+                return _requests.Where(r => !r.IsResolved && allowed.Contains(r.UsernameOrPhone))
+                    .OrderByDescending(r => r.RequestedAt).ToList();
             }
         }
 
-        public static void MarkAsResolved(Guid id)
+        public static bool MarkAsResolved(Guid id, IEnumerable<string> allowedUsernames)
         {
+            var allowed = new HashSet<string>(allowedUsernames, StringComparer.OrdinalIgnoreCase);
             lock (_lock)
             {
-                var item = _requests.FirstOrDefault(r => r.Id == id);
+                var item = _requests.FirstOrDefault(r => r.Id == id && !r.IsResolved && allowed.Contains(r.UsernameOrPhone));
                 if (item != null)
                 {
                     item.IsResolved = true;
+                    return true;
                 }
+                return false;
             }
         }
     }

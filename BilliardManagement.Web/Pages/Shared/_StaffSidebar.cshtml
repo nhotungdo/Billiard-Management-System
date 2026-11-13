@@ -1,5 +1,6 @@
 @{
     var currentPath = Context.Request.Path.Value?.ToLower() ?? "";
+    var storeName = Context.Session.GetString("StoreName");
     string IsActive(string path) {
         if (path.ToLower() == "/staff/tables" && currentPath.StartsWith("/staff/tables/map")) return "";
         return currentPath.StartsWith(path.ToLower()) ? "active" : "";
@@ -14,7 +15,7 @@
         </div>
         <div class="brand-text">
             <span class="brand-name">BilliardPro</span>
-            <span class="brand-sub">Staff Portal</span>
+            <span class="brand-sub">@(string.IsNullOrEmpty(storeName) ? "Staff Portal" : storeName)</span>
         </div>
         <button class="sidebar-close-btn d-md-none" id="sidebarClose">
             <i class="fa-solid fa-xmark"></i>
@@ -64,6 +65,7 @@
     <div class="sidebar-divider"></div>
     <div class="sidebar-menu-label">TÀI KHOẢN</div>
     <ul class="sidebar-nav">
+        <li class="nav-item"><a class="nav-link @IsActive("/profile")" href="/Profile/Index"><span class="nav-icon"><i class="fa-solid fa-user"></i></span><span class="nav-text">Hồ sơ cá nhân</span></a></li>
         <li class="nav-item">
             <a class="nav-link" href="/Auth/Logout">
                 <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span>
@@ -74,3 +76,4 @@
 </nav>
 <!-- Sidebar Overlay (mobile) -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
+<partial name="_StoreContext" />

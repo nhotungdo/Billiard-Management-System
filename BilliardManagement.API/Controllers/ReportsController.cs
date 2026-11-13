@@ -11,11 +11,24 @@ namespace BilliardManagement.API.Controllers
     public class ReportsController : ControllerBase
     {
         private readonly IReportService _reportService;
+        private readonly BilliardManagement.Business.Services.SystemReportService _systemReports;
 
-        public ReportsController(IReportService reportService)
+        public ReportsController(IReportService reportService, BilliardManagement.Business.Services.SystemReportService systemReports)
         {
             _reportService = reportService;
+            _systemReports = systemReports;
         }
+
+        [HttpGet("system-overview")]
+        [Authorize(Roles = "SuperAdmin")]
+        public async Task<IActionResult> SystemOverview() =>
+            Ok(ApiResponse<object>.Ok(await _systemReports.OverviewAsync()));
+
+        [HttpGet("compare")]
+        [Authorize(Roles = "SuperAdmin")]
+        public async Task<IActionResult> Compare([FromQuery] Guid[]? storeIds, [FromQuery] DateTime? from, [FromQuery] DateTime? to) =>
+            Ok(ApiResponse<object>.Ok(await _systemReports.CompareAsync(storeIds,
+                from ?? DateTime.UtcNow.Date.AddDays(-6), to ?? DateTime.UtcNow.Date)));
 
         // dashboard admin 
         [HttpGet("dashboard")]

@@ -56,7 +56,7 @@ namespace BilliardManagement.API.Controllers
                 var pagedResult = await _sessionService.GetPagedSessionsAsync(query);
                 return Ok(ApiResponse<PagedResult<SessionDto>>.Ok(pagedResult));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not CustomException)
             {
                 _logger.LogError(ex, "Lấy danh sách các phiên chơi lỗi: {Message}", ex.Message);
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
@@ -82,7 +82,7 @@ namespace BilliardManagement.API.Controllers
                 await BroadcastSessionAsync(session, "SessionStarted");
                 return Ok(ApiResponse<SessionDto>.Ok(session, "Bắt đầu phiên chơi thành công"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not CustomException)
             {
                 _logger.LogWarning(ex, "Start session failed");
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
@@ -102,7 +102,7 @@ namespace BilliardManagement.API.Controllers
                 await BroadcastSessionAsync(session, "SessionExtended");
                 return Ok(ApiResponse<SessionDto>.Ok(session, "Gia hạn phiên chơi thành công"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not CustomException)
             {
                 _logger.LogWarning(ex, "Extend session failed for {SessionId}", id);
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
@@ -128,7 +128,7 @@ namespace BilliardManagement.API.Controllers
                 await BroadcastSessionAsync(session, "SessionEnded");
                 return Ok(ApiResponse<SessionDto>.Ok(session, "Kết thúc phiên chơi và tạo hóa đơn thành công"));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not CustomException)
             {
                 _logger.LogError(ex, "End session failed for {SessionId}", id);
                 var msg = ex is CustomException ? ex.Message : (ex.InnerException?.Message ?? ex.Message);
@@ -153,7 +153,7 @@ namespace BilliardManagement.API.Controllers
                 Status = (int)table.Status,
                 StatusName = table.Status.ToString()
             };
-            await _hubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("TableStatusChanged", statusPayload);
+            await _hubContext.Clients.Groups(StoreGroups.ForRequest(HttpContext)).SendAsync("TableStatusChanged", statusPayload);
 
             var realtime = new SessionRealtimeDto
             {
@@ -188,8 +188,8 @@ namespace BilliardManagement.API.Controllers
                 OrderLines = session.OrderLines
             };
 
-            await _hubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("SessionUpdated", realtime);
-            await _hubContext.Clients.Group(StoreGroups.FromUser(User)).SendAsync("ReceiveTableUpdate", eventName);
+            await _hubContext.Clients.Groups(StoreGroups.ForRequest(HttpContext)).SendAsync("SessionUpdated", realtime);
+            await _hubContext.Clients.Groups(StoreGroups.ForRequest(HttpContext)).SendAsync("ReceiveTableUpdate", eventName);
         }
     }
 }

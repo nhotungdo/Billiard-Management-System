@@ -44,6 +44,23 @@
                     <span class="nav-text">Cửa hàng</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link @IsActive("/admin/users")" href="/Admin/Users/Index">
+                    <span class="nav-icon"><i class="fa-solid fa-user-shield"></i></span>
+                    <span class="nav-text">Admin cửa hàng</span>
+                </a>
+            </li>
+            <li class="nav-item"><a class="nav-link @IsActive("/admin/reports/compare")" href="/Admin/Reports/Compare"><span class="nav-icon"><i class="fa-solid fa-chart-column"></i></span><span class="nav-text">So sánh cửa hàng</span></a></li>
+            <li class="nav-item"><a class="nav-link @IsActive("/superadmin/storeselect")" href="/SuperAdmin/StoreSelect"><span class="nav-icon"><i class="fa-solid fa-right-left"></i></span><span class="nav-text">Chọn cửa hàng</span></a></li>
+            @if (!string.IsNullOrEmpty(Context.Session.GetString("ViewAsStoreId")))
+            {
+                <li class="nav-item"><a class="nav-link @IsActive("/admin/tables")" href="/Admin/Tables/Index"><span class="nav-icon"><i class="fa-solid fa-table-cells"></i></span><span class="nav-text">Bàn cửa hàng</span></a></li>
+                <li class="nav-item"><a class="nav-link @IsActive("/admin/products")" href="/Admin/Products/Index"><span class="nav-icon"><i class="fa-solid fa-box-open"></i></span><span class="nav-text">Sản phẩm cửa hàng</span></a></li>
+                <li class="nav-item"><a class="nav-link @IsActive("/admin/categories")" href="/Admin/Categories/Index"><span class="nav-icon"><i class="fa-solid fa-tags"></i></span><span class="nav-text">Danh mục cửa hàng</span></a></li>
+                <li class="nav-item"><a class="nav-link @IsActive("/admin/combos")" href="/Admin/Combos/Index"><span class="nav-icon"><i class="fa-solid fa-layer-group"></i></span><span class="nav-text">Combo cửa hàng</span></a></li>
+                <li class="nav-item"><a class="nav-link @IsActive("/admin/customers")" href="/Admin/Customers/Index"><span class="nav-icon"><i class="fa-solid fa-users"></i></span><span class="nav-text">Khách hàng cửa hàng</span></a></li>
+                <li class="nav-item"><a class="nav-link @IsActive("/admin/staff")" href="/Admin/Staff/Index"><span class="nav-icon"><i class="fa-solid fa-users-gear"></i></span><span class="nav-text">Nhân viên cửa hàng</span></a></li>
+            }
         }
         else
         {
@@ -95,6 +112,7 @@
     <div class="sidebar-divider"></div>
     <div class="sidebar-menu-label">HỆ THỐNG</div>
     <ul class="sidebar-nav">
+        <li class="nav-item"><a class="nav-link @IsActive("/profile")" href="/Profile/Index"><span class="nav-icon"><i class="fa-solid fa-user"></i></span><span class="nav-text">Hồ sơ cá nhân</span></a></li>
         <li class="nav-item">
             <a class="nav-link" href="/Auth/Logout">
                 <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span>
@@ -105,3 +123,4 @@
 </nav>
 <!-- Sidebar Overlay (mobile) -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
+<partial name="_StoreContext" />
