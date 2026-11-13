@@ -28,11 +28,9 @@ namespace BilliardManagement.Web.Pages.Admin.Combos
         [BindProperty(SupportsGet = true)]
         public bool? ActiveOnly { get; set; }
 
-        [TempData]
-        public string? SuccessMessage { get; set; }
-
-        [TempData]
-        public string? ErrorMessage { get; set; }
+        public int ActiveCount => Combos.Count(c => c.IsActive);
+        public int InactiveCount => Combos.Count(c => !c.IsActive);
+        public decimal AveragePrice => Combos.Count == 0 ? 0 : Combos.Average(c => c.Price);
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -47,7 +45,7 @@ namespace BilliardManagement.Web.Pages.Admin.Combos
             }
             catch (Exception ex)
             {
-                ErrorMessage = ex.Message;
+                TempData["ErrorMessage"] = ex.Message;
             }
 
             return Page();
@@ -62,7 +60,7 @@ namespace BilliardManagement.Web.Pages.Admin.Combos
                     return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ. Vui lòng nhập đầy đủ Mã và Tên Combo." });
                 }
 
-                var created = await _comboService.CreateComboAsync(dto);
+                await _comboService.CreateComboAsync(dto);
                 return new JsonResult(new { success = true, message = $"Tạo gói combo '{dto.Name}' thành công!" });
             }
             catch (Exception ex)
@@ -86,7 +84,7 @@ namespace BilliardManagement.Web.Pages.Admin.Combos
                     return BadRequest(new { success = false, message = "Cập nhật gói combo thất bại." });
                 }
 
-                return new JsonResult(new { success = true, message = "Cập nhật gói combo thành công!" });
+                return new JsonResult(new { success = true, message = $"Cập nhật gói combo '{dto.Name}' thành công!" });
             }
             catch (Exception ex)
             {
@@ -101,16 +99,16 @@ namespace BilliardManagement.Web.Pages.Admin.Combos
                 var success = await _comboService.ToggleComboStatusAsync(id);
                 if (success)
                 {
-                    SuccessMessage = "Đã thay đổi trạng thái gói combo!";
+                    TempData["SuccessMessage"] = "Đã thay đổi trạng thái gói combo!";
                 }
                 else
                 {
-                    ErrorMessage = "Không thể đổi trạng thái combo.";
+                    TempData["ErrorMessage"] = "Không thể đổi trạng thái gói combo.";
                 }
             }
             catch (Exception ex)
             {
-                ErrorMessage = ex.Message;
+                TempData["ErrorMessage"] = ex.Message;
             }
 
             return RedirectToPage();
@@ -123,16 +121,16 @@ namespace BilliardManagement.Web.Pages.Admin.Combos
                 var success = await _comboService.DeleteComboAsync(id);
                 if (success)
                 {
-                    SuccessMessage = "Đã xóa gói combo thành công!";
+                    TempData["SuccessMessage"] = "Đã xóa gói combo thành công!";
                 }
                 else
                 {
-                    ErrorMessage = "Không tìm thấy gói combo để xóa.";
+                    TempData["ErrorMessage"] = "Không tìm thấy gói combo để xóa.";
                 }
             }
             catch (Exception ex)
             {
-                ErrorMessage = ex.Message;
+                TempData["ErrorMessage"] = ex.Message;
             }
 
             return RedirectToPage();

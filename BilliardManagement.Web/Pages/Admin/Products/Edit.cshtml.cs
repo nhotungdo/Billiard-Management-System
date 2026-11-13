@@ -17,6 +17,7 @@ namespace BilliardManagement.Web.Pages.Admin.Products
         [BindProperty]
         public EditProductViewModel EditProduct { get; set; } = new();
 
+        public List<CategoryDto> Categories { get; set; } = new();
         public string? ErrorMessage { get; set; }
         public string? SuccessMessage { get; set; }
         public string? ExistingImageUrl { get; set; }
@@ -34,7 +35,7 @@ namespace BilliardManagement.Web.Pages.Admin.Products
                 EditProduct = new EditProductViewModel
                 {
                     Name = product.Name,
-                    Category = product.Category,
+                    Category = product.CategoryId.ToString(),
                     Price = product.Price,
                     Stock = product.Stock,
                     Description = product.Description,
@@ -47,6 +48,8 @@ namespace BilliardManagement.Web.Pages.Admin.Products
             {
                 ErrorMessage = ex.Message;
             }
+
+            await LoadCategoriesAsync();
             return Page();
         }
 
@@ -54,12 +57,12 @@ namespace BilliardManagement.Web.Pages.Admin.Products
         {
             if (!ModelState.IsValid)
             {
+                await LoadCategoriesAsync();
                 return Page();
             }
 
             try
             {
-                // Category field stores CategoryId Guid as string, or CategoryName string
                 Guid.TryParse(EditProduct.Category, out var categoryId);
                 if (categoryId == Guid.Empty)
                 {
@@ -85,10 +88,10 @@ namespace BilliardManagement.Web.Pages.Admin.Products
 
                 if (success)
                 {
-                    TempData["SuccessMessage"] = "Cập nhật sản phẩm thành công";
+                    TempData["SuccessMessage"] = "Cập nhật sản phẩm thành công.";
                     return RedirectToPage("./Index");
                 }
-                
+
                 ErrorMessage = "Không thể cập nhật sản phẩm";
             }
             catch (Exception ex)
@@ -97,7 +100,20 @@ namespace BilliardManagement.Web.Pages.Admin.Products
                 ExistingImageUrl = EditProduct.ExistingImageUrl;
             }
 
+            await LoadCategoriesAsync();
             return Page();
+        }
+
+        private async Task LoadCategoriesAsync()
+        {
+            try
+            {
+                Categories = await _productService.GetAllCategoriesAsync() ?? new();
+            }
+            catch
+            {
+                Categories = new();
+            }
         }
     }
 
@@ -110,7 +126,7 @@ namespace BilliardManagement.Web.Pages.Admin.Products
         public string Category { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Giá bán không được để trống")]
-        [Range(1000, double.MaxValue, ErrorMessage = "Giá bán phải lớn hơn 0")]
+        [Range(0, double.MaxValue, ErrorMessage = "Giá bán phải lớn hơn 0")]
         public decimal Price { get; set; }
 
         public int Stock { get; set; }

@@ -1,17 +1,102 @@
 @page
 @model BilliardManagement.Web.Pages.SuperAdmin.StoreSelectModel
-@{ ViewData["Title"] = "Chọn cửa hàng"; }
-<h1 class="page-title mb-3">Chọn cửa hàng để xem chi tiết</h1>
-<p class="text-muted">Ngữ cảnh cửa hàng áp dụng cho các màn hình nghiệp vụ. Dashboard và báo cáo hệ thống luôn tổng hợp toàn hệ thống.</p>
-@if (Model.ErrorMessage != null) { <div class="alert alert-danger">@Model.ErrorMessage</div> }
-<form method="post" asp-page-handler="Clear" class="mb-4"><button class="btn btn-outline-secondary">Về ngữ cảnh toàn hệ thống</button></form>
-<div class="row g-3">
-@foreach (var store in Model.Stores)
-{
-    <div class="col-md-6 col-xl-4"><div class="card-panel p-4"><h5>@store.Name</h5><p class="text-muted">@store.Address</p><p>@store.TableCount bàn · @store.UserCount tài khoản</p>
-    @if (store.IsActive) { <form method="post" asp-page-handler="Select"><input type="hidden" name="storeId" value="@store.Id" /><button class="btn btn-primary">Xem cửa hàng <i class="fa-solid fa-arrow-right ms-1"></i></button></form> }
-    else { <span class="status-dot inactive">Ngừng hoạt động</span> }
-    </div></div>
+@{
+    ViewData["Title"] = "Chọn cửa hàng";
+    var selectedId = HttpContext.Session.GetString("ViewAsStoreId");
 }
-@if (!Model.Stores.Any() && Model.ErrorMessage == null) { <p class="text-muted">Chưa có cửa hàng.</p> }
+
+<div class="page-head">
+    <div>
+        <h1 class="page-title"><i class="fa-solid fa-right-left"></i>Chọn cửa hàng để thao tác</h1>
+        <p class="page-subtitle">Ngữ cảnh cửa hàng áp dụng cho các màn hình nghiệp vụ (bàn, sản phẩm, danh mục, combo, khách hàng, nhân viên).</p>
+    </div>
+    <div class="page-actions">
+        <form method="post" asp-page-handler="Clear">
+            <button class="btn btn-soft" type="submit">
+                <i class="fa-solid fa-globe"></i>Về ngữ cảnh toàn hệ thống
+            </button>
+        </form>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>@Model.ErrorMessage
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(selectedId))
+{
+    <div class="alert alert-info" role="alert">
+        <i class="fa-solid fa-circle-info me-2"></i>
+        Đang chọn cửa hàng <strong>@HttpContext.Session.GetString("ViewAsStoreName")</strong>.
+        Chọn cửa hàng khác để thay đổi ngữ cảnh.
+    </div>
+}
+
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h5 class="panel-title"><i class="fa-solid fa-store"></i>Danh sách cửa hàng</h5>
+            <p class="panel-sub">@Model.Stores.Count cửa hàng — chỉ cửa hàng đang hoạt động mới chọn được</p>
+        </div>
+    </div>
+    <div class="panel-body">
+        @if (!Model.Stores.Any())
+        {
+            <div class="empty-state">
+                <i class="fa-solid fa-store"></i>
+                <h6>Chưa có cửa hàng</h6>
+                <p>Tạo cửa hàng tại trang Quản lý Cửa hàng trước khi chọn ngữ cảnh.</p>
+            </div>
+        }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var store in Model.Stores)
+                {
+                    var isSelected = selectedId == store.Id.ToString();
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="product-card h-100 @(isSelected ? "border-primary" : "")">
+                            <div class="product-info p-4">
+                                <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                                    <h6 class="product-name" style="font-size:1.05rem">@store.Name</h6>
+                                    @if (store.IsActive)
+                                    {
+                                        <span class="chip chip-success"><span class="dot dot-success"></span>Hoạt động</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="chip chip-muted"><span class="dot dot-muted"></span>Ngừng</span>
+                                    }
+                                </div>
+
+                                <dl class="mb-3">
+                                    <div class="kv-row"><dt>Địa chỉ</dt><dd class="text-truncate-1">@(store.Address ?? "—")</dd></div>
+                                    <div class="kv-row"><dt>Số bàn</dt><dd>@store.TableCount</dd></div>
+                                    <div class="kv-row"><dt>Tài khoản</dt><dd>@store.UserCount</dd></div>
+                                </dl>
+
+                                @if (store.IsActive)
+                                {
+                                    <form method="post" asp-page-handler="Select">
+                                        <input type="hidden" name="storeId" value="@store.Id" />
+                                        <button class="btn btn-accent w-100 justify-content-center" type="submit">
+                                            <i class="fa-solid fa-arrow-right"></i>
+                                            @(isSelected ? "Đang chọn cửa hàng này" : "Thao tác trên cửa hàng này")
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="chip chip-muted w-100 justify-content-center py-2">Cửa hàng đang ngừng hoạt động</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
 </div>

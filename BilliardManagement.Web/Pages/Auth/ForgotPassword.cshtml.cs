@@ -25,7 +25,15 @@ namespace BilliardManagement.Web.Pages.Auth
             var token = HttpContext.Session.GetString("JWToken");
             if (!string.IsNullOrEmpty(token))
             {
-                Response.Redirect("/Dashboard");
+                var role = HttpContext.Session.GetString("UserRole");
+                var home = role switch
+                {
+                    "SuperAdmin" => "/Admin/Dashboard/Index",
+                    "Admin" => "/Admin/Dashboard/Index",
+                    "Staff" => "/Staff/Dashboard/Index",
+                    _ => "/Auth/Login"
+                };
+                Response.Redirect(home);
             }
         }
 

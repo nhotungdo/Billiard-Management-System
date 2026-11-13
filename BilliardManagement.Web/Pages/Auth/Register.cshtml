@@ -2,5 +2,32 @@
 @model BilliardManagement.Web.Pages.Auth.RegisterModel
 @{
     Layout = null;
-    Response.Redirect("/Auth/Login");
+    ViewData["Title"] = "Đăng ký";
 }
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đăng ký &mdash; BilliardPro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="/css/auth.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="error-screen">
+        <div class="error-box">
+            <div class="error-code" style="font-size:3rem;">403</div>
+            <h1 class="error-title">Không thể tự đăng ký</h1>
+            <p class="error-text">
+                Tài khoản trong BilliardPro do quản trị viên cấp và phân quyền.
+                Vui lòng liên hệ Admin cửa hàng để được tạo tài khoản.
+            </p>
+            <div class="error-actions">
+                <a href="/Auth/Login" class="error-btn error-btn-primary">
+                    <i class="fa-solid fa-right-to-bracket"></i> Về trang đăng nhập
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

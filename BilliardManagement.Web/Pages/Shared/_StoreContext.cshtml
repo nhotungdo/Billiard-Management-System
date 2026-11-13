@@ -1,52 +1,43 @@
 @inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @{
-    var super = Context.Session.GetString("UserRole") == "SuperAdmin";
-    var name = Context.Session.GetString(super ? "ViewAsStoreName" : "StoreName");
-    var logo = Context.Session.GetString(super ? "ViewAsStoreLogo" : "StoreLogoUrl");
+    var role = Context.Session.GetString("UserRole") ?? "";
+    var isSuper = role == "SuperAdmin";
+    var name = Context.Session.GetString(isSuper ? "ViewAsStoreName" : "StoreName");
+    var logo = Context.Session.GetString(isSuper ? "ViewAsStoreLogo" : "StoreLogoUrl");
 }
-<template id="storeContextBadge">
 @if (!string.IsNullOrEmpty(name))
 {
-    <span class="badge bg-light text-dark border store-badge d-inline-flex align-items-center gap-2" title="@name" style="max-width:240px;white-space:normal">
-    @if (Uri.TryCreate(logo, UriKind.Absolute, out var logoUri) && (logoUri.Scheme == "https" || logoUri.Scheme == "http")) { <img src="@logo" alt="" width="24" height="24" style="object-fit:contain" /> }
-    else { <i class="fa-solid fa-store"></i> }
-    @(super ? "Đang xem: " : "")@name
+    <span class="store-pill" title="@name">
+        @if (Uri.TryCreate(logo, UriKind.Absolute, out var logoUri) && (logoUri.Scheme == "https" || logoUri.Scheme == "http"))
+        {
+            <img src="@logo" alt="" />
+        }
+        else
+        {
+            <i class="fa-solid fa-store"></i>
+        }
+        <span>@(isSuper ? "Đang xem: " : "")@name</span>
     </span>
 }
-</template>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const topbar = document.querySelector('.topbar-right');
-    if (topbar && !topbar.querySelector('.store-badge')) topbar.prepend(document.getElementById('storeContextBadge').content.cloneNode(true));
-    const image = document.getElementById('storeContextBadge').content.querySelector('img');
-    const brand = document.querySelector('.brand-icon');
-    if (image && brand) brand.replaceChildren(image.cloneNode(true));
-    if (location.pathname.toLowerCase().startsWith('/admin/customers')) {
-        const heading = document.querySelector('.dashboard-header');
-        const badge = document.getElementById('storeContextBadge').content.querySelector('.store-badge');
-        if (heading && badge) { const note = document.createElement('p'); note.className='text-muted mt-2'; note.textContent='Khách hàng của ' + badge.textContent.trim(); heading.append(note); }
-    }
-});
-</script>
-@if (super && Guid.TryParse(Context.Session.GetString("ViewAsStoreId"), out var storeId))
+@if (isSuper && Guid.TryParse(Context.Session.GetString("ViewAsStoreId"), out var storeId))
 {
     <script>
-    (() => {
-        const storeId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(storeId.ToString()));
-        const api = new URL(document.querySelector('meta[name="api-base-url"]')?.content || @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Configuration["ApiSettings:BaseAddress"] ?? "http://localhost:8080/api/")), location.origin);
-        function isApi(url) { const target = new URL(url, location.href); return target.origin === api.origin && target.pathname.startsWith(api.pathname); }
-        const originalFetch = window.fetch;
-        window.fetch = function(input, init) {
-            if (isApi(input instanceof Request ? input.url : input)) {
-                const headers = new Headers(init?.headers || (input instanceof Request ? input.headers : undefined));
-                headers.set('X-Store-Id', storeId);
-                init = Object.assign({}, init, {headers});
-            }
-            return originalFetch.call(this, input, init);
-        };
-        document.addEventListener('DOMContentLoaded', () => {
-            if (window.jQuery) jQuery.ajaxPrefilter((options, original, xhr) => { if (isApi(options.url)) xhr.setRequestHeader('X-Store-Id', storeId); });
-        });
-    })();
+        (() => {
+            const storeId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(storeId.ToString()));
+            const api = new URL(document.querySelector('meta[name="api-base-url"]')?.content || @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Configuration["ApiSettings:BaseAddress"] ?? "http://localhost:8080/api/")), location.origin);
+            function isApi(url) { const target = new URL(url, location.href); return target.origin === api.origin && target.pathname.startsWith(api.pathname); }
+            const originalFetch = window.fetch;
+            window.fetch = function (input, init) {
+                if (isApi(input instanceof Request ? input.url : input)) {
+                    const headers = new Headers(init?.headers || (input instanceof Request ? input.headers : undefined));
+                    headers.set('X-Store-Id', storeId);
+                    init = Object.assign({}, init, { headers });
+                }
+                return originalFetch.call(this, input, init);
+            };
+            document.addEventListener('DOMContentLoaded', () => {
+                if (window.jQuery) jQuery.ajaxPrefilter((options, original, xhr) => { if (isApi(options.url)) xhr.setRequestHeader('X-Store-Id', storeId); });
+            });
+        })();
     </script>
 }

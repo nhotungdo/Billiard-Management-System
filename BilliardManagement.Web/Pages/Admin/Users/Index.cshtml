@@ -2,102 +2,340 @@
 @model BilliardManagement.Web.Pages.Admin.Users.IndexModel
 @{
     ViewData["Title"] = "Admin cửa hàng";
+    var activeCount = Model.Users.Count(u => u.IsActive);
 }
-<div class="dashboard-header mb-4">
-    <h1 class="page-title"><i class="fa-solid fa-user-shield me-2"></i>Admin cửa hàng</h1>
-    <p class="text-muted">Tạo Admin mới hoặc gán tài khoản chưa có lịch sử nghiệp vụ vào cửa hàng.</p>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createAdminModal"><i class="fa-solid fa-plus me-1"></i>Tạo Admin</button>
+
+<div class="page-head">
+    <div>
+        <h1 class="page-title"><i class="fa-solid fa-user-shield"></i>Admin cửa hàng</h1>
+        <p class="page-subtitle">Gán cửa hàng, bật/tắt tài khoản và đặt lại mật khẩu cho Admin chi nhánh.</p>
+    </div>
+    <div class="page-actions">
+        <button class="btn btn-accent" type="button" data-bs-toggle="modal" data-bs-target="#createAdminModal">
+            <i class="fa-solid fa-user-plus"></i>Tạo Admin cửa hàng
+        </button>
+    </div>
 </div>
+
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
-    <div class="alert alert-danger">@Model.ErrorMessage</div>
-}
-<div asp-validation-summary="All" class="text-danger mb-3"></div>
-<div class="modal fade" id="createAdminModal" tabindex="-1" aria-label="Tạo Admin" aria-hidden="true"><div class="modal-dialog modal-lg"><div class="modal-content">
-    <div class="modal-header"><h5 class="modal-title">Tạo Admin</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
-    <div class="modal-body">
-        <form method="post" asp-page-handler="Create">
-            <div asp-validation-summary="All" class="text-danger"></div>
-            <div class="row g-3">
-                <div class="col-md-4"><label asp-for="NewAdmin.FullName" class="form-label">Họ tên</label><input asp-for="NewAdmin.FullName" class="form-control" /></div>
-                <div class="col-md-4"><label asp-for="NewAdmin.Username" class="form-label">Tên đăng nhập</label><input asp-for="NewAdmin.Username" class="form-control" autocomplete="off" /></div>
-                <div class="col-md-4"><label asp-for="NewAdmin.Password" class="form-label">Mật khẩu</label><input asp-for="NewAdmin.Password" type="password" class="form-control" autocomplete="new-password" /></div>
-                <div class="col-md-4"><label asp-for="NewAdmin.StoreId" class="form-label">Cửa hàng</label><select asp-for="NewAdmin.StoreId" class="form-select"><option value="">-- Chọn cửa hàng --</option>@foreach (var store in Model.Stores.Where(s => s.IsActive)) { <option value="@store.Id">@store.Name</option> }</select></div>
-                <div class="col-md-4"><label asp-for="NewAdmin.PhoneNumber" class="form-label">Số điện thoại</label><input asp-for="NewAdmin.PhoneNumber" class="form-control" /></div>
-                <div class="col-md-4"><label asp-for="NewAdmin.Email" class="form-label">Email</label><input asp-for="NewAdmin.Email" type="email" class="form-control" /></div>
-            </div>
-            <button class="btn btn-primary mt-3" type="submit">Tạo Admin</button>
-        </form>
+    <div class="alert alert-danger" role="alert">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>@Model.ErrorMessage
     </div>
-</div></div></div>
-<div class="card-panel">
-    <form method="get" class="panel-body row g-3">
-        <div class="col-md-5"><label asp-for="StoreId" class="form-label">Cửa hàng</label><select asp-for="StoreId" class="form-select"><option value="">Tất cả cửa hàng</option>@foreach (var store in Model.Stores) { <option value="@store.Id">@store.Name</option> }</select></div>
-        <div class="col-md-4"><label asp-for="IsActive" class="form-label">Trạng thái</label><select asp-for="IsActive" class="form-select"><option value="">Tất cả</option><option value="true">Hoạt động</option><option value="false">Vô hiệu hóa</option></select></div>
-        <div class="col-md-3 d-flex align-items-end"><button class="btn btn-primary">Áp dụng</button></div>
-    </form>
-    <div class="panel-header"><h5 class="panel-title">Tài khoản theo cửa hàng</h5></div>
-    <div class="panel-body table-responsive">
-        <table class="data-table">
-            <thead><tr><th>Tài khoản</th><th>Vai trò</th><th>Cửa hàng hiện tại</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
-            <tbody>
-                @foreach (var user in Model.Users)
-                {
-                    <tr>
-                        <td><strong>@user.FullName</strong><div class="text-muted small">@user.Username</div></td>
-                        <td>@(user.Role == 1 ? "Admin" : "Staff")</td>
-                        <td>@(user.StoreName ?? "Chưa gán")</td>
-                        <td>@(user.IsActive ? "Hoạt động" : "Vô hiệu hóa")</td>
-                        <td>
-                            <button type="button" class="btn btn-sm btn-outline-primary mb-2" data-bs-toggle="modal" data-bs-target="#editAdminModal" data-id="@user.Id" data-name="@user.FullName" data-phone="@user.PhoneNumber" data-email="@user.Email">Sửa</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary mb-2" data-bs-toggle="modal" data-bs-target="#resetAdminModal" data-id="@user.Id" data-name="@user.Username">Đặt lại mật khẩu</button>
-                            <form method="post" asp-page-handler="Toggle" class="d-inline" onsubmit="return confirm('Cập nhật trạng thái tài khoản?')">
-                                <input type="hidden" name="userId" value="@user.Id" /><input type="hidden" name="active" value="@((!user.IsActive).ToString().ToLower())" />
-                                <button class="btn btn-sm btn-outline-warning mb-2">@(user.IsActive ? "Vô hiệu hóa" : "Kích hoạt")</button>
-                            </form>
-                            <form method="post" asp-page-handler="Assign" class="d-flex gap-2">
-                                <input type="hidden" name="userId" value="@user.Id" />
-                                <select name="storeId" class="form-select" aria-label="Cửa hàng cho @user.Username" required>
-                                    @foreach (var store in Model.Stores.Where(s => s.IsActive)) { <option value="@store.Id" selected="@(store.Id == user.StoreId)">@store.Name</option> }
-                                </select>
-                                <button type="submit" class="btn btn-outline-primary text-nowrap">Gán Admin</button>
-                            </form>
-                        </td>
-                    </tr>
-                }
-                @if (!Model.Users.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">Không có Admin phù hợp bộ lọc</td></tr> }
-            </tbody>
-        </table>
+}
+
+<div class="stat-grid">
+    <div class="stat-card stat-info">
+        <span class="stat-icon"><i class="fa-solid fa-user-shield"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Tổng Admin</div>
+            <div class="stat-value">@Model.Users.Count</div>
+        </div>
+    </div>
+    <div class="stat-card stat-success">
+        <span class="stat-icon"><i class="fa-solid fa-circle-check"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Đang hoạt động</div>
+            <div class="stat-value">@activeCount</div>
+        </div>
+    </div>
+    <div class="stat-card stat-muted">
+        <span class="stat-icon"><i class="fa-solid fa-store"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Cửa hàng</div>
+            <div class="stat-value">@Model.Stores.Count</div>
+        </div>
+    </div>
+    <div class="stat-card stat-violet">
+        <span class="stat-icon"><i class="fa-solid fa-user-slash"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Đang tạm khoá</div>
+            <div class="stat-value">@(Model.Users.Count - activeCount)</div>
+        </div>
     </div>
 </div>
-<div class="modal fade" id="editAdminModal" tabindex="-1" aria-label="Sửa Admin" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">
-<form method="post" asp-page-handler="Edit"><input type="hidden" name="userId" value="@Model.SelectedUserId" />
-<div class="modal-header"><h5 class="modal-title">Sửa Admin</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
-<div class="modal-body"><label asp-for="EditAdmin.FullName" class="form-label">Họ tên</label><input asp-for="EditAdmin.FullName" class="form-control mb-3" required />
-<label asp-for="EditAdmin.PhoneNumber" class="form-label">Điện thoại</label><input asp-for="EditAdmin.PhoneNumber" class="form-control mb-3" />
-<label asp-for="EditAdmin.Email" class="form-label">Email</label><input asp-for="EditAdmin.Email" class="form-control" type="email" /></div>
-<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button><button class="btn btn-primary">Lưu</button></div></form></div></div></div>
-<div class="modal fade" id="resetAdminModal" tabindex="-1" aria-label="Đặt lại mật khẩu" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">
-<form method="post" asp-page-handler="ResetPassword"><input type="hidden" name="userId" value="@Model.SelectedUserId" />
-<div class="modal-header"><h5 class="modal-title">Đặt lại mật khẩu</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
-<div class="modal-body"><label asp-for="PasswordReset.NewPassword" class="form-label">Mật khẩu mới (ít nhất 8 ký tự, gồm chữ và số)</label><input asp-for="PasswordReset.NewPassword" class="form-control" type="password" autocomplete="new-password" minlength="8" required /></div>
-<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button><button class="btn btn-primary">Đặt lại</button></div></form></div></div></div>
+
+<form method="get" class="filter-bar">
+    <div class="field" style="min-width:240px">
+        <label for="userStoreFilter">Cửa hàng</label>
+        <select id="userStoreFilter" asp-for="StoreId" class="form-select">
+            <option value="">Tất cả cửa hàng</option>
+            @foreach (var store in Model.Stores)
+            {
+                <option value="@store.Id">@store.Name</option>
+            }
+        </select>
+    </div>
+    <div class="field" style="min-width:190px">
+        <label for="userActiveFilter">Trạng thái</label>
+        <select id="userActiveFilter" asp-for="IsActive" class="form-select">
+            <option value="">Tất cả trạng thái</option>
+            <option value="True">Đang hoạt động</option>
+            <option value="False">Đang tạm khoá</option>
+        </select>
+    </div>
+    <div class="field">
+        <label>&nbsp;</label>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-accent"><i class="fa-solid fa-filter"></i>Lọc</button>
+            <a href="/Admin/Users/Index" class="btn btn-soft"><i class="fa-solid fa-rotate-left"></i>Đặt lại</a>
+        </div>
+    </div>
+</form>
+
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h5 class="panel-title"><i class="fa-solid fa-list"></i>Danh sách Admin cửa hàng</h5>
+            <p class="panel-sub">@Model.Users.Count tài khoản khớp bộ lọc</p>
+        </div>
+    </div>
+    <div class="panel-body flush">
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width:60px">#</th>
+                        <th>Họ và tên</th>
+                        <th>Tên đăng nhập</th>
+                        <th>Liên hệ</th>
+                        <th>Cửa hàng</th>
+                        <th>Trạng thái</th>
+                        <th class="actions" style="width:190px">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Users.Any())
+                    {
+                        <tr>
+                            <td colspan="7">
+                                <div class="empty-state">
+                                    <i class="fa-solid fa-user-shield"></i>
+                                    <h6>Không có Admin nào khớp bộ lọc</h6>
+                                    <p>Tạo tài khoản Admin cho cửa hàng để bắt đầu.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        var i = 1;
+                        foreach (var user in Model.Users)
+                        {
+                            <tr>
+                                <td class="row-index">@(i++)</td>
+                                <td class="cell-strong">@user.FullName</td>
+                                <td class="cell-sub">@user.Username</td>
+                                <td class="cell-sub">
+                                    @(string.IsNullOrEmpty(user.PhoneNumber) ? "—" : user.PhoneNumber)
+                                    @if (!string.IsNullOrEmpty(user.Email))
+                                    {
+                                        <span class="d-block">@user.Email</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="chip chip-muted">@(string.IsNullOrEmpty(user.StoreName) ? "Chưa gán" : user.StoreName)</span>
+                                </td>
+                                <td>
+                                    @if (user.IsActive)
+                                    {
+                                        <span class="chip chip-success"><span class="dot dot-success"></span>Hoạt động</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="chip chip-muted"><span class="dot dot-muted"></span>Tạm khoá</span>
+                                    }
+                                </td>
+                                <td class="actions">
+                                    <div class="d-inline-flex gap-2 align-items-center">
+                                        <button type="button" class="btn btn-icon sm edit-admin-btn"
+                                                data-id="@user.Id"
+                                                data-fullname="@user.FullName"
+                                                data-phone="@user.PhoneNumber"
+                                                data-email="@user.Email"
+                                                title="Sửa thông tin Admin">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-icon sm reset-password-btn"
+                                                data-id="@user.Id"
+                                                data-fullname="@user.FullName"
+                                                title="Đặt lại mật khẩu">
+                                            <i class="fa-solid fa-key"></i>
+                                        </button>
+                                        <form method="post" asp-page-handler="Toggle" asp-route-userId="@user.Id" asp-route-active="@((!user.IsActive).ToString().ToLowerInvariant())" class="d-inline">
+                                            <button type="submit" class="btn btn-icon sm" title="@(user.IsActive ? "Tạm khoá" : "Mở khoá")">
+                                                <i class="fa-solid @(user.IsActive ? "fa-lock" : "fa-unlock")"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create -->
+<div class="modal fade" id="createAdminModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Create">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa-solid fa-user-plus me-2 text-primary"></i>Tạo Admin cửa hàng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                    <div class="mb-3">
+                        <label asp-for="NewAdmin.StoreId" class="form-label">Cửa hàng <span class="text-danger">*</span></label>
+                        <select asp-for="NewAdmin.StoreId" class="form-select">
+                            <option value="">-- Chọn cửa hàng --</option>
+                            @foreach (var store in Model.Stores)
+                            {
+                                <option value="@store.Id">@store.Name</option>
+                            }
+                        </select>
+                        <span asp-validation-for="NewAdmin.StoreId" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewAdmin.FullName" class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                        <input asp-for="NewAdmin.FullName" class="form-control" maxlength="100" />
+                        <span asp-validation-for="NewAdmin.FullName" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewAdmin.Username" class="form-label">Tên đăng nhập <span class="text-danger">*</span></label>
+                        <input asp-for="NewAdmin.Username" class="form-control" maxlength="100" />
+                        <span asp-validation-for="NewAdmin.Username" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewAdmin.Password" class="form-label">Mật khẩu <span class="text-danger">*</span></label>
+                        <input asp-for="NewAdmin.Password" class="form-control" type="password" />
+                        <span asp-validation-for="NewAdmin.Password" class="text-danger small"></span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="NewAdmin.PhoneNumber" class="form-label">Số điện thoại</label>
+                            <input asp-for="NewAdmin.PhoneNumber" class="form-control" maxlength="20" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="NewAdmin.Email" class="form-label">Email</label>
+                            <input asp-for="NewAdmin.Email" class="form-control" type="email" />
+                            <span asp-validation-for="NewAdmin.Email" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-accent"><i class="fa-solid fa-floppy-disk"></i>Tạo tài khoản</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit -->
+<div class="modal fade" id="editAdminModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Edit" id="editAdminForm">
+                <input type="hidden" name="userId" id="editAdminId" />
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa-solid fa-pen-to-square me-2 text-primary"></i>Cập nhật Admin</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="editAdminFullName">Họ và tên <span class="text-danger">*</span></label>
+                        <input type="text" id="editAdminFullName" name="EditAdmin.FullName" class="form-control" required maxlength="100" />
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="editAdminPhone">Số điện thoại</label>
+                            <input type="text" id="editAdminPhone" name="EditAdmin.PhoneNumber" class="form-control" maxlength="20" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="editAdminEmail">Email</label>
+                            <input type="email" id="editAdminEmail" name="EditAdmin.Email" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-accent"><i class="fa-solid fa-floppy-disk"></i>Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reset password -->
+<div class="modal fade" id="resetAdminModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="ResetPassword" id="resetAdminForm">
+                <input type="hidden" name="userId" id="resetAdminId" />
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa-solid fa-key me-2 text-primary"></i>Đặt lại mật khẩu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="cell-sub" id="resetAdminTarget">—</p>
+                    <div class="mb-0">
+                        <label class="form-label" for="resetAdminPassword">Mật khẩu mới <span class="text-danger">*</span></label>
+                        <input type="text" id="resetAdminPassword" name="PasswordReset.NewPassword" class="form-control" required minlength="8" placeholder="Tối thiểu 8 ký tự, gồm chữ và số" />
+                        <div class="form-text">Mật khẩu phải chứa cả chữ và số.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-accent"><i class="fa-solid fa-key"></i>Đặt lại mật khẩu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
-<script>
-document.getElementById('editAdminModal').addEventListener('show.bs.modal', e => {
- if (!e.relatedTarget) return;
- const b=e.relatedTarget, m=e.target;
- m.querySelector('[name="userId"]').value=b.dataset.id;
- m.querySelector('[name="EditAdmin.FullName"]').value=b.dataset.name;
- m.querySelector('[name="EditAdmin.PhoneNumber"]').value=b.dataset.phone || '';
- m.querySelector('[name="EditAdmin.Email"]').value=b.dataset.email || '';
-});
-document.getElementById('resetAdminModal').addEventListener('show.bs.modal', e => {
- if (!e.relatedTarget) return;
- e.target.querySelector('[name="userId"]').value=e.relatedTarget.dataset.id;
- e.target.querySelector('[name="PasswordReset.NewPassword"]').value='';
-});
-const activeModal = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ActiveModal));
-if (activeModal) bootstrap.Modal.getOrCreateInstance(document.getElementById(activeModal)).show();
-</script>
+    <script>
+        (function () {
+            const activeModal = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ActiveModal));
+            const selectedUserId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SelectedUserId.ToString()));
+            if (activeModal) {
+                const el = document.getElementById(activeModal);
+                if (el) {
+                    const modal = new bootstrap.Modal(el);
+                    modal.show();
+                    if (activeModal === 'resetAdminModal') {
+                        const row = document.querySelector('.reset-password-btn[data-id="' + selectedUserId + '"]');
+                        if (row) {
+                            document.getElementById('resetAdminId').value = row.dataset.id;
+                            document.getElementById('resetAdminTarget').textContent = 'Đặt lại mật khẩu cho: ' + (row.dataset.fullname || '');
+                        }
+                    }
+                }
+            }
+
+            document.addEventListener('click', function (e) {
+                const editBtn = e.target.closest('.edit-admin-btn');
+                if (editBtn) {
+                    document.getElementById('editAdminId').value = editBtn.dataset.id;
+                    document.getElementById('editAdminFullName').value = editBtn.dataset.fullname || '';
+                    document.getElementById('editAdminPhone').value = editBtn.dataset.phone || '';
+                    document.getElementById('editAdminEmail').value = editBtn.dataset.email || '';
+                    new bootstrap.Modal(document.getElementById('editAdminModal')).show();
+                    return;
+                }
+
+                const resetBtn = e.target.closest('.reset-password-btn');
+                if (resetBtn) {
+                    document.getElementById('resetAdminId').value = resetBtn.dataset.id;
+                    document.getElementById('resetAdminTarget').textContent = 'Đặt lại mật khẩu cho: ' + (resetBtn.dataset.fullname || '');
+                    new bootstrap.Modal(document.getElementById('resetAdminModal')).show();
+                }
+            });
+        })();
+    </script>
 }

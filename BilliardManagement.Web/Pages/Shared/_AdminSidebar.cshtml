@@ -1,126 +1,193 @@
 @{
-    var currentPath = Context.Request.Path.Value?.ToLower() ?? "";
+    var currentPath = (Context.Request.Path.Value ?? "/").ToLower();
     var currentRole = Context.Session.GetString("UserRole") ?? "";
     var isSuperAdmin = currentRole == "SuperAdmin";
-    var storeName = Context.Session.GetString("StoreName") ?? "";
-    string IsActive(string path) => currentPath.StartsWith(path.ToLower()) ? "active" : "";
+    var storeName = Context.Session.GetString(isSuperAdmin ? "ViewAsStoreName" : "StoreName") ?? "";
+    var hasSelectedStore = Guid.TryParse(Context.Session.GetString("ViewAsStoreId"), out _);
+
+    string Active(string path)
+    {
+        var p = path.ToLower();
+        return currentPath == p || currentPath.StartsWith(p + "/") ? "active" : "";
+    }
 }
 
-<nav id="admin-sidebar">
-    <!-- Brand -->
-    <div class="sidebar-brand">
-        <div class="brand-icon">
-            <i class="fa-solid fa-circle-dot"></i>
-        </div>
-        <div class="brand-text">
+<nav class="app-sidebar" id="app-sidebar">
+    <div class="app-brand">
+        <span class="brand-mark">
+            @if (Uri.TryCreate(storeName, UriKind.Absolute, out var brandUri) && (brandUri.Scheme == "http" || brandUri.Scheme == "https"))
+            {
+                <img src="@storeName" alt="" />
+            }
+            else
+            {
+                <i class="fa-solid fa-circle-dot"></i>
+            }
+        </span>
+        <span class="brand-text">
             <span class="brand-name">BilliardPro</span>
             <span class="brand-sub">@(isSuperAdmin ? "System Admin" : (string.IsNullOrEmpty(storeName) ? "Admin Panel" : storeName))</span>
-        </div>
-        <button class="sidebar-close-btn d-md-none" id="sidebarClose">
+        </span>
+        <button class="brand-close d-lg-none" id="sidebarClose" aria-label="Đóng menu">
             <i class="fa-solid fa-xmark"></i>
         </button>
     </div>
 
-    <!-- Menu -->
-    <div class="sidebar-menu-label">@(isSuperAdmin ? "QUẢN TRỊ HỆ THỐNG" : "MENU CHÍNH")</div>
-    <ul class="sidebar-nav">
+    <div class="nav-scroll">
         @if (isSuperAdmin)
         {
-            <li class="nav-item">
-                <a class="nav-link @IsActive("/admin/dashboard")" href="/Admin/Dashboard/Index">
-                    <span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span>
-                    <span class="nav-text">Tổng quan</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link @IsActive("/admin/revenue")" href="/Admin/Revenue/Index">
-                    <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
-                    <span class="nav-text">Doanh thu</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link @IsActive("/admin/stores")" href="/Admin/Stores/Index">
-                    <span class="nav-icon"><i class="fa-solid fa-store"></i></span>
-                    <span class="nav-text">Cửa hàng</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link @IsActive("/admin/users")" href="/Admin/Users/Index">
-                    <span class="nav-icon"><i class="fa-solid fa-user-shield"></i></span>
-                    <span class="nav-text">Admin cửa hàng</span>
-                </a>
-            </li>
-            <li class="nav-item"><a class="nav-link @IsActive("/admin/reports/compare")" href="/Admin/Reports/Compare"><span class="nav-icon"><i class="fa-solid fa-chart-column"></i></span><span class="nav-text">So sánh cửa hàng</span></a></li>
-            <li class="nav-item"><a class="nav-link @IsActive("/superadmin/storeselect")" href="/SuperAdmin/StoreSelect"><span class="nav-icon"><i class="fa-solid fa-right-left"></i></span><span class="nav-text">Chọn cửa hàng</span></a></li>
-            @if (!string.IsNullOrEmpty(Context.Session.GetString("ViewAsStoreId")))
+            <div class="nav-label">Quản trị hệ thống</div>
+            <ul class="nav-list">
+                <li>
+                    <a class="nav-link @Active("/admin/dashboard")" href="/Admin/Dashboard/Index">
+                        <span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span>
+                        <span class="nav-text">Tổng quan</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link @Active("/admin/revenue")" href="/Admin/Revenue/Index">
+                        <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
+                        <span class="nav-text">Doanh thu</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link @Active("/admin/stores")" href="/Admin/Stores/Index">
+                        <span class="nav-icon"><i class="fa-solid fa-store"></i></span>
+                        <span class="nav-text">Cửa hàng</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link @Active("/admin/users")" href="/Admin/Users/Index">
+                        <span class="nav-icon"><i class="fa-solid fa-user-shield"></i></span>
+                        <span class="nav-text">Admin cửa hàng</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link @Active("/admin/reports/compare")" href="/Admin/Reports/Compare">
+                        <span class="nav-icon"><i class="fa-solid fa-chart-column"></i></span>
+                        <span class="nav-text">So sánh cửa hàng</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link @Active("/superadmin/storeselect")" href="/SuperAdmin/StoreSelect">
+                        <span class="nav-icon"><i class="fa-solid fa-right-left"></i></span>
+                        <span class="nav-text">Chọn cửa hàng</span>
+                    </a>
+                </li>
+            </ul>
+
+            @if (hasSelectedStore)
             {
-                <li class="nav-item"><a class="nav-link @IsActive("/admin/tables")" href="/Admin/Tables/Index"><span class="nav-icon"><i class="fa-solid fa-table-cells"></i></span><span class="nav-text">Bàn cửa hàng</span></a></li>
-                <li class="nav-item"><a class="nav-link @IsActive("/admin/products")" href="/Admin/Products/Index"><span class="nav-icon"><i class="fa-solid fa-box-open"></i></span><span class="nav-text">Sản phẩm cửa hàng</span></a></li>
-                <li class="nav-item"><a class="nav-link @IsActive("/admin/categories")" href="/Admin/Categories/Index"><span class="nav-icon"><i class="fa-solid fa-tags"></i></span><span class="nav-text">Danh mục cửa hàng</span></a></li>
-                <li class="nav-item"><a class="nav-link @IsActive("/admin/combos")" href="/Admin/Combos/Index"><span class="nav-icon"><i class="fa-solid fa-layer-group"></i></span><span class="nav-text">Combo cửa hàng</span></a></li>
-                <li class="nav-item"><a class="nav-link @IsActive("/admin/customers")" href="/Admin/Customers/Index"><span class="nav-icon"><i class="fa-solid fa-users"></i></span><span class="nav-text">Khách hàng cửa hàng</span></a></li>
-                <li class="nav-item"><a class="nav-link @IsActive("/admin/staff")" href="/Admin/Staff/Index"><span class="nav-icon"><i class="fa-solid fa-users-gear"></i></span><span class="nav-text">Nhân viên cửa hàng</span></a></li>
+                <div class="nav-label">Cửa hàng đang chọn</div>
+                <ul class="nav-list">
+                    <li>
+                        <a class="nav-link @Active("/admin/tables")" href="/Admin/Tables/Index">
+                            <span class="nav-icon"><i class="fa-solid fa-table-cells"></i></span>
+                            <span class="nav-text">Quản lý Bàn</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link @Active("/admin/products")" href="/Admin/Products/Index">
+                            <span class="nav-icon"><i class="fa-solid fa-box-open"></i></span>
+                            <span class="nav-text">Sản phẩm</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link @Active("/admin/categories")" href="/Admin/Categories/Index">
+                            <span class="nav-icon"><i class="fa-solid fa-tags"></i></span>
+                            <span class="nav-text">Danh mục</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link @Active("/admin/combos")" href="/Admin/Combos/Index">
+                            <span class="nav-icon"><i class="fa-solid fa-layer-group"></i></span>
+                            <span class="nav-text">Gói Combo</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link @Active("/admin/customers")" href="/Admin/Customers/Index">
+                            <span class="nav-icon"><i class="fa-solid fa-users"></i></span>
+                            <span class="nav-text">Khách hàng</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link @Active("/admin/staff")" href="/Admin/Staff/Index">
+                            <span class="nav-icon"><i class="fa-solid fa-users-gear"></i></span>
+                            <span class="nav-text">Nhân viên</span>
+                        </a>
+                    </li>
+                </ul>
             }
         }
         else
         {
-        <li class="nav-item">
-            <a class="nav-link @IsActive("/admin/dashboard")" href="/Admin/Dashboard/Index">
-                <span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span>
-                <span class="nav-text">Dashboard</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @IsActive("/admin/tables")" href="/Admin/Tables/Index">
-                <span class="nav-icon"><i class="fa-solid fa-table-cells"></i></span>
-                <span class="nav-text">Quản lý Bàn</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @IsActive("/admin/products")" href="/Admin/Products/Index">
-                <span class="nav-icon"><i class="fa-solid fa-box-open"></i></span>
-                <span class="nav-text">Sản phẩm</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @IsActive("/admin/combos")" href="/Admin/Combos/Index">
-                <span class="nav-icon"><i class="fa-solid fa-layer-group"></i></span>
-                <span class="nav-text">Gói Combo</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @IsActive("/admin/revenue")" href="/Admin/Revenue/Index">
-                <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
-                <span class="nav-text">Doanh thu</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @IsActive("/admin/staff")" href="/Admin/Staff/Index">
-                <span class="nav-icon"><i class="fa-solid fa-users-gear"></i></span>
-                <span class="nav-text">Nhân viên</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @IsActive("/admin/customers")" href="/Admin/Customers/Index">
-                <span class="nav-icon"><i class="fa-solid fa-users"></i></span>
-                <span class="nav-text">Khách Hàng</span>
-            </a>
-        </li>
+            <div class="nav-label">Menu chính</div>
+            <ul class="nav-list">
+                <li>
+                    <a class="nav-link @Active("/admin/dashboard")" href="/Admin/Dashboard/Index">
+                        <span class="nav-icon"><i class="fa-solid fa-gauge-high"></i></span>
+                        <span class="nav-text">Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link @Active("/admin/tables")" href="/Admin/Tables/Index">
+                        <span class="nav-icon"><i class="fa-solid fa-table-cells"></i></span>
+                        <span class="nav-text">Quản lý Bàn</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link @Active("/admin/products")" href="/Admin/Products/Index">
+                        <span class="nav-icon"><i class="fa-solid fa-box-open"></i></span>
+                        <span class="nav-text">Sản phẩm</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link @Active("/admin/combos")" href="/Admin/Combos/Index">
+                        <span class="nav-icon"><i class="fa-solid fa-layer-group"></i></span>
+                        <span class="nav-text">Gói Combo</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link @Active("/admin/revenue")" href="/Admin/Revenue/Index">
+                        <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
+                        <span class="nav-text">Doanh thu</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link @Active("/admin/staff")" href="/Admin/Staff/Index">
+                        <span class="nav-icon"><i class="fa-solid fa-users-gear"></i></span>
+                        <span class="nav-text">Nhân viên</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link @Active("/admin/customers")" href="/Admin/Customers/Index">
+                        <span class="nav-icon"><i class="fa-solid fa-users"></i></span>
+                        <span class="nav-text">Khách hàng</span>
+                    </a>
+                </li>
+            </ul>
         }
-    </ul>
 
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-menu-label">HỆ THỐNG</div>
-    <ul class="sidebar-nav">
-        <li class="nav-item"><a class="nav-link @IsActive("/profile")" href="/Profile/Index"><span class="nav-icon"><i class="fa-solid fa-user"></i></span><span class="nav-text">Hồ sơ cá nhân</span></a></li>
-        <li class="nav-item">
-            <a class="nav-link" href="/Auth/Logout">
-                <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span>
-                <span class="nav-text">Đăng xuất</span>
-            </a>
-        </li>
-    </ul>
+        <div class="sidebar-divider"></div>
+        <div class="nav-label">Tài khoản</div>
+        <ul class="nav-list">
+            <li>
+                <a class="nav-link @Active("/profile")" href="/Profile/Index">
+                    <span class="nav-icon"><i class="fa-solid fa-user"></i></span>
+                    <span class="nav-text">Hồ sơ cá nhân</span>
+                </a>
+            </li>
+            <li>
+                <a class="nav-link" href="/Auth/Logout">
+                    <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+                    <span class="nav-text">Đăng xuất</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="sidebar-footer sidebar-footer-text">
+        &copy; 2026 BilliardPro &middot; v2.0
+    </div>
 </nav>
-<!-- Sidebar Overlay (mobile) -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<partial name="_StoreContext" />

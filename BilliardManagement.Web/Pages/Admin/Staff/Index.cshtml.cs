@@ -17,7 +17,7 @@ namespace BilliardManagement.Web.Pages.Admin.Staff
         public string? ErrorMessage { get; set; }
 
         [BindProperty]
-        public RegisterRequest NewStaff { get; set; } = new();
+        public CreateUserRequest NewStaff { get; set; } = new();
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -48,6 +48,7 @@ namespace BilliardManagement.Web.Pages.Admin.Staff
                     Username = NewStaff.Username,
                     Password = NewStaff.Password,
                     PhoneNumber = NewStaff.PhoneNumber,
+                    Email = NewStaff.Email,
                     Role = 2,
                     StoreId = CurrentRole == "SuperAdmin" && Guid.TryParse(HttpContext.Session.GetString("ViewAsStoreId"), out var storeId) ? storeId : null
                 });

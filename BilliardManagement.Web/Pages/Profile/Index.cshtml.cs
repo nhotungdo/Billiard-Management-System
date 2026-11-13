@@ -40,6 +40,8 @@ namespace BilliardManagement.Web.Pages.Profile
         [BindProperty]
         public string ActiveTab { get; set; } = "profile";
 
+        public string? ErrorMessage { get; set; }
+
         public async Task<IActionResult> OnGetAsync()
         {
             try
@@ -48,7 +50,7 @@ namespace BilliardManagement.Web.Pages.Profile
                 if (profile == null)
                 {
                     TempData["ErrorMessage"] = "Không thể tải thông tin cá nhân.";
-                    return RedirectToPage("/Dashboard/Index");
+                    return RedirectToPage(HomePage());
                 }
 
                 FullName = profile.FullName;
@@ -64,9 +66,17 @@ namespace BilliardManagement.Web.Pages.Profile
             catch (Exception ex)
             {
                 TempData["ErrorMessage"] = $"Lỗi: {ex.Message}";
-                return RedirectToPage("/Dashboard/Index");
+                return RedirectToPage(HomePage());
             }
         }
+
+        private string HomePage() => CurrentRole switch
+        {
+            "SuperAdmin" => "/Admin/Dashboard/Index",
+            "Admin" => "/Admin/Dashboard/Index",
+            "Staff" => "/Staff/Dashboard/Index",
+            _ => "/Auth/Login"
+        };
 
         public async Task<IActionResult> OnPostUpdateProfileAsync()
         {

@@ -1,27 +1,234 @@
 @model BilliardManagement.Web.Pages.Admin.Dashboard.IndexModel
 @using System.Text.Json
-<div class="dashboard-header mb-4"><h1 class="page-title">Tổng quan hệ thống</h1><p class="text-muted">BilliardPro — System Admin · Thống kê theo ngày UTC</p></div>
-@if (Model.ErrorMessage != null) { <div class="alert alert-danger">@Model.ErrorMessage</div> }
-<div class="row g-3 mb-4">
-    @foreach (var card in new[] { ("Tổng cửa hàng", Model.SystemOverview.TotalStores.ToString()), ("Bàn đang chơi", Model.SystemOverview.ActiveTables.ToString()), ("Doanh thu hôm nay", Model.SystemOverview.TodayRevenue.ToString("N0") + " đ"), ("Tài khoản hoạt động", Model.SystemOverview.ActiveUsers.ToString()) })
-    {
-        <div class="col-sm-6 col-xl-3"><div class="card-panel p-4 stat-card-system"><div class="text-muted mb-2">@card.Item1</div><h3>@card.Item2</h3></div></div>
-    }
-</div>
-<div class="card-panel mb-4"><div class="panel-header"><h5 class="panel-title">Cửa hàng theo doanh thu 7 ngày gần nhất</h5></div><div class="panel-body table-responsive">
-<table class="data-table"><thead><tr><th>Cửa hàng</th><th>Bàn</th><th>Phiên hôm nay</th><th>Doanh thu 7 ngày</th><th>So với 7 ngày trước</th></tr></thead><tbody>
-@foreach (var store in Model.SystemOverview.Stores.OrderByDescending(s => s.Revenue))
-{
-    <tr><td><a href="/Admin/Stores/Index?detailId=@store.StoreId">@store.StoreName</a></td><td>@store.TableCount</td><td>@store.SessionsToday</td><td>@store.Revenue.ToString("N0") đ</td><td>@(store.GrowthPercent.HasValue ? store.GrowthPercent.Value.ToString("+0.0;-0.0;0") + "%" : "Chưa có kỳ gốc")</td></tr>
+@{
+    var overview = Model.SystemOverview;
+    var totalRevenue = overview.Stores.Sum(s => s.Revenue);
 }
-@if (!Model.SystemOverview.Stores.Any()) { <tr><td colspan="5" class="text-center text-muted">Chưa có cửa hàng</td></tr> }
-</tbody></table></div></div>
-<div class="row g-4"><div class="col-lg-8"><div class="card-panel p-4"><h5>Doanh thu 30 ngày</h5><div style="height:300px"><canvas id="systemTrend"></canvas></div></div></div><div class="col-lg-4"><div class="card-panel p-4"><h5>Tỷ trọng doanh thu 7 ngày</h5><div style="height:300px"><canvas id="systemShare"></canvas></div></div></div></div>
+
+<div class="bento-grid">
+    <div class="bento-card bento-violet bento-col-4">
+        <div class="bento-top">
+            <span class="bento-label">Tổng cửa hàng</span>
+            <span class="bento-icon"><i class="fa-solid fa-store"></i></span>
+        </div>
+        <div>
+            <div class="bento-value">@overview.TotalStores</div>
+            <div class="bento-sub"><i class="fa-solid fa-layer-group me-1"></i>Đang được vận hành trong hệ thống</div>
+        </div>
+    </div>
+    <div class="bento-card bento-emerald bento-col-4">
+        <div class="bento-top">
+            <span class="bento-label">Doanh thu hôm nay</span>
+            <span class="bento-icon"><i class="fa-solid fa-sack-dollar"></i></span>
+        </div>
+        <div>
+            <div class="bento-value">@overview.TodayRevenue.ToString("N0") đ</div>
+            <div class="bento-sub"><i class="fa-solid fa-bolt me-1"></i>Tổng hợp toàn bộ cửa hàng</div>
+        </div>
+    </div>
+    <div class="bento-card bento-sky bento-col-4">
+        <div class="bento-top">
+            <span class="bento-label">Bàn đang hoạt động</span>
+            <span class="bento-icon"><i class="fa-solid fa-table-cells"></i></span>
+        </div>
+        <div>
+            <div class="bento-value">@overview.ActiveTables</div>
+            <div class="bento-sub"><i class="fa-solid fa-gamepad me-1"></i>Bàn đang có khách chơi</div>
+        </div>
+    </div>
+    <div class="bento-card bento-teal bento-col-4">
+        <div class="bento-top">
+            <span class="bento-label">Tài khoản hoạt động</span>
+            <span class="bento-icon"><i class="fa-solid fa-users-gear"></i></span>
+        </div>
+        <div>
+            <div class="bento-value">@overview.ActiveUsers</div>
+            <div class="bento-sub"><i class="fa-solid fa-user-check me-1"></i>Đang được cấp quyền truy cập</div>
+        </div>
+    </div>
+    <div class="bento-card bento-amber bento-col-4">
+        <div class="bento-top">
+            <span class="bento-label">Doanh thu 7 ngày</span>
+            <span class="bento-icon"><i class="fa-solid fa-chart-line"></i></span>
+        </div>
+        <div>
+            <div class="bento-value">@totalRevenue.ToString("N0") đ</div>
+            <div class="bento-sub"><i class="fa-solid fa-calendar-days me-1"></i>Tổng cộng tất cả chi nhánh</div>
+        </div>
+    </div>
+    <div class="bento-card bento-slate bento-col-4">
+        <div class="bento-top">
+            <span class="bento-label">Cửa hàng hoạt động</span>
+            <span class="bento-icon"><i class="fa-solid fa-circle-check"></i></span>
+        </div>
+        <div>
+            <div class="bento-value">@overview.Stores.Count(s => s.IsActive)</div>
+            <div class="bento-sub"><i class="fa-solid fa-circle-pause me-1"></i>@overview.Stores.Count(s => !s.IsActive) cửa hàng đang tạm dừng</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-12 col-xl-8">
+        <div class="panel h-100">
+            <div class="panel-head">
+                <div>
+                    <h5 class="panel-title"><i class="fa-solid fa-chart-line"></i>Doanh thu 30 ngày toàn hệ thống</h5>
+                    <p class="panel-sub">Tổng hợp doanh thu tất cả cửa hàng theo ngày</p>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="chart-box"><canvas id="systemTrend"></canvas></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-xl-4">
+        <div class="panel h-100">
+            <div class="panel-head">
+                <div>
+                    <h5 class="panel-title"><i class="fa-solid fa-chart-pie"></i>Tỷ trọng doanh thu</h5>
+                    <p class="panel-sub">Phân bổ theo cửa hàng trong 7 ngày</p>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="chart-box"><canvas id="systemShare"></canvas></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h5 class="panel-title"><i class="fa-solid fa-store"></i>Hiệu quả cửa hàng (7 ngày gần nhất)</h5>
+            <p class="panel-sub">Bấm vào tên cửa hàng để xem chi tiết</p>
+        </div>
+        <a href="/Admin/Stores/Index" class="btn btn-soft btn-sm">Quản lý cửa hàng <i class="fa-solid fa-chevron-right"></i></a>
+    </div>
+    <div class="panel-body flush">
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Cửa hàng</th>
+                        <th>Trạng thái</th>
+                        <th class="num">Bàn</th>
+                        <th class="num">Phiên hôm nay</th>
+                        <th class="num">Doanh thu 7 ngày</th>
+                        <th class="num">So với kỳ trước</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!overview.Stores.Any())
+                    {
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <i class="fa-solid fa-store"></i>
+                                    <h6>Chưa có cửa hàng</h6>
+                                    <p>Tạo cửa hàng đầu tiên để bắt đầu vận hành.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var store in overview.Stores.OrderByDescending(s => s.Revenue))
+                        {
+                            var growth = store.GrowthPercent;
+                            <tr>
+                                <td class="cell-strong"><a href="/Admin/Stores/Index?detailId=@store.StoreId">@store.StoreName</a></td>
+                                <td>
+                                    @if (store.IsActive)
+                                    {
+                                        <span class="chip chip-success"><span class="dot dot-success"></span>Hoạt động</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="chip chip-muted"><span class="dot dot-muted"></span>Tạm dừng</span>
+                                    }
+                                </td>
+                                <td class="num">@store.ActiveTables / @store.TableCount</td>
+                                <td class="num">@store.SessionsToday</td>
+                                <td class="num money">@store.Revenue.ToString("N0") đ</td>
+                                <td class="num">
+                                    @if (growth.HasValue)
+                                    {
+                                        var up = growth.Value >= 0;
+                                        <span class="chip @(up ? "chip-success" : "chip-danger")">
+                                            <i class="fa-solid fa-arrow-@(up ? "up" : "down") me-1"></i>@growth.Value.ToString("+0.0;-0.0;0")%
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="cell-sub">Chưa có kỳ gốc</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-(() => {
-    const data = @Html.Raw(JsonSerializer.Serialize(Model.SystemOverview, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
-    new Chart(document.getElementById('systemTrend'), {type:'line', data:{labels:data.dailyRevenues.map(d=>d.date.slice(0,10)),datasets:[{label:'Doanh thu (đ)',data:data.dailyRevenues.map(d=>d.totalRevenue),borderColor:'#4f46e5',tension:0.3}]},options:{maintainAspectRatio:false}});
-    new Chart(document.getElementById('systemShare'), {type:'doughnut', data:{labels:data.stores.map(s=>s.storeName),datasets:[{data:data.stores.map(s=>s.revenue)}]},options:{maintainAspectRatio:false}});
-})();
+    (function () {
+        if (typeof Chart === 'undefined') return;
+        const data = @Html.Raw(JsonSerializer.Serialize(overview, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+        const palette = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#8b5cf6', '#ec4899'];
+
+        const trend = document.getElementById('systemTrend');
+        if (trend) {
+            new Chart(trend, {
+                type: 'line',
+                data: {
+                    labels: (data.dailyRevenues || []).map(d => String(d.date).slice(0, 10)),
+                    datasets: [{
+                        label: 'Doanh thu (đ)',
+                        data: (data.dailyRevenues || []).map(d => d.totalRevenue),
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, .08)',
+                        borderWidth: 3,
+                        tension: .35,
+                        fill: true,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { grid: { color: '#f1f5f9' }, ticks: { callback: v => Number(v).toLocaleString('vi-VN') + ' đ' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        const share = document.getElementById('systemShare');
+        if (share) {
+            new Chart(share, {
+                type: 'doughnut',
+                data: {
+                    labels: (data.stores || []).map(s => s.storeName),
+                    datasets: [{
+                        data: (data.stores || []).map(s => s.revenue),
+                        backgroundColor: palette,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '66%',
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 11, padding: 12, font: { size: 11 } } } }
+                }
+            });
+        }
+    })();
 </script>

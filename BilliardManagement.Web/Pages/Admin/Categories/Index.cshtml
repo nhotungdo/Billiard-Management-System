@@ -1,88 +1,201 @@
 @page
 @model BilliardManagement.Web.Pages.Admin.Categories.IndexModel
-@{ Layout = null; }
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Billiard Admin Panel</title>
-    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="/css/admin.css" asp-append-version="true" />
-    <link rel="stylesheet" href="/BilliardManagement.Web.styles.css" asp-append-version="true" />
-    @{
-        var apiToken = HttpContext.Session.GetString("JWToken");
-    }
-    @if (!string.IsNullOrEmpty(apiToken))
-    {
-        <meta name="api-token" content="@apiToken" />
-        <meta name="api-base-url" content="http://localhost:8080/api/" />
-        <meta name="api-origin" content="http://localhost:8080" />
-        <meta name="hub-base-url" content="http://localhost:8080" />
-    }
-</head>
-<body class="admin-body">
-    <div id="admin-wrapper">
-        <partial name="_AdminSidebar" />
-        <div id="admin-content-wrapper">
-            <nav id="admin-topbar">
-                <div class="topbar-left">
-                    <button class="sidebar-toggle-btn" id="sidebarToggle" title="Toggle Sidebar">
-                        <i class="fa-solid fa-bars"></i>
-                    </button>
-                    <div class="topbar-breadcrumb">
-                        <span class="breadcrumb-label">@(ViewData["BreadcrumbTitle"] ?? ViewData["Title"])</span>
-                    </div>
-                </div>
-                <div class="topbar-right">
-                    <span class="role-badge admin-badge">
-                        <i class="fa-solid fa-shield-halved me-1"></i> Admin
-                    </span>
-                    <div class="dropdown user-dropdown">
-                        <button class="btn user-avatar-btn dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="avatar-circle">
-                                <i class="fa-solid fa-user-tie"></i>
-                            </div>
-                            <span class="user-name d-none d-md-inline">@HttpContext.Session.GetString("FullName")</span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end user-menu" aria-labelledby="userDropdown">
-                            <li class="dropdown-header">
-                                <div class="user-info-header">
-                                    <div class="avatar-circle-sm"><i class="fa-solid fa-user-tie"></i></div>
-                                    <div>
-                                        <div class="fw-600">@HttpContext.Session.GetString("FullName")</div>
-                                        <div class="text-muted small">@HttpContext.Session.GetString("Username")</div>
-                                    </div>
-                                </div>
-                            </li>
-                            <li><hr class="dropdown-divider" /></li>
-                            <li>
-                                <a class="dropdown-item" href="/Auth/Logout">
-                                    <i class="fa-solid fa-right-from-bracket me-2 text-danger"></i>Đăng xuất
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </nav>
-            <main id="admin-content">
-                @if (TempData["SuccessMessage"] != null)
-                {
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                }
-                @if (TempData["ErrorMessage"] != null)
-                {
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="fa-solid fa-triangle-exclamation me-2"></i>@TempData["ErrorMessage"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                }
+@{
+    ViewData["Title"] = "Danh mục sản phẩm";
+}
 
-@{  }
-</body>
-</html>
+<div class="page-head">
+    <div>
+        <h1 class="page-title"><i class="fa-solid fa-tags"></i>Danh mục sản phẩm</h1>
+        <p class="page-subtitle">Phân loại sản phẩm phục vụ tại bàn — dùng chung cho toàn cửa hàng.</p>
+    </div>
+    <div class="page-actions">
+        <button class="btn btn-accent" type="button" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
+            <i class="fa-solid fa-plus"></i>Thêm danh mục
+        </button>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-xl-8">
+        <div class="panel">
+            <div class="panel-head">
+                <div>
+                    <h5 class="panel-title"><i class="fa-solid fa-list"></i>Danh sách danh mục</h5>
+                    <p class="panel-sub">@Model.Categories.Count danh mục đang sử dụng</p>
+                </div>
+            </div>
+            <div class="panel-body flush">
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width:60px">#</th>
+                                <th>Tên danh mục</th>
+                                <th>Mô tả</th>
+                                <th>Trạng thái</th>
+                                <th class="actions" style="width:120px">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.Categories.Any())
+                            {
+                                <tr>
+                                    <td colspan="5">
+                                        <div class="empty-state">
+                                            <i class="fa-solid fa-tags"></i>
+                                            <h6>Chưa có danh mục nào</h6>
+                                            <p>Thêm danh mục đầu tiên để phân loại sản phẩm.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                var i = 1;
+                                foreach (var c in Model.Categories)
+                                {
+                                    <tr>
+                                        <td class="row-index">@(i++)</td>
+                                        <td class="cell-strong">@c.CategoryName</td>
+                                        <td class="cell-sub text-truncate-1">@(string.IsNullOrEmpty(c.Description) ? "—" : c.Description)</td>
+                                        <td>
+                                            @if (c.IsActive)
+                                            {
+                                                <span class="chip chip-success"><span class="dot dot-success"></span>Hoạt động</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="chip chip-muted"><span class="dot dot-muted"></span>Ngừng</span>
+                                            }
+                                        </td>
+                                        <td class="actions">
+                                            <div class="d-inline-flex gap-2">
+                                                <button type="button" class="btn btn-icon sm edit-category-btn"
+                                                        data-id="@c.Id"
+                                                        data-name="@c.CategoryName"
+                                                        data-description="@c.Description"
+                                                        title="Sửa danh mục">
+                                                    <i class="fa-solid fa-pen-to-square"></i>
+                                                </button>
+                                                <form method="post" asp-page-handler="Delete" asp-route-id="@c.Id" class="d-inline" data-confirm="Bạn có chắc chắn muốn xóa danh mục này?">
+                                                    <button type="submit" class="btn btn-icon sm danger" title="Xóa danh mục">
+                                                        <i class="fa-solid fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-4">
+        <div class="panel">
+            <div class="panel-head">
+                <div>
+                    <h5 class="panel-title"><i class="fa-solid fa-circle-info"></i>Ghi chú</h5>
+                </div>
+            </div>
+            <div class="panel-body">
+                <p class="cell-sub mb-3">
+                    Danh mục được dùng khi tạo sản phẩm và khi áp dụng gói combo.
+                    Xoá danh mục sẽ ảnh hưởng tới các sản phẩm đang thuộc danh mục đó.
+                </p>
+                <a href="/Admin/Products/Index" class="btn btn-soft w-100 justify-content-center">
+                    <i class="fa-solid fa-box-open"></i>Quản lý sản phẩm
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create -->
+<div class="modal fade" id="createCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Create">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa-solid fa-circle-plus me-2 text-primary"></i>Thêm danh mục</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label asp-for="CategoryForm.CategoryName" class="form-label">Tên danh mục <span class="text-danger">*</span></label>
+                        <input asp-for="CategoryForm.CategoryName" id="newCategoryName" class="form-control" required maxlength="50" placeholder="VD: Nước ngọt" />
+                        <span asp-validation-for="CategoryForm.CategoryName" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-0">
+                        <label asp-for="CategoryForm.Description" class="form-label">Mô tả</label>
+                        <textarea asp-for="CategoryForm.Description" id="newCategoryDescription" class="form-control" rows="2" placeholder="Mô tả ngắn (tùy chọn)"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-accent"><i class="fa-solid fa-floppy-disk"></i>Lưu danh mục</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Update" id="editCategoryForm">
+                <input type="hidden" name="id" id="editCategoryId" />
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa-solid fa-pen-to-square me-2 text-primary"></i>Sửa danh mục</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="editCategoryName">Tên danh mục <span class="text-danger">*</span></label>
+                        <input type="text" id="editCategoryName" name="CategoryForm.CategoryName" class="form-control" required maxlength="50" />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label" for="editCategoryDescription">Mô tả</label>
+                        <textarea id="editCategoryDescription" name="CategoryForm.Description" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-accent"><i class="fa-solid fa-floppy-disk"></i>Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('.edit-category-btn');
+                if (!btn) return;
+                document.getElementById('editCategoryId').value = btn.dataset.id;
+                document.getElementById('editCategoryName').value = btn.dataset.name || '';
+                document.getElementById('editCategoryDescription').value = btn.dataset.description || '';
+                new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
+            });
+
+            document.addEventListener('submit', async function (e) {
+                const form = e.target.closest('form[data-confirm]');
+                if (!form) return;
+                e.preventDefault();
+                const ok = await confirmAction({
+                    title: 'Xóa danh mục',
+                    message: form.dataset.confirm,
+                    confirmText: 'Xóa'
+                });
+                if (ok) form.submit();
+            });
+        })();
+    </script>
+}

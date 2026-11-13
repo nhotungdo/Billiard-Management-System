@@ -17,8 +17,8 @@ namespace BilliardManagement.Web.Pages.Staff.Products
         [BindProperty]
         public EditProductViewModel EditProduct { get; set; } = new();
 
+        public List<CategoryDto> Categories { get; set; } = new();
         public string? ErrorMessage { get; set; }
-        public string? SuccessMessage { get; set; }
         public string? ExistingImageUrl { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
@@ -34,7 +34,7 @@ namespace BilliardManagement.Web.Pages.Staff.Products
                 EditProduct = new EditProductViewModel
                 {
                     Name = product.Name,
-                    Category = product.Category,
+                    Category = product.CategoryId.ToString(),
                     Price = product.Price,
                     Stock = product.Stock,
                     Description = product.Description,
@@ -47,6 +47,8 @@ namespace BilliardManagement.Web.Pages.Staff.Products
             {
                 ErrorMessage = ex.Message;
             }
+
+            await LoadCategoriesAsync();
             return Page();
         }
 
@@ -54,12 +56,12 @@ namespace BilliardManagement.Web.Pages.Staff.Products
         {
             if (!ModelState.IsValid)
             {
+                await LoadCategoriesAsync();
                 return Page();
             }
 
             try
             {
-                // Category field stores CategoryId Guid as string, or CategoryName string
                 Guid.TryParse(EditProduct.Category, out var categoryId);
                 if (categoryId == Guid.Empty)
                 {
@@ -85,11 +87,11 @@ namespace BilliardManagement.Web.Pages.Staff.Products
 
                 if (success)
                 {
-                    TempData["SuccessMessage"] = "Cáº­p nháº­t sáº£n pháº©m thÃ nh cÃ´ng";
+                    TempData["SuccessMessage"] = "Cập nhật sản phẩm thành công.";
                     return RedirectToPage("./Index");
                 }
-                
-                ErrorMessage = "KhÃ´ng thá»ƒ cáº­p nháº­t sáº£n pháº©m";
+
+                ErrorMessage = "Không thể cập nhật sản phẩm";
             }
             catch (Exception ex)
             {
@@ -97,20 +99,33 @@ namespace BilliardManagement.Web.Pages.Staff.Products
                 ExistingImageUrl = EditProduct.ExistingImageUrl;
             }
 
+            await LoadCategoriesAsync();
             return Page();
+        }
+
+        private async Task LoadCategoriesAsync()
+        {
+            try
+            {
+                Categories = await _productService.GetAllCategoriesAsync() ?? new();
+            }
+            catch
+            {
+                Categories = new();
+            }
         }
     }
 
     public class EditProductViewModel
     {
-        [Required(ErrorMessage = "TÃªn sáº£n pháº©m khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng")]
+        [Required(ErrorMessage = "Tên sản phẩm không được để trống")]
         public string Name { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Danh má»¥c khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng")]
+        [Required(ErrorMessage = "Danh mục không được để trống")]
         public string Category { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "GiÃ¡ bÃ¡n khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng")]
-        [Range(1000, double.MaxValue, ErrorMessage = "GiÃ¡ bÃ¡n pháº£i lá»›n hÆ¡n 0")]
+        [Required(ErrorMessage = "Giá bán không được để trống")]
+        [Range(0, double.MaxValue, ErrorMessage = "Giá bán phải lớn hơn 0")]
         public decimal Price { get; set; }
 
         public int Stock { get; set; }
@@ -124,4 +139,3 @@ namespace BilliardManagement.Web.Pages.Staff.Products
         public IFormFile? ImageFile { get; set; }
     }
 }
-

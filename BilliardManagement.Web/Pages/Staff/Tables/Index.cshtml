@@ -1,307 +1,186 @@
 @page
 @model BilliardManagement.Web.Pages.Staff.Tables.IndexModel
-@{ Layout = null; }
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Billiard Staff Portal</title>
-    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="/css/staff.css" asp-append-version="true" />
-    <link rel="stylesheet" href="/BilliardManagement.Web.styles.css" asp-append-version="true" />
-    @{
-        var apiToken = HttpContext.Session.GetString("JWToken");
-    }
-    @if (!string.IsNullOrEmpty(apiToken))
-    {
-        <meta name="api-token" content="@apiToken" />
-        <meta name="api-base-url" content="http://localhost:8080/api/" />
-        <meta name="api-origin" content="http://localhost:8080" />
-        <meta name="hub-base-url" content="http://localhost:8080" />
-    }
-    <style>
-        .quick-toggle-btn { padding: 0.35rem 0.65rem; font-size: 0.8rem; border-radius: 8px; font-weight: 600; }
-        .staff-status-select:disabled { opacity: 0.7; }
-        .data-table th {
-            font-family: 'Outfit', sans-serif;
-            font-weight: 700;
-            white-space: nowrap;
-        }
-        .data-table td {
-            vertical-align: middle;
-            white-space: nowrap;
-        }
-    </style>
-</head>
-<body class="staff-body">
-    <div id="staff-wrapper">
-        <partial name="_StaffSidebar" />
-        <div id="staff-content-wrapper">
-            <nav id="staff-topbar">
-                <div class="topbar-left">
-                    <button class="sidebar-toggle-btn" id="sidebarToggle" title="Toggle Sidebar">
-                        <i class="fa-solid fa-bars"></i>
-                    </button>
-                    <div class="topbar-breadcrumb">
-                        <span class="breadcrumb-label">@(ViewData["BreadcrumbTitle"] ?? ViewData["Title"] ?? "Quản lý Bàn")</span>
-                    </div>
-                </div>
-                <div class="topbar-right">
-                    <span class="role-badge staff-badge">
-                        <i class="fa-solid fa-id-badge me-1"></i> Staff
-                    </span>
-                    <div class="dropdown user-dropdown">
-                        <button class="btn user-avatar-btn dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="avatar-circle staff-avatar">
-                                <i class="fa-solid fa-user"></i>
-                            </div>
-                            <span class="user-name d-none d-md-inline">@HttpContext.Session.GetString("FullName")</span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end user-menu" aria-labelledby="userDropdown">
-                            <li class="dropdown-header">
-                                <div class="user-info-header">
-                                    <div class="avatar-circle-sm staff-avatar"><i class="fa-solid fa-user"></i></div>
-                                    <div>
-                                        <div class="fw-600">@HttpContext.Session.GetString("FullName")</div>
-                                        <div class="text-muted small">@HttpContext.Session.GetString("Username")</div>
-                                    </div>
-                                </div>
-                            </li>
-                            <li><hr class="dropdown-divider" /></li>
-                            <li>
-                                <a class="dropdown-item" href="/Auth/Logout">
-                                    <i class="fa-solid fa-right-from-bracket me-2 text-danger"></i>Đăng xuất
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </nav>
-            <main id="staff-content">
-                @if (TempData["SuccessMessage"] != null)
-                {
-                    <div class="alert alert-success alert-dismissible fade show rounded-3" role="alert">
-                        <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                }
-                @if (TempData["ErrorMessage"] != null)
-                {
-                    <div class="alert alert-danger alert-dismissible fade show rounded-3" role="alert">
-                        <i class="fa-solid fa-triangle-exclamation me-2"></i>@TempData["ErrorMessage"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                }
-
 @{
-    ViewData["Title"] = "Quản lý Bàn";
-    ViewData["BreadcrumbTitle"] = "Quản lý bàn";
+    ViewData["Title"] = "Quản lý bàn";
+    var tableTypes = new[] { "Pool 8 Ball", "Pool 9 Ball", "Snooker", "Carom", "Libre", "English Billiards", "Russian Pyramid", "VIP", "Phòng đôi", "Bàn thi đấu" };
 }
 
-<div id="app-toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100;"></div>
-
-<!-- Header with Action -->
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+<div class="page-head">
     <div>
-        <h1 class="page-title mb-1"><i class="fa-solid fa-table-cells text-success me-2"></i>Quản lý Bàn Bida</h1>
-        <p class="page-subtitle mb-0">Quản lý toàn bộ danh sách bàn, trạng thái và giá giờ chơi</p>
+        <h1 class="page-title"><i class="fa-solid fa-table-cells"></i>Quản lý Bàn</h1>
+        <p class="page-subtitle">Danh sách bàn dạng bảng — đổi trạng thái nhanh, thêm hoặc sửa cấu hình bàn.</p>
     </div>
-    <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-staff-primary rounded-3 px-3 py-2" type="button" data-bs-toggle="modal" data-bs-target="#createTableModal">
-            <i class="fa-solid fa-circle-plus me-2"></i>Tạo bàn mới
+    <div class="page-actions">
+        <a class="btn btn-soft" href="/Staff/Tables/Map">
+            <i class="fa-solid fa-map-location-dot"></i>Sơ đồ bàn
+        </a>
+        <button class="btn btn-accent" type="button" data-bs-toggle="modal" data-bs-target="#createTableModal">
+            <i class="fa-solid fa-plus"></i>Tạo bàn mới
         </button>
     </div>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
-    <div class="alert alert-warning rounded-3 mb-4">@Model.ErrorMessage</div>
+    <div class="alert alert-danger" role="alert">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>@Model.ErrorMessage
+    </div>
 }
 
-<!-- KPI Cards Grid -->
-<div class="row g-3 mb-4" id="table-stats-row">
-    <div class="col-12 col-sm-6 col-md-3">
-        <div class="kpi-card kpi-staff-tables h-100">
-            <div class="kpi-icon"><i class="fa-solid fa-cubes"></i></div>
-            <div class="kpi-body">
-                <div class="kpi-label">Tổng số bàn</div>
-                <div class="kpi-value" id="table-count">@Model.Tables.Count</div>
-                <div class="kpi-sub">Bàn chơi trong hệ thống</div>
-            </div>
+<div class="stat-grid">
+    <div class="stat-card stat-success">
+        <span class="stat-icon"><i class="fa-solid fa-circle-check"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Trống bàn</div>
+            <div class="stat-value" id="stat-available">@Model.Tables.Count(t => t.Status == 1)</div>
         </div>
     </div>
-    <div class="col-12 col-sm-6 col-md-3">
-        <div class="kpi-card kpi-staff-sessions h-100">
-            <div class="kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
-            <div class="kpi-body">
-                <div class="kpi-label">Trống bàn</div>
-                <div class="kpi-value text-success" id="stat-available">@Model.CountAvailable</div>
-                <div class="kpi-sub">Sẵn sàng đón khách</div>
-            </div>
+    <div class="stat-card stat-danger">
+        <span class="stat-icon"><i class="fa-solid fa-circle-play"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Đang chơi</div>
+            <div class="stat-value" id="stat-playing">@Model.Tables.Count(t => t.Status == 2)</div>
         </div>
     </div>
-    <div class="col-12 col-sm-6 col-md-3">
-        <div class="kpi-card kpi-staff-orders h-100">
-            <div class="kpi-icon" style="background: linear-gradient(135deg, #fef2f2, #fecaca); color: #dc2626;"><i class="fa-solid fa-gamepad"></i></div>
-            <div class="kpi-body">
-                <div class="kpi-label">Đang chơi</div>
-                <div class="kpi-value text-danger">@Model.Tables.Count(t => t.Status == 2)</div>
-                <div class="kpi-sub">Phiên hoạt động</div>
-            </div>
+    <div class="stat-card stat-warning">
+        <span class="stat-icon"><i class="fa-solid fa-clock"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Chờ</div>
+            <div class="stat-value" id="stat-waiting">@Model.Tables.Count(t => t.Status == 3)</div>
         </div>
     </div>
-    <div class="col-12 col-sm-6 col-md-3">
-        <div class="kpi-card kpi-staff-revenue h-100">
-            <div class="kpi-icon" style="background: linear-gradient(135deg, #fffbeb, #fde68a); color: #d97706;"><i class="fa-solid fa-clock"></i></div>
-            <div class="kpi-body">
-                <div class="kpi-label">Chờ / Bảo trì</div>
-                <div class="kpi-value text-warning">@Model.Tables.Count(t => t.Status == 3 || t.Status == 4)</div>
-                <div class="kpi-sub">Bàn chờ hoặc bảo dưỡng</div>
-            </div>
+    <div class="stat-card stat-muted">
+        <span class="stat-icon"><i class="fa-solid fa-wrench"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Bảo trì</div>
+            <div class="stat-value" id="stat-maintenance">@Model.Tables.Count(t => t.Status == 4)</div>
         </div>
     </div>
 </div>
 
-<!-- Main Table Panel -->
-<div class="card-panel shadow-sm border-0 rounded-4">
-    <div class="panel-header d-flex flex-wrap align-items-center justify-content-between gap-3 px-4 py-3 bg-white border-bottom">
-        <div>
-            <h5 class="panel-title mb-1"><i class="fa-solid fa-list-check me-2 text-success"></i>Danh sách Bàn chơi</h5>
-            <p class="panel-sub mb-0 text-muted small">Cập nhật thông tin chi tiết bàn, vị trí, mô tả, loại bàn, giá giờ và trạng thái</p>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            <div class="input-group input-group-sm" style="max-width: 260px;">
-                <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                <input type="text" id="searchTableInput" class="form-control border-start-0 rounded-end-3" placeholder="Tìm tên bàn, loại bàn..." />
-            </div>
+<div class="filter-bar">
+    <div class="field flex-grow-1" style="max-width:320px">
+        <label for="staffTableSearch">Tìm bàn</label>
+        <div class="input-icon">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="staffTableSearch" class="form-control" placeholder="Nhập tên bàn..." />
         </div>
     </div>
-    <div class="panel-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" id="staffTablesListTable">
-                <thead class="table-light">
-                    <tr class="text-uppercase text-secondary small fw-bold" style="letter-spacing: 0.5px;">
-                        <th class="ps-4 py-3" style="width: 50px;">#</th>
-                        <th class="py-3" style="min-width: 260px;">Tên bàn & Mô tả chi tiết</th>
-                        <th class="py-3" style="min-width: 150px;">Loại bàn</th>
-                        <th class="py-3" style="min-width: 150px;">Giá thuê / giờ</th>
-                        <th class="py-3" style="min-width: 170px;">Trạng thái hiện tại</th>
-                        <th class="text-end pe-4 py-3" style="min-width: 210px;">Thao tác xử lý</th>
+    <div class="field" style="min-width:190px">
+        <label for="staffTableStatus">Trạng thái</label>
+        <select id="staffTableStatus" class="form-select">
+            <option value="">Tất cả trạng thái</option>
+            <option value="1">Trống bàn</option>
+            <option value="2">Đang chơi</option>
+            <option value="3">Chờ</option>
+            <option value="4">Bảo trì</option>
+        </select>
+    </div>
+    <div class="field">
+        <label>&nbsp;</label>
+        <button type="button" id="resetStaffTableFilter" class="btn btn-soft">
+            <i class="fa-solid fa-rotate-left"></i>Đặt lại
+        </button>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h5 class="panel-title"><i class="fa-solid fa-list"></i>Danh sách bàn</h5>
+            <p class="panel-sub"><span id="table-count">@Model.Tables.Count</span> bàn</p>
+        </div>
+    </div>
+    <div class="panel-body flush">
+        <div class="table-wrap">
+            <table class="data-table" id="staffTablesList">
+                <thead>
+                    <tr>
+                        <th style="width:52px">#</th>
+                        <th>Tên bàn</th>
+                        <th>Loại</th>
+                        <th class="num">Giá/giờ</th>
+                        <th>Trạng thái</th>
+                        <th class="actions" style="width:250px">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody id="tables-tbody">
                     @if (!Model.Tables.Any())
                     {
-                        <tr id="empty-row"><td colspan="6" class="text-center py-5 text-muted"><i class="fa-solid fa-inbox fa-3x mb-3 text-secondary opacity-50 d-block"></i><div class="fw-semibold">Chưa có bàn nào trong hệ thống</div></td></tr>
+                        <tr id="empty-row">
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <i class="fa-solid fa-inbox"></i>
+                                    <h6>Chưa có bàn nào</h6>
+                                    <p>Liên hệ Admin cửa hàng để thêm bàn.</p>
+                                </div>
+                            </td>
+                        </tr>
                     }
-                    @{ int i = 1; }
-                    @foreach (var t in Model.Tables)
+                    else
                     {
-                        <tr id="row-@t.Id" data-status="@t.Status">
-                            <td class="ps-4 fw-bold text-muted" style="font-size: 0.9rem;">@(i++)</td>
-                            <td>
-                                <div class="d-flex align-items-start gap-3 py-1">
-                                    <div class="avatar-circle-sm bg-success-subtle text-success fw-bold flex-shrink-0 mt-1" style="width: 38px; height: 38px; font-size: 1rem;"><i class="fa-solid fa-bowling-ball"></i></div>
-                                    <div>
-                                        <div class="fw-bold text-dark fs-6 d-flex align-items-center gap-2">
-                                            @t.TableName
-                                            <span class="badge bg-light text-muted border font-monospace fw-normal" style="font-size: 0.72rem;">#@t.Id.ToString().Substring(0, 6)</span>
-                                        </div>
-                                        @if (!string.IsNullOrWhiteSpace(t.Description))
-                                        {
-                                            <div class="small text-secondary mt-1" style="font-size: 0.8rem; max-width: 320px;">
-                                                <i class="fa-regular fa-note-sticky text-success me-1"></i>@t.Description
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <div class="small text-muted fst-italic mt-1" style="font-size: 0.78rem;">
-                                                <i class="fa-regular fa-circle-question text-muted me-1"></i>Chưa có mô tả vị trí/ghi chú
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                @if (t.TableType.Contains("VIP", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1.5 rounded-2 fw-semibold"><i class="fa-solid fa-crown me-1 text-warning"></i>@t.TableType</span>
-                                }
-                                else if (t.TableType.Contains("thi đấu", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 rounded-2 fw-semibold"><i class="fa-solid fa-trophy me-1"></i>@t.TableType</span>
-                                }
-                                else if (t.TableType.Contains("Pool", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 rounded-2 fw-semibold"><i class="fa-solid fa-circle me-1"></i>@t.TableType</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-light text-dark border px-2.5 py-1.5 rounded-2 fw-semibold"><i class="fa-solid fa-layer-group me-1 text-secondary"></i>@t.TableType</span>
-                                }
-                            </td>
-                            <td>
-                                <div>
-                                    <span class="fw-bold text-success fs-6">@t.PricePerHour.ToString("N0") đ</span>
-                                    <span class="text-muted small">/ giờ</span>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <select class="form-select form-select-sm staff-status-select rounded-3 border-light-subtle fw-semibold py-1.5 shadow-xs"
-                                            data-table-id="@t.Id"
-                                            data-original="@t.Status"
-                                            style="max-width: 150px;">
-                                        @if (t.Status == 1) { <option value="Available" selected>🟢 Trống bàn</option> } else { <option value="Available">🟢 Trống bàn</option> }
-                                        @if (t.Status == 2) { <option value="Playing" selected>🔴 Đang chơi</option> } else { <option value="Playing">🔴 Đang chơi</option> }
-                                        @if (t.Status == 3) { <option value="Waiting" selected>🟡 Chờ</option> } else { <option value="Waiting">🟡 Chờ</option> }
-                                        @if (t.Status == 4) { <option value="Maintenance" selected>⚪ Bảo trì</option> } else { <option value="Maintenance">⚪ Bảo trì</option> }
-                                    </select>
-                                    <span class="status-spinner d-none" id="spinner-@t.Id">
-                                        <span class="spinner-border spinner-border-sm text-success" role="status"></span>
+                        var i = 1;
+                        foreach (var t in Model.Tables)
+                        {
+                            var cfg = t.Status switch
+                            {
+                                1 => ("chip-success", "Trống bàn", "circle-check"),
+                                2 => ("chip-danger", "Đang chơi", "circle-play"),
+                                3 => ("chip-warning", "Chờ", "clock"),
+                                4 => ("chip-muted", "Bảo trì", "wrench"),
+                                _ => ("chip-muted", "Không xác định", "question")
+                            };
+                            var statusKey = t.Status switch
+                            {
+                                1 => "Available",
+                                2 => "Playing",
+                                3 => "Waiting",
+                                4 => "Maintenance",
+                                _ => "Available"
+                            };
+                            <tr id="row-@t.Id" data-table-id="@t.Id" data-status="@t.Status">
+                                <td class="row-index">@(i++)</td>
+                                <td class="cell-strong table-name">@t.TableName</td>
+                                <td><span class="chip chip-muted">@t.TableType</span></td>
+                                <td class="num">@t.PricePerHour.ToString("N0") đ</td>
+                                <td>
+                                    <span class="chip @cfg.Item1" id="status-badge-@t.Id">
+                                        <i class="fa-solid fa-@cfg.Item3 me-1"></i>@cfg.Item2
                                     </span>
-                                </div>
-                            </td>
-                            <td class="text-end pe-4">
-                                <div class="d-inline-flex align-items-center gap-2">
-                                    <div class="quick-actions" id="quick-actions-@t.Id">
-                                        @if (t.Status == 1)
-                                        {
-                                            <button type="button" class="btn btn-sm btn-outline-success quick-toggle-btn px-2.5 py-1 shadow-xs" data-table-id="@t.Id" data-new-status="Playing" title="Chuyển sang Đang chơi">
-                                                <i class="fa-solid fa-play me-1"></i> Mở bàn
-                                            </button>
-                                        }
-                                        else if (t.Status == 2)
-                                        {
-                                            <button type="button" class="btn btn-sm btn-outline-primary quick-toggle-btn px-2.5 py-1 shadow-xs" data-table-id="@t.Id" data-new-status="Available" title="Trả bàn về Trống">
-                                                <i class="fa-solid fa-circle-check me-1"></i> Trả bàn
-                                            </button>
-                                        }
-                                    </div>
-                                    <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary edit-table-btn"
+                                </td>
+                                <td class="actions">
+                                    <div class="d-inline-flex align-items-center gap-2">
+                                        <select class="form-select form-select-sm status-select"
+                                                data-table-id="@t.Id"
+                                                data-original="@t.Status"
+                                                style="max-width:140px">
+                                            <option value="Available">Trống bàn</option>
+                                            <option value="Playing">Đang chơi</option>
+                                            <option value="Waiting">Chờ</option>
+                                            <option value="Maintenance">Bảo trì</option>
+                                        </select>
+                                        <span class="status-spinner d-none" id="spinner-@t.Id">
+                                            <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                                        </span>
+                                        <button type="button" class="btn btn-icon sm edit-table-btn"
                                                 data-id="@t.Id"
                                                 data-tablename="@t.TableName"
                                                 data-tabletype="@t.TableType"
                                                 data-priceperhour="@t.PricePerHour"
-                                                data-status="@(t.Status switch { 1 => "Available", 2 => "Playing", 3 => "Waiting", 4 => "Maintenance", _ => "Available" })"
+                                                data-status="@statusKey"
                                                 data-description="@t.Description"
-                                                title="Sửa thông tin bàn">
+                                                title="Sửa bàn">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
-                                        <form method="post" asp-page-handler="Delete" asp-route-id="@t.Id" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bàn này?');" style="display:inline;">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa bàn">
+                                        <form method="post" asp-page-handler="Delete" asp-route-id="@t.Id" class="d-inline" data-confirm="Bạn có chắc chắn muốn xóa bàn này?">
+                                            <button type="submit" class="btn btn-icon sm danger" title="Xóa bàn">
                                                 <i class="fa-solid fa-trash"></i>
                                             </button>
                                         </form>
                                     </div>
-                                </div>
-                            </td>
-                        </tr>
+                                </td>
+                            </tr>
+                        }
                     }
                 </tbody>
             </table>
@@ -311,285 +190,211 @@
 
 <partial name="_CreateTableModal" />
 
-<!-- Edit Table Modal -->
-<div class="modal fade" id="editTableModal" tabindex="-1" aria-labelledby="editTableModalLabel" aria-hidden="true">
+<!-- Edit table -->
+<div class="modal fade" id="editTableModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4">
+        <div class="modal-content">
             <form method="post" asp-page-handler="Update">
                 <input type="hidden" asp-for="EditId" id="editId" />
-                <div class="modal-header bg-light">
-                    <h5 class="modal-title font-weight-bold" id="editTableModalLabel"><i class="fa-solid fa-pen-to-square me-2 text-success"></i>Chỉnh sửa thông tin bàn</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa-solid fa-pen-to-square me-2 text-primary"></i>Sửa thông tin bàn</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
-                <div class="modal-body p-4">
+                <div class="modal-body">
                     <div class="mb-3">
-                        <label asp-for="EditTable.TableName" class="form-label font-weight-bold small text-dark">Tên bàn <span class="text-danger">*</span></label>
-                        <input asp-for="EditTable.TableName" id="editTableName" class="form-control rounded-3" required />
+                        <label asp-for="EditTable.TableName" class="form-label">Tên bàn</label>
+                        <input asp-for="EditTable.TableName" id="editTableName" class="form-control" required />
                     </div>
                     <div class="mb-3">
-                        <label asp-for="EditTable.TableType" class="form-label font-weight-bold small text-dark">Loại bàn <span class="text-danger">*</span></label>
-                        <select asp-for="EditTable.TableType" id="editTableType" class="form-select rounded-3" required>
-                            <option value="Pool 8 Ball">Pool 8 Ball</option>
-                            <option value="Pool 9 Ball">Pool 9 Ball</option>
-                            <option value="Snooker">Snooker</option>
-                            <option value="Carom">Carom</option>
-                            <option value="Libre">Libre</option>
-                            <option value="English Billiards">English Billiards</option>
-                            <option value="VIP">VIP</option>
-                            <option value="Phòng đôi">Phòng đôi</option>
-                            <option value="Bàn thi đấu">Bàn thi đấu</option>
+                        <label asp-for="EditTable.TableType" class="form-label">Loại bàn</label>
+                        <select asp-for="EditTable.TableType" id="editTableType" class="form-select" required>
+                            @foreach (var type in tableTypes)
+                            {
+                                <option value="@type">@type</option>
+                            }
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label asp-for="EditTable.PricePerHour" class="form-label font-weight-bold small text-dark">Giá mỗi giờ (VNĐ) <span class="text-danger">*</span></label>
-                        <input asp-for="EditTable.PricePerHour" id="editPricePerHour" type="number" step="1000" min="0" class="form-control rounded-3" required />
+                        <label asp-for="EditTable.PricePerHour" class="form-label">Giá mỗi giờ (VNĐ)</label>
+                        <input asp-for="EditTable.PricePerHour" id="editPricePerHour" type="number" step="1000" min="0" class="form-control" required />
                     </div>
                     <div class="mb-3">
-                        <label asp-for="EditTable.Status" class="form-label font-weight-bold small text-dark">Trạng thái hiện tại</label>
-                        <select asp-for="EditTable.Status" id="editStatus" class="form-select rounded-3">
-                            <option value="Available">🟢 Trống bàn</option>
-                            <option value="Playing">🔴 Đang chơi</option>
-                            <option value="Waiting">🟡 Chờ</option>
-                            <option value="Maintenance">⚪ Bảo trì</option>
+                        <label asp-for="EditTable.Status" class="form-label">Trạng thái</label>
+                        <select asp-for="EditTable.Status" id="editStatus" class="form-select">
+                            <option value="Available">Trống bàn</option>
+                            <option value="Playing">Đang chơi</option>
+                            <option value="Waiting">Chờ</option>
+                            <option value="Maintenance">Bảo trì</option>
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label asp-for="EditTable.Description" class="form-label font-weight-bold small text-dark">Mô tả chi tiết</label>
-                        <textarea asp-for="EditTable.Description" id="editDescription" class="form-control rounded-3" rows="3" placeholder="Ghi chú vị trí, chất lượng bàn..."></textarea>
+                    <div class="mb-0">
+                        <label asp-for="EditTable.Description" class="form-label">Mô tả</label>
+                        <textarea asp-for="EditTable.Description" id="editDescription" class="form-control" rows="3"></textarea>
                     </div>
                 </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-outline-secondary rounded-3 px-3" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-success rounded-3 px-4 fw-bold"><i class="fa-solid fa-save me-1"></i>Lưu thay đổi</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-accent"><i class="fa-solid fa-floppy-disk"></i>Lưu thay đổi</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-            </main>
-            <footer class="staff-footer">
-                <div class="text-muted small">&copy; 2026 Billiard Management System &mdash; Staff Portal</div>
-            </footer>
-        </div>
-    </div>
-    <div id="loading-overlay">
-        <div class="loading-spinner">
-            <div class="spinner-ring"></div>
-            <p class="mt-3 text-white">Đang tải...</p>
-        </div>
-    </div>
-    <script src="/lib/jquery/dist/jquery.min.js"></script>
-    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/staff.js" asp-append-version="true"></script>
+@section Scripts {
+    <script src="/js/table-status.js" asp-append-version="true"></script>
+    <script src="/js/create-entity.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+            const API_BASE = document.querySelector('meta[name="api-base-url"]')?.content || '';
+            const API_TOKEN = document.querySelector('meta[name="api-token"]')?.content || '';
+            const STATUS_ENUM = { Available: 1, Playing: 2, Waiting: 3, Maintenance: 4 };
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="/js/table-status.js" asp-append-version="true"></script>
-<script src="/js/create-entity.js" asp-append-version="true"></script>
-<script>
-        let tablesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Tables.Select(t => new {
-            id = t.Id, tableName = t.TableName, tableType = t.TableType, status = t.Status, pricePerHour = t.PricePerHour
-        })));
+            let tablesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Tables.Select(t => new
+            {
+                id = t.Id,
+                tableName = t.TableName,
+                tableType = t.TableType,
+                status = t.Status,
+                pricePerHour = t.PricePerHour
+            })));
 
-        const API_BASE = document.querySelector('meta[name="api-base-url"]')?.content || 'http://localhost:8080/api/';
-        const API_TOKEN = document.querySelector('meta[name="api-token"]')?.content || '';
-
-        const STATUS_ENUM = {
-            Available: 1,
-            Playing: 2,
-            Waiting: 3,
-            Maintenance: 4
-        };
-
-        function recalcStats() { updateTableStatusStats(tablesData); }
-
-        function applyStatusToRow(tableId, status) {
-            const row = document.getElementById('row-' + tableId);
-            if (row) row.dataset.status = status;
-            
-            const sel = document.querySelector(`.staff-status-select[data-table-id="${tableId}"]`);
-            if (sel) {
-                const cfg = getTableStatusConfig(status);
-                sel.value = cfg.key;
-                sel.dataset.original = status;
-            }
-
-            const qaContainer = document.getElementById('quick-actions-' + tableId);
-            if (qaContainer) {
-                if (status === 1) {
-                    qaContainer.innerHTML = `
-                        <button type="button" class="btn btn-sm btn-outline-success quick-toggle-btn px-2.5 py-1" data-table-id="${tableId}" data-new-status="Playing" title="Chuyển sang Đang chơi">
-                            <i class="fa-solid fa-play me-1"></i> Mở bàn
-                        </button>
-                    `;
-                } else if (status === 2) {
-                    qaContainer.innerHTML = `
-                        <button type="button" class="btn btn-sm btn-outline-primary quick-toggle-btn px-2.5 py-1" data-table-id="${tableId}" data-new-status="Available" title="Trả bàn về Trống">
-                            <i class="fa-solid fa-circle-check me-1"></i> Trả bàn
-                        </button>
-                    `;
-                } else {
-                    qaContainer.innerHTML = '';
-                }
-            }
-
-            const item = tablesData.find(t => t.id === tableId);
-            if (item) item.status = status;
-            recalcStats();
-        }
-
-        async function updateTableStatus(tableId, statusKey, reason = '') {
-            const spinner = document.getElementById('spinner-' + tableId);
-            const select = document.querySelector(`.staff-status-select[data-table-id="${tableId}"]`);
-            if (select) select.disabled = true;
-            if (spinner) spinner.classList.remove('d-none');
-
-            try {
-                const res = await fetch(API_BASE + 'tables/' + tableId + '/status', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + API_TOKEN
-                    },
-                    body: JSON.stringify({ status: statusKey, reason: reason, force: false })
+            function syncStatusSelects() {
+                document.querySelectorAll('.status-select').forEach(function (sel) {
+                    const original = parseInt(sel.dataset.original);
+                    if (!isNaN(original)) sel.value = getTableStatusConfig(original).key;
                 });
+            }
+            syncStatusSelects();
 
-                let json;
-                const contentType = res.headers.get("content-type");
-                if (contentType && contentType.indexOf("application/json") !== -1) {
-                    json = await res.json();
-                } else {
-                    const text = await res.text();
-                    throw new Error(text || `Lỗi hệ thống (${res.status})`);
+            function applyStatusToRow(tableId, status) {
+                const row = document.getElementById('row-' + tableId);
+                if (row) row.dataset.status = status;
+                renderTableStatusBadge(status, 'status-badge-' + tableId);
+                const sel = document.querySelector('.status-select[data-table-id="' + tableId + '"]');
+                if (sel) {
+                    sel.value = getTableStatusConfig(status).key;
+                    sel.dataset.original = status;
+                }
+                const item = tablesData.find(t => t.id === tableId);
+                if (item) item.status = status;
+                updateTableStatusStats(tablesData);
+            }
+
+            document.addEventListener('change', async function (e) {
+                const select = e.target.closest('.status-select');
+                if (!select) return;
+                const tableId = select.dataset.tableId;
+                const newKey = select.value;
+                const original = parseInt(select.dataset.original);
+                if (STATUS_ENUM[newKey] === original) return;
+
+                const reason = window.prompt('Lý do đổi trạng thái (không bắt buộc):', '');
+                if (reason === null) {
+                    select.value = getTableStatusConfig(original).key;
+                    return;
+                }
+                let force = false;
+                if (original === 2 && STATUS_ENUM[newKey] !== 2) {
+                    force = !!(await confirmAction({
+                        title: 'Kết thúc phiên đang chơi?',
+                        message: 'Bàn đang có khách chơi. Thay đổi trạng thái sẽ kết thúc phiên hiện tại.',
+                        confirmText: 'Kết thúc phiên'
+                    }));
+                    if (!force) {
+                        select.value = getTableStatusConfig(original).key;
+                        return;
+                    }
                 }
 
-                if (!res.ok || !(json.success ?? json.Success)) {
-                    throw new Error(json.message || 'Không thể cập nhật trạng thái bàn');
+                const spinner = document.getElementById('spinner-' + tableId);
+                select.disabled = true;
+                if (spinner) spinner.classList.remove('d-none');
+                try {
+                    const res = await fetch(API_BASE + 'tables/' + tableId + '/status', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_TOKEN },
+                        body: JSON.stringify({ status: newKey, reason: reason, force: force })
+                    });
+                    const ct = res.headers.get('content-type') || '';
+                    const json = ct.indexOf('application/json') !== -1 ? await res.json() : null;
+                    if (!res.ok || !(json?.success ?? json?.Success)) {
+                        throw new Error(json?.message || 'Không thể cập nhật trạng thái bàn');
+                    }
+                    const data = json.data || json.Data;
+                    applyStatusToRow(tableId, STATUS_ENUM[newKey] || data?.status || data?.Status);
+                    showToast('Đã cập nhật trạng thái bàn.', 'success');
+                } catch (err) {
+                    select.value = getTableStatusConfig(original).key;
+                    showToast(err.message || 'Không thể cập nhật trạng thái bàn', 'error');
+                } finally {
+                    select.disabled = false;
+                    if (spinner) spinner.classList.add('d-none');
                 }
+            });
 
-                const data = json.data || json.Data;
-                const newStatus = STATUS_ENUM[statusKey] || data?.status || data?.Status;
-                applyStatusToRow(tableId, newStatus);
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Thành công',
-                    text: 'Cập nhật trạng thái bàn thành công',
-                    timer: 1500,
-                    showConfirmButton: false
+            document.addEventListener('click', function (e) {
+                const editBtn = e.target.closest('.edit-table-btn');
+                if (!editBtn) return;
+                document.getElementById('editId').value = editBtn.dataset.id;
+                document.getElementById('editTableName').value = editBtn.dataset.tablename;
+                document.getElementById('editTableType').value = editBtn.dataset.tabletype;
+                document.getElementById('editPricePerHour').value = editBtn.dataset.priceperhour;
+                document.getElementById('editStatus').value = editBtn.dataset.status;
+                document.getElementById('editDescription').value = editBtn.dataset.description || '';
+                new bootstrap.Modal(document.getElementById('editTableModal')).show();
+            });
+
+            document.addEventListener('submit', async function (e) {
+                const form = e.target.closest('form[data-confirm]');
+                if (!form) return;
+                e.preventDefault();
+                const ok = await confirmAction({
+                    title: 'Xóa bàn',
+                    message: form.dataset.confirm,
+                    confirmText: 'Xóa'
                 });
-            } catch (err) {
-                if (select) select.value = getTableStatusConfig(parseInt(select.dataset.original)).key;
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Thất bại',
-                    text: err.message || 'Không thể cập nhật trạng thái bàn'
+                if (ok) form.submit();
+            });
+
+            function filterTables() {
+                const query = (document.getElementById('staffTableSearch')?.value || '').toLowerCase().trim();
+                const status = document.getElementById('staffTableStatus')?.value || '';
+                let visible = 0;
+                document.querySelectorAll('#tables-tbody tr').forEach(function (row) {
+                    if (row.id === 'empty-row') return;
+                    const name = (row.querySelector('.table-name')?.textContent || '').toLowerCase();
+                    const matchName = !query || name.includes(query);
+                    const matchStatus = !status || row.dataset.status === status;
+                    row.style.display = (matchName && matchStatus) ? '' : 'none';
+                    if (matchName && matchStatus) visible++;
                 });
-            } finally {
-                if (select) select.disabled = false;
-                if (spinner) spinner.classList.add('d-none');
+                const countEl = document.getElementById('table-count');
+                if (countEl) countEl.innerText = visible;
             }
-        }
 
-        $(document).on('click', '.quick-toggle-btn', async function() {
-            const tableId = $(this).data('table-id');
-            const newKey = $(this).data('new-status');
-            
-            let title = `Chuyển nhanh sang trạng thái ${getTableStatusConfig(STATUS_ENUM[newKey]).text}?`;
-            
-            const { isConfirmed } = await Swal.fire({
-                title: title,
-                text: newKey === 'Playing' ? 'Lưu ý: Yêu cầu bàn đã có phiên chơi hoạt động.' : 'Kết thúc trạng thái đang chơi hiện tại.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Đồng ý',
-                cancelButtonText: 'Hủy'
+            document.getElementById('staffTableSearch')?.addEventListener('input', filterTables);
+            document.getElementById('staffTableStatus')?.addEventListener('change', filterTables);
+            document.getElementById('resetStaffTableFilter')?.addEventListener('click', function () {
+                document.getElementById('staffTableSearch').value = '';
+                document.getElementById('staffTableStatus').value = '';
+                filterTables();
             });
 
-            if (isConfirmed) {
-                updateTableStatus(tableId, newKey, 'Cập nhật nhanh bởi nhân viên');
-            }
-        });
-
-        $(document).on('change', '.staff-status-select', async function() {
-            const tableId = this.dataset.tableId;
-            const newKey = this.value;
-            const original = parseInt(this.dataset.original);
-            const newStatus = STATUS_ENUM[newKey];
-            if (newStatus === original) return;
-
-            let title = `Chuyển trạng thái bàn sang ${getTableStatusConfig(newStatus).text}?`;
-            
-            const { value: reason } = await Swal.fire({
-                title: title,
-                input: 'text',
-                inputLabel: 'Lý do thay đổi (Tùy chọn)',
-                inputPlaceholder: 'Nhập lý do...',
-                showCancelButton: true,
-                confirmButtonText: 'Xác nhận',
-                cancelButtonText: 'Hủy'
-            });
-
-            if (reason !== undefined) {
-                updateTableStatus(tableId, newKey, reason);
-            } else {
-                this.value = getTableStatusConfig(original).key;
-            }
-        });
-
-        document.getElementById('searchTableInput')?.addEventListener('input', function(e) {
-            const q = e.target.value.toLowerCase().trim();
-            const rows = document.querySelectorAll('#tables-tbody tr');
-            rows.forEach(r => {
-                const text = r.textContent.toLowerCase();
-                r.style.display = text.includes(q) ? '' : 'none';
-            });
-        });
-
-        connectTableStatusHub({
-            onStatusChanged: function (p) {
-                const status = p.status !== undefined ? p.status : p.Status;
-                const tableId = p.tableId || p.TableId;
-                applyStatusToRow(tableId, status);
-            },
-            onTableCreated: function (payload) {
-                const id = payload.id || payload.Id;
-                if (!document.getElementById('row-' + id)) {
-                    tablesData.unshift({ id, tableName: payload.tableName || payload.TableName, tableType: payload.tableType || payload.TableType, status: payload.status ?? payload.Status, pricePerHour: payload.pricePerHour || payload.PricePerHour });
-                    window.appendTableRow(payload, 'tables-tbody');
-                    recalcStats();
+            bindCreateTableForm({
+                onCreated: function (table) {
+                    const id = table.id || table.Id;
+                    tablesData.unshift({
+                        id: id,
+                        tableName: table.tableName || table.TableName,
+                        tableType: table.tableType || table.TableType,
+                        status: table.status ?? table.Status,
+                        pricePerHour: table.pricePerHour || table.PricePerHour
+                    });
+                    window.appendTableRow(table);
+                    updateTableStatusStats(tablesData);
                 }
-            }
-        });
-
-        bindCreateTableForm({
-            onCreated: function (table) {
-                tablesData.unshift({ id: table.id || table.Id, tableName: table.tableName || table.TableName, tableType: table.tableType || table.TableType, status: table.status ?? table.Status, pricePerHour: table.pricePerHour || table.PricePerHour });
-                window.appendTableRow(table, 'tables-tbody');
-                recalcStats();
-            }
-        });
-
-        $(document).ready(function() {
-            $(".edit-table-btn").on("click", function() {
-                var id = $(this).data("id");
-                var name = $(this).data("tablename");
-                var type = $(this).data("tabletype");
-                var price = $(this).data("priceperhour");
-                var status = $(this).data("status");
-                var description = $(this).data("description");
-
-                $("#editId").val(id);
-                $("#editTableName").val(name);
-                $("#editTableType").val(type);
-                $("#editPricePerHour").val(price);
-                $("#editStatus").val(status);
-                $("#editDescription").val(description);
-
-                var editModal = new bootstrap.Modal(document.getElementById('editTableModal'));
-                editModal.show();
             });
-        });
+        })();
     </script>
-</body>
-</html>
+}

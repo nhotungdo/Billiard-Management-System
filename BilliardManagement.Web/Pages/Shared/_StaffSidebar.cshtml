@@ -1,79 +1,96 @@
 @{
-    var currentPath = Context.Request.Path.Value?.ToLower() ?? "";
-    var storeName = Context.Session.GetString("StoreName");
-    string IsActive(string path) {
-        if (path.ToLower() == "/staff/tables" && currentPath.StartsWith("/staff/tables/map")) return "";
-        return currentPath.StartsWith(path.ToLower()) ? "active" : "";
+    var currentPath = (Context.Request.Path.Value ?? "/").ToLower();
+    var storeName = Context.Session.GetString("StoreName") ?? "";
+
+    string Active(string path)
+    {
+        var p = path.ToLower();
+        return currentPath == p || currentPath.StartsWith(p + "/") ? "active" : "";
     }
 }
 
-<nav id="staff-sidebar">
-    <!-- Brand -->
-    <div class="sidebar-brand">
-        <div class="brand-icon staff-brand-icon">
-            <i class="fa-solid fa-circle-dot"></i>
-        </div>
-        <div class="brand-text">
+<nav class="app-sidebar" id="app-sidebar">
+    <div class="app-brand">
+        <span class="brand-mark">
+            @if (Uri.TryCreate(storeName, UriKind.Absolute, out var brandUri) && (brandUri.Scheme == "http" || brandUri.Scheme == "https"))
+            {
+                <img src="@storeName" alt="" />
+            }
+            else
+            {
+                <i class="fa-solid fa-circle-dot"></i>
+            }
+        </span>
+        <span class="brand-text">
             <span class="brand-name">BilliardPro</span>
             <span class="brand-sub">@(string.IsNullOrEmpty(storeName) ? "Staff Portal" : storeName)</span>
-        </div>
-        <button class="sidebar-close-btn d-md-none" id="sidebarClose">
+        </span>
+        <button class="brand-close d-lg-none" id="sidebarClose" aria-label="Đóng menu">
             <i class="fa-solid fa-xmark"></i>
         </button>
     </div>
 
-    <div class="sidebar-menu-label">CÔNG VIỆC</div>
-    <ul class="sidebar-nav">
-        <li class="nav-item">
-            <a class="nav-link @IsActive("/staff/dashboard")" href="/Staff/Dashboard/Index">
-                <span class="nav-icon"><i class="fa-solid fa-gauge-high"></i></span>
-                <span class="nav-text">Dashboard</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @IsActive("/staff/tables/map")" href="/Staff/Tables/Map">
-                <span class="nav-icon"><i class="fa-solid fa-map-location-dot"></i></span>
-                <span class="nav-text">Sơ đồ bàn</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @IsActive("/staff/tables")" href="/Staff/Tables/Index">
-                <span class="nav-icon"><i class="fa-solid fa-table-cells"></i></span>
-                <span class="nav-text">Quản lý Bàn</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @IsActive("/staff/products")" href="/Staff/Products/Index">
-                <span class="nav-icon"><i class="fa-solid fa-box-open"></i></span>
-                <span class="nav-text">Sản phẩm</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @IsActive("/staff/combos")" href="/Staff/Combos/Index">
-                <span class="nav-icon"><i class="fa-solid fa-tags"></i></span>
-                <span class="nav-text">Gói Combo</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @IsActive("/staff/revenue")" href="/Staff/Revenue/Index">
-                <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
-                <span class="nav-text">Doanh thu cá nhân</span>
-            </a>
-        </li>
-    </ul>
+    <div class="nav-scroll">
+        <div class="nav-label">Công việc</div>
+        <ul class="nav-list">
+            <li>
+                <a class="nav-link @Active("/staff/dashboard")" href="/Staff/Dashboard/Index">
+                    <span class="nav-icon"><i class="fa-solid fa-gauge-high"></i></span>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a class="nav-link @Active("/staff/tables/map")" href="/Staff/Tables/Map">
+                    <span class="nav-icon"><i class="fa-solid fa-map-location-dot"></i></span>
+                    <span class="nav-text">Sơ đồ bàn</span>
+                </a>
+            </li>
+            <li>
+                <a class="nav-link @Active("/staff/tables/index")" href="/Staff/Tables/Index">
+                    <span class="nav-icon"><i class="fa-solid fa-table-cells"></i></span>
+                    <span class="nav-text">Quản lý Bàn</span>
+                </a>
+            </li>
+            <li>
+                <a class="nav-link @Active("/staff/products")" href="/Staff/Products/Index">
+                    <span class="nav-icon"><i class="fa-solid fa-box-open"></i></span>
+                    <span class="nav-text">Sản phẩm</span>
+                </a>
+            </li>
+            <li>
+                <a class="nav-link @Active("/staff/combos")" href="/Staff/Combos/Index">
+                    <span class="nav-icon"><i class="fa-solid fa-layer-group"></i></span>
+                    <span class="nav-text">Gói Combo</span>
+                </a>
+            </li>
+            <li>
+                <a class="nav-link @Active("/staff/revenue")" href="/Staff/Revenue/Index">
+                    <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
+                    <span class="nav-text">Doanh thu cá nhân</span>
+                </a>
+            </li>
+        </ul>
 
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-menu-label">TÀI KHOẢN</div>
-    <ul class="sidebar-nav">
-        <li class="nav-item"><a class="nav-link @IsActive("/profile")" href="/Profile/Index"><span class="nav-icon"><i class="fa-solid fa-user"></i></span><span class="nav-text">Hồ sơ cá nhân</span></a></li>
-        <li class="nav-item">
-            <a class="nav-link" href="/Auth/Logout">
-                <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span>
-                <span class="nav-text">Đăng xuất</span>
-            </a>
-        </li>
-    </ul>
+        <div class="sidebar-divider"></div>
+        <div class="nav-label">Tài khoản</div>
+        <ul class="nav-list">
+            <li>
+                <a class="nav-link @Active("/profile")" href="/Profile/Index">
+                    <span class="nav-icon"><i class="fa-solid fa-user"></i></span>
+                    <span class="nav-text">Hồ sơ cá nhân</span>
+                </a>
+            </li>
+            <li>
+                <a class="nav-link" href="/Auth/Logout">
+                    <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+                    <span class="nav-text">Đăng xuất</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="sidebar-footer sidebar-footer-text">
+        &copy; 2026 BilliardPro &middot; Staff Portal
+    </div>
 </nav>
-<!-- Sidebar Overlay (mobile) -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<partial name="_StoreContext" />

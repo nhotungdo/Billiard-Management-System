@@ -1,1209 +1,671 @@
 @page
 @model BilliardManagement.Web.Pages.Admin.Dashboard.IndexModel
 @using System.Text.Json
-@if (Model.CurrentRole == "SuperAdmin")
-{
-    Layout = "_Layout";
-    ViewData["Title"] = "Tổng quan hệ thống";
-    <partial name="_SystemDashboard" model="Model" />
-    return;
-}
 @{
-    Layout = null;
-    var userRole = HttpContext.Session.GetString("UserRole") ?? "Admin";
-    var sidebarName = "_AdminSidebar";
-    var bodyClass = "admin-body";
-    var wrapperId = "admin-wrapper";
-    var contentWrapperId = "admin-content-wrapper";
-    var topbarId = "admin-topbar";
-    var contentId = "admin-content";
-    var footerClass = "admin-footer";
-    var panelTitle = "Admin Panel";
-    var cssFile = "admin.css";
-    var jsFile = "admin.js";
+    ViewData["Title"] = "Tổng quan cửa hàng";
+    ViewData["Subtitle"] = "Chào mừng trở lại, " + (HttpContext.Session.GetString("FullName") ?? "Admin") + "!";
 
-    var apiToken = HttpContext.Session.GetString("JWToken") ?? "";
+    if (Model.CurrentRole == "SuperAdmin")
+    {
+        ViewData["Title"] = "Tổng quan hệ thống";
+        ViewData["Subtitle"] = "Theo dõi toàn bộ cửa hàng trong hệ thống";
+    }
 
-    // Serialize Chart data
-    var dailyRevenueJson = JsonSerializer.Serialize(Model.DailyRevenueTrend.Select(d => new {
+    var dailyRevenueJson = JsonSerializer.Serialize(Model.DailyRevenueTrend.Select(d => new
+    {
         date = d.Date.ToString("dd/MM"),
         amount = d.TotalRevenue
     }));
 
-    var revenueByTableTypeJson = JsonSerializer.Serialize(Model.RevenueByTableType.Select(x => new {
+    var revenueByTableTypeJson = JsonSerializer.Serialize(Model.RevenueByTableType.Select(x => new
+    {
         type = x.Key,
         amount = x.Value
     }));
 
-    var playingVsServicesJson = JsonSerializer.Serialize(new[] {
-        new { label = "Giờ chơi", amount = Model.TotalPlayingFee },
-        new { label = "Dịch vụ/Đồ uống", amount = Model.TotalServiceFee }
+    var breakdownJson = JsonSerializer.Serialize(new[]
+    {
+        new { label = "Tiền giờ chơi", amount = Model.TotalPlayingFee },
+        new { label = "Dịch vụ / đồ uống", amount = Model.TotalServiceFee }
     });
 }
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Billiard Admin Panel - Dashboard</title>
-    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="/css/@cssFile" asp-append-version="true" />
-    <link rel="stylesheet" href="/BilliardManagement.Web.styles.css" asp-append-version="true" />
-    @if (!string.IsNullOrEmpty(apiToken))
+@if (Model.CurrentRole == "SuperAdmin")
+{
+    <partial name="_SystemDashboard" model="Model" />
+}
+else
+{
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
     {
-        <meta name="api-token" content="@apiToken" />
-        <meta name="api-base-url" content="http://localhost:8080/api/" />
-        <meta name="api-origin" content="http://localhost:8080" />
-        <meta name="hub-base-url" content="http://localhost:8080" />
+        <div class="alert alert-danger" role="alert">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>@Model.ErrorMessage
+        </div>
     }
-    <style>
-        /* Dashboard custom styles */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .kpi-gradient {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            position: relative;
-            overflow: hidden;
-            transition: var(--transition);
-            box-shadow: var(--shadow-sm);
-        }
-        
-        .kpi-gradient:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-md);
-        }
-        
-        .kpi-gradient::after {
-            content: '';
-            position: absolute;
-            top: 0; right: 0;
-            width: 120px; height: 120px;
-            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%);
-            border-radius: 50%;
-            transform: translate(30px, -30px);
-        }
 
-        .kpi-gradient-1 { background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; }
-        .kpi-gradient-2 { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; }
-        .kpi-gradient-3 { background: linear-gradient(135deg, #a855f7, #7c3aed); color: white; border: none; }
-        .kpi-gradient-4 { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; }
-        .kpi-gradient-5 { background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border: none; }
-        .kpi-gradient-6 { background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; border: none; }
-
-        .kpi-gradient-1 .kpi-icon { background: rgba(255, 255, 255, 0.2); color: white; }
-        .kpi-gradient-2 .kpi-icon { background: rgba(255, 255, 255, 0.2); color: white; }
-        .kpi-gradient-3 .kpi-icon { background: rgba(255, 255, 255, 0.2); color: white; }
-        .kpi-gradient-4 .kpi-icon { background: rgba(255, 255, 255, 0.2); color: white; }
-        .kpi-gradient-5 .kpi-icon { background: rgba(255, 255, 255, 0.2); color: white; }
-        .kpi-gradient-6 .kpi-icon { background: rgba(255, 255, 255, 0.2); color: white; }
-
-        .kpi-gradient-1 .kpi-label, .kpi-gradient-1 .kpi-sub { color: rgba(255, 255, 255, 0.8); }
-        .kpi-gradient-2 .kpi-label, .kpi-gradient-2 .kpi-sub { color: rgba(255, 255, 255, 0.8); }
-        .kpi-gradient-3 .kpi-label, .kpi-gradient-3 .kpi-sub { color: rgba(255, 255, 255, 0.8); }
-        .kpi-gradient-4 .kpi-label, .kpi-gradient-4 .kpi-sub { color: rgba(255, 255, 255, 0.8); }
-        .kpi-gradient-5 .kpi-label, .kpi-gradient-5 .kpi-sub { color: rgba(255, 255, 255, 0.8); }
-        .kpi-gradient-6 .kpi-label, .kpi-gradient-6 .kpi-sub { color: rgba(255, 255, 255, 0.8); }
-
-        .kpi-gradient-1 .kpi-value, .kpi-gradient-2 .kpi-value, .kpi-gradient-3 .kpi-value, 
-        .kpi-gradient-4 .kpi-value, .kpi-gradient-5 .kpi-value, .kpi-gradient-6 .kpi-value { color: white; }
-
-        .animate-pulse {
-            animation: pulse-animation 2s infinite;
-        }
-        @@keyframes pulse-animation {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(255, 255, 255, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
-        }
-
-        .animate-pulse-badge {
-            animation: pulse-badge-animation 1.5s infinite;
-        }
-        @@keyframes pulse-badge-animation {
-            0% { opacity: 1; }
-            50% { opacity: 0.6; }
-            100% { opacity: 1; }
-        }
-
-        .quick-action-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-decoration: none !important;
-            color: var(--text-primary) !important;
-            transition: var(--transition);
-            box-shadow: var(--shadow-sm);
-        }
-        .quick-action-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-            border-color: var(--admin-primary);
-            background: rgba(99, 102, 241, 0.02);
-        }
-        .quick-action-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            background: var(--surface-2);
-            color: var(--admin-primary);
-            transition: var(--transition);
-        }
-        .quick-action-card:hover .quick-action-icon {
-            background: var(--admin-primary);
-            color: white;
-        }
-
-        .divider {
-            height: 1px;
-            background-color: var(--border);
-        }
-
-        .invoice-icon-circle {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            background-color: rgba(99, 102, 241, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .animate-bounce {
-            animation: bounce-animation 2s infinite;
-        }
-        @@keyframes bounce-animation {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-4px); }
-        }
-
-        /* Soft badges */
-        .bg-success-soft { background-color: rgba(16, 185, 129, 0.1) !important; }
-        .bg-danger-soft { background-color: rgba(239, 68, 68, 0.1) !important; }
-        .bg-warning-soft { background-color: rgba(245, 158, 11, 0.1) !important; }
-        .bg-secondary-soft { background-color: rgba(100, 116, 139, 0.1) !important; }
-
-        .fw-mono { font-family: monospace; font-size: 0.95rem; }
-    </style>
-</head>
-<body class="@bodyClass">
-    <div id="@wrapperId">
-        <partial name="@sidebarName" />
-        <div id="@contentWrapperId">
-            <nav id="@topbarId">
-                <div class="topbar-left">
-                    <button class="sidebar-toggle-btn" id="sidebarToggle" title="Toggle Sidebar">
-                        <i class="fa-solid fa-bars"></i>
-                    </button>
-                    <div class="topbar-breadcrumb">
-                        <span class="breadcrumb-label">Dashboard Overview</span>
-                    </div>
-                </div>
-                <div class="topbar-right">
-                    <span class="role-badge admin-badge">
-                        <i class="fa-solid fa-shield-halved me-1"></i> @userRole
-                    </span>
-                    <div class="dropdown user-dropdown">
-                        <button class="btn user-avatar-btn dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="avatar-circle">
-                                <i class="fa-solid fa-user-tie"></i>
-                            </div>
-                            <span class="user-name d-none d-md-inline">@HttpContext.Session.GetString("FullName")</span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end user-menu" aria-labelledby="userDropdown">
-                            <li class="dropdown-header">
-                                <div class="user-info-header">
-                                    <div class="avatar-circle-sm"><i class="fa-solid fa-user-tie"></i></div>
-                                    <div>
-                                        <div class="fw-600">@HttpContext.Session.GetString("FullName")</div>
-                                        <div class="text-muted small">@HttpContext.Session.GetString("Username")</div>
-                                    </div>
-                                </div>
-                            </li>
-                            <li><hr class="dropdown-divider" /></li>
-                            <li>
-                                <a class="dropdown-item" href="/Auth/Logout">
-                                    <i class="fa-solid fa-right-from-bracket me-2 text-danger"></i>Đăng xuất
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </nav>
-            <main id="@contentId">
-                @if (Model.ErrorMessage != null)
-                {
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="fa-solid fa-triangle-exclamation me-2"></i>@Model.ErrorMessage
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                }
-
-                <!-- Welcome Section -->
-                <div class="dashboard-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-                    <div>
-                        <h1 class="page-title"><i class="fa-solid fa-gauge-high text-primary me-2"></i>Billiard Admin Panel</h1>
-                        <p class="page-subtitle">Chào mừng trở lại, @HttpContext.Session.GetString("FullName")! Dưới đây là phân tích hoạt động hôm nay.</p>
-                    </div>
-                    <div>
-                        <span class="badge bg-primary px-3 py-2 rounded-3 shadow-sm">
-                            <i class="fa-regular fa-calendar me-1"></i> Hôm nay: @DateTime.Now.ToString("dd/MM/yyyy")
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Bento Grid Overview Cards -->
-                <div class="bento-grid">
-                    <!-- Bento Card 1: Doanh thu Hôm nay -->
-                    <div class="bento-card bento-emerald bento-col-4">
-                        <div class="bento-header">
-                            <div class="bento-label truncate-text">Doanh thu Hôm nay</div>
-                            <div class="bento-icon-wrapper"><i class="fa-solid fa-sack-dollar"></i></div>
-                        </div>
-                        <div>
-                            <div class="bento-value truncate-text" id="kpi-revenue-today">@Model.TodayRevenue.ToString("N0") đ</div>
-                            <div class="bento-sub truncate-text"><i class="fa-solid fa-bolt me-1"></i>Số liệu thực tế trong ngày</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Bento Card 2: Doanh thu Tháng này -->
-                    <div class="bento-card bento-indigo bento-col-4">
-                        <div class="bento-header">
-                            <div class="bento-label truncate-text">Doanh thu Tháng này</div>
-                            <div class="bento-icon-wrapper"><i class="fa-solid fa-calendar-days"></i></div>
-                        </div>
-                        <div>
-                            <div class="bento-value truncate-text" id="kpi-revenue-month">@Model.MonthRevenue.ToString("N0") đ</div>
-                            <div class="bento-sub truncate-text"><i class="fa-solid fa-chart-line me-1"></i>Tính từ đầu tháng hiện tại</div>
-                        </div>
-                    </div>
-
-                    <!-- Bento Card 3: Bàn Đang hoạt động -->
-                    <div class="bento-card bento-purple bento-col-4">
-                        <div class="bento-header">
-                            <div class="bento-label truncate-text">Bàn Đang hoạt động</div>
-                            <div class="bento-icon-wrapper"><i class="fa-solid fa-table-cells"></i></div>
-                        </div>
-                        <div>
-                            <div class="bento-value truncate-text" id="kpi-active-tables">@Model.ActiveTablesCount <span class="fs-6 opacity-75">bàn</span></div>
-                            <div class="bento-sub truncate-text"><i class="fa-solid fa-gamepad me-1"></i>Đang có khách playing</div>
-                        </div>
-                    </div>
-
-                    <!-- Bento Card 4: Lượt chơi Hôm nay -->
-                    <div class="bento-card bento-amber bento-col-4">
-                        <div class="bento-header">
-                            <div class="bento-label truncate-text">Lượt chơi Hôm nay</div>
-                            <div class="bento-icon-wrapper"><i class="fa-solid fa-stopwatch"></i></div>
-                        </div>
-                        <div>
-                            <div class="bento-value truncate-text" id="kpi-sessions-today">@Model.TotalSessionsToday <span class="fs-6 opacity-75">lượt</span></div>
-                            <div class="bento-sub truncate-text"><i class="fa-solid fa-circle-play me-1"></i>Phiên đã mở hôm nay</div>
-                        </div>
-                    </div>
-
-                    <!-- Bento Card 5: Hóa đơn Hôm nay -->
-                    <div class="bento-card bento-sky bento-col-4">
-                        <div class="bento-header">
-                            <div class="bento-label truncate-text">Hóa đơn Hôm nay</div>
-                            <div class="bento-icon-wrapper"><i class="fa-solid fa-file-invoice-dollar"></i></div>
-                        </div>
-                        <div>
-                            <div class="bento-value truncate-text" id="kpi-invoices-today">@Model.TotalInvoicesToday <span class="fs-6 opacity-75">hóa đơn</span></div>
-                            <div class="bento-sub truncate-text"><i class="fa-solid fa-check-double me-1"></i>Đã thanh toán thành công</div>
-                        </div>
-                    </div>
-
-                    <!-- Bento Card 6: Nhân viên Trực -->
-                    <div class="bento-card bento-rose bento-col-4">
-                        <div class="bento-header">
-                            <div class="bento-label truncate-text">Nhân viên Trực</div>
-                            <div class="bento-icon-wrapper"><i class="fa-solid fa-user-tie"></i></div>
-                        </div>
-                        <div>
-                            <div class="bento-value truncate-text" id="kpi-staff-online">@Model.OnlineStaffCount <span class="fs-6 opacity-75">nhân viên</span></div>
-                            <div class="bento-sub truncate-text"><i class="fa-solid fa-clock-rotate-left me-1"></i>Đang trong ca làm việc</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Charts Section -->
-                <div class="row g-4 mb-4">
-                    <div class="col-12 col-xl-6">
-                        <div class="card-panel h-100">
-                            <div class="panel-header">
-                                <h5 class="panel-title"><i class="fa-solid fa-chart-line text-primary me-2"></i>Biểu đồ Doanh thu (30 ngày qua)</h5>
-                                <p class="panel-sub">Doanh thu tổng cộng hàng ngày</p>
-                            </div>
-                            <div class="panel-body">
-                                <div style="position: relative; height: 320px;">
-                                    <canvas id="revenueTrendChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-xl-3">
-                        <div class="card-panel h-100">
-                            <div class="panel-header">
-                                <h5 class="panel-title"><i class="fa-solid fa-chart-bar text-primary me-2"></i>Doanh thu theo Loại bàn</h5>
-                                <p class="panel-sub">So sánh hiệu suất loại bàn</p>
-                            </div>
-                            <div class="panel-body">
-                                <div style="position: relative; height: 320px;">
-                                    <canvas id="revenueByTableTypeChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-xl-3">
-                        <div class="card-panel h-100">
-                            <div class="panel-header">
-                                <h5 class="panel-title"><i class="fa-solid fa-chart-pie text-primary me-2"></i>Cơ cấu doanh thu</h5>
-                                <p class="panel-sub">Giờ chơi vs. Dịch vụ ăn uống</p>
-                            </div>
-                            <div class="panel-body">
-                                <div style="position: relative; height: 320px;">
-                                    <canvas id="revenueBreakdownChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Live tables status -->
-                <div class="card-panel mb-4">
-                    <div class="panel-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-                        <div>
-                            <h5 class="panel-title"><i class="fa-solid fa-circle-dot text-primary me-2"></i>Trạng thái bàn trực tuyến</h5>
-                            <p class="panel-sub">Cập nhật thời gian thực bằng SignalR</p>
-                        </div>
-                        <div class="d-flex align-items-center gap-3">
-                            <span class="badge bg-success-soft text-success px-3 py-2 rounded-pill d-flex align-items-center gap-2">
-                                <span class="spinner-grow spinner-grow-sm text-success" role="status"></span>
-                                SignalR Connected
-                            </span>
-                            <div class="d-flex gap-2">
-                                <span class="badge bg-success-soft text-success">@Model.CountAvailable Trống</span>
-                                <span class="badge bg-danger-soft text-danger">@Model.CountPlaying Chơi</span>
-                                <span class="badge bg-warning-soft text-warning">@Model.CountWaiting Chờ</span>
-                                <span class="badge bg-secondary-soft text-secondary">@Model.CountMaintenance Bảo trì</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="panel-body p-0">
-                        <div class="table-responsive">
-                            <table class="data-table align-middle">
-                                <thead>
-                                    <tr>
-                                        <th class="ps-4">Tên bàn</th>
-                                        <th>Loại bàn</th>
-                                        <th>Trạng thái</th>
-                                        <th>Thời gian chơi</th>
-                                        <th>Tổng tạm tính</th>
-                                        <th class="text-end pe-4">Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="live-tables-body">
-                                    @if (!Model.LiveTables.Any())
-                                    {
-                                        <tr>
-                                            <td colspan="6" class="text-center py-4 text-muted">Không có dữ liệu bàn.</td>
-                                        </tr>
-                                    }
-                                    else
-                                    {
-                                        @foreach (var table in Model.LiveTables)
-                                        {
-                                            var isPlaying = table.Status == 2;
-                                            var startTimeStr = isPlaying && table.ActiveSession != null ? table.ActiveSession.StartTime.ToString("o") : "";
-                                            var pricePerHour = table.HourlyRate;
-                                            var ordersTotal = isPlaying && table.ActiveSession != null ? table.ActiveSession.OrdersTotal : 0;
-                                            var currentTotal = isPlaying && table.ActiveSession != null ? table.ActiveSession.CurrentTotal : 0;
-
-                                            <tr data-table-id="@table.Id" data-status="@table.Status" data-start-time="@startTimeStr" data-price="@pricePerHour" data-orders-total="@ordersTotal" class="table-row-status">
-                                                <td class="ps-4 fw-bold text-gray-800">@table.TableName</td>
-                                                <td><span class="badge bg-light text-dark">@table.TableType</span></td>
-                                                <td>
-                                                    @switch (table.Status)
-                                                    {
-                                                        case 1:
-                                                            <span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i>Trống</span>
-                                                            break;
-                                                        case 2:
-                                                            <span class="badge bg-danger animate-pulse-badge"><i class="fa-solid fa-play me-1"></i>Đang chơi</span>
-                                                            break;
-                                                        case 3:
-                                                            <span class="badge bg-warning text-dark"><i class="fa-solid fa-calendar-check me-1"></i>Đặt trước</span>
-                                                            break;
-                                                        case 4:
-                                                            <span class="badge bg-secondary"><i class="fa-solid fa-screwdriver-wrench me-1"></i>Bảo trì</span>
-                                                            break;
-                                                        default:
-                                                            <span class="badge bg-light text-dark">Khác</span>
-                                                            break;
-                                                    }
-                                                </td>
-                                                <td class="live-timer fw-mono">-</td>
-                                                <td class="live-revenue fw-bold text-success">
-                                                    @(isPlaying ? currentTotal.ToString("N0") + " đ" : "-")
-                                                </td>
-                                                <td class="text-end pe-4">
-                                                    <a href="/Admin/Tables/Index" class="btn btn-sm btn-outline-primary shadow-sm">
-                                                        <i class="fa-solid fa-eye me-1"></i>Xem Bàn
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        }
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recent Invoices & Top Staff -->
-                <div class="row g-4 mb-4">
-                    <div class="col-12 col-xl-8">
-                        <div class="card-panel h-100">
-                            <div class="panel-header d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h5 class="panel-title"><i class="fa-solid fa-file-invoice-dollar text-primary me-2"></i>Hóa đơn thanh toán gần đây</h5>
-                                    <p class="panel-sub">10 hóa đơn thanh toán gần nhất</p>
-                                </div>
-                                <a href="/Admin/Revenue/Index" class="btn btn-sm btn-outline-primary">
-                                    Tất cả hóa đơn <i class="fa-solid fa-chevron-right ms-1"></i>
-                                </a>
-                            </div>
-                            <div class="panel-body p-0">
-                                <div class="table-responsive">
-                                    <table class="data-table align-middle">
-                                        <thead>
-                                            <tr>
-                                                <th class="ps-4">Mã hóa đơn</th>
-                                                <th>Bàn</th>
-                                                <th>Nhân viên</th>
-                                                <th>Thành tiền</th>
-                                                <th>Thời gian thanh toán</th>
-                                                <th class="text-center">Chi tiết</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="recent-invoices-body">
-                                            @if (!Model.RecentInvoices.Any())
-                                            {
-                                                <tr>
-                                                    <td colspan="6" class="text-center py-4 text-muted">Chưa có hóa đơn thanh toán gần đây.</td>
-                                                </tr>
-                                            }
-                                            else
-                                            {
-                                                @foreach (var invoice in Model.RecentInvoices)
-                                                {
-                                                    <tr>
-                                                        <td class="ps-4 fw-bold">#@invoice.Id.ToString().Substring(0, 8)</td>
-                                                        <td><span class="badge bg-light text-dark">@invoice.TableName</span></td>
-                                                        <td>@invoice.StaffName</td>
-                                                        <td class="fw-bold text-success">@invoice.Total.ToString("N0") đ</td>
-                                                        <td>@invoice.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                                        <td class="text-center">
-                                                            <button class="btn btn-sm btn-outline-primary btn-view-invoice-detail"
-                                                                    data-id="@invoice.Id"
-                                                                    data-table="@invoice.TableName"
-                                                                    data-table-type="@invoice.TableType"
-                                                                    data-staff="@invoice.StaffName"
-                                                                    data-total="@invoice.Total"
-                                                                    data-time="@invoice.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")"
-                                                                    data-playing-fee="@invoice.PlayingFee"
-                                                                    data-service-fee="@invoice.ServiceFee"
-                                                                    data-subtotal="@invoice.Subtotal"
-                                                                    data-payment-method="@invoice.PaymentMethod">
-                                                                <i class="fa-solid fa-circle-info"></i> Xem
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                }
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-xl-4">
-                        <div class="card-panel h-100">
-                            <div class="panel-header">
-                                <h5 class="panel-title"><i class="fa-solid fa-trophy text-warning me-2"></i>Bảng xếp hạng Nhân viên</h5>
-                                <p class="panel-sub">Top 5 nhân viên doanh thu cao nhất</p>
-                            </div>
-                            <div class="panel-body p-0">
-                                <div class="table-responsive">
-                                    <table class="data-table align-middle">
-                                        <thead>
-                                            <tr>
-                                                <th class="ps-4">Hạng</th>
-                                                <th>Họ và tên</th>
-                                                <th>Số HĐ</th>
-                                                <th class="text-end pe-4">Doanh thu</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @if (!Model.TopStaff.Any())
-                                            {
-                                                <tr>
-                                                    <td colspan="4" class="text-center py-4 text-muted">Không có dữ liệu nhân viên.</td>
-                                                </tr>
-                                            }
-                                            else
-                                            {
-                                                int rank = 1;
-                                                @foreach (var staff in Model.TopStaff)
-                                                {
-                                                    <tr>
-                                                        <td class="ps-4">
-                                                            @if (rank == 1)
-                                                            {
-                                                                <span class="badge bg-warning text-dark"><i class="fa-solid fa-crown"></i> 1</span>
-                                                            }
-                                                            else if (rank == 2)
-                                                            {
-                                                                <span class="badge bg-secondary text-white">2</span>
-                                                            }
-                                                            else if (rank == 3)
-                                                            {
-                                                                <span class="badge bg-danger text-white" style="background-color: #cd7f32 !important;">3</span>
-                                                            }
-                                                            else
-                                                            {
-                                                                <span class="badge bg-light text-dark">@rank</span>
-                                                            }
-                                                        </td>
-                                                        <td class="fw-bold">@staff.StaffName</td>
-                                                        <td>@staff.InvoicesCount</td>
-                                                        <td class="text-end pe-4 fw-bold text-primary">@staff.TotalRevenue.ToString("N0") đ</td>
-                                                    </tr>
-                                                    rank++;
-                                                }
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quick actions section -->
-                <div class="card-panel mb-4">
-                    <div class="panel-header">
-                        <h5 class="panel-title"><i class="fa-solid fa-bolt text-warning me-2"></i>Thao tác nhanh</h5>
-                        <p class="panel-sub">Lối tắt quản lý hệ thống nhanh chóng</p>
-                    </div>
-                    <div class="panel-body">
-                        <div class="row g-3">
-                            <div class="col-6 col-md-4 col-xl-2">
-                                <a href="/Admin/Tables/Index" class="quick-action-card">
-                                    <div class="quick-action-icon"><i class="fa-solid fa-table-cells"></i></div>
-                                    <div>
-                                        <strong class="d-block text-truncate">Quản lý Bàn</strong>
-                                        <span class="text-muted small">Cấu hình & tạo</span>
-                                    </div>
-                                </a>
-                            </div>
-
-                            <div class="col-6 col-md-4 col-xl-2">
-                                <a href="/Admin/Products/Index" class="quick-action-card">
-                                    <div class="quick-action-icon"><i class="fa-solid fa-box-open"></i></div>
-                                    <div>
-                                        <strong class="d-block text-truncate">Sản phẩm</strong>
-                                        <span class="text-muted small">Đồ ăn & uống</span>
-                                    </div>
-                                </a>
-                            </div>
-
-                            <div class="col-6 col-md-4 col-xl-2">
-                                <a href="/Admin/Categories/Index" class="quick-action-card">
-                                    <div class="quick-action-icon"><i class="fa-solid fa-tags"></i></div>
-                                    <div>
-                                        <strong class="d-block text-truncate">Danh mục</strong>
-                                        <span class="text-muted small">Phân loại hàng</span>
-                                    </div>
-                                </a>
-                            </div>
-
-                            <div class="col-6 col-md-4 col-xl-2">
-                                <a href="/Admin/Revenue/Index" class="quick-action-card">
-                                    <div class="quick-action-icon"><i class="fa-solid fa-chart-line"></i></div>
-                                    <div>
-                                        <strong class="d-block text-truncate">Doanh thu</strong>
-                                        <span class="text-muted small">Báo cáo chi tiết</span>
-                                    </div>
-                                </a>
-                            </div>
-
-                            <div class="col-6 col-md-4 col-xl-2">
-                                <a href="/Invoices/Index" class="quick-action-card">
-                                    <div class="quick-action-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
-                                    <div>
-                                        <strong class="d-block text-truncate">Tất cả Hóa đơn</strong>
-                                        <span class="text-muted small">Quản lý thanh toán</span>
-                                    </div>
-                                </a>
-                            </div>
-
-                            <div class="col-6 col-md-4 col-xl-2">
-                                <a href="/Sessions/Index" class="quick-action-card">
-                                    <div class="quick-action-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
-                                    <div>
-                                        <strong class="d-block text-truncate">Lượt chơi</strong>
-                                        <span class="text-muted small">Lịch sử lượt chơi</span>
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </main>
-            <footer class="@footerClass">
-                <div class="text-muted small">&copy; 2026 Billiard Management System &mdash; @panelTitle</div>
-            </footer>
+    <!-- KPI -->
+    <div class="bento-grid">
+        <div class="bento-card bento-emerald bento-col-4">
+            <div class="bento-top">
+                <span class="bento-label">Doanh thu hôm nay</span>
+                <span class="bento-icon"><i class="fa-solid fa-sack-dollar"></i></span>
+            </div>
+            <div>
+                <div class="bento-value" id="kpi-revenue-today">@Model.TodayRevenue.ToString("N0") đ</div>
+                <div class="bento-sub"><i class="fa-solid fa-bolt me-1"></i>Số liệu thực tế trong ngày</div>
+            </div>
+        </div>
+        <div class="bento-card bento-indigo bento-col-4">
+            <div class="bento-top">
+                <span class="bento-label">Doanh thu tháng này</span>
+                <span class="bento-icon"><i class="fa-solid fa-calendar-days"></i></span>
+            </div>
+            <div>
+                <div class="bento-value" id="kpi-revenue-month">@Model.MonthRevenue.ToString("N0") đ</div>
+                <div class="bento-sub"><i class="fa-solid fa-chart-line me-1"></i>Tính từ đầu tháng hiện tại</div>
+            </div>
+        </div>
+        <div class="bento-card bento-violet bento-col-4">
+            <div class="bento-top">
+                <span class="bento-label">Bàn đang hoạt động</span>
+                <span class="bento-icon"><i class="fa-solid fa-table-cells"></i></span>
+            </div>
+            <div>
+                <div class="bento-value" id="kpi-active-tables">@Model.ActiveTablesCount <small class="bento-sub d-inline">bàn</small></div>
+                <div class="bento-sub"><i class="fa-solid fa-gamepad me-1"></i>Đang có khách chơi</div>
+            </div>
+        </div>
+        <div class="bento-card bento-amber bento-col-4">
+            <div class="bento-top">
+                <span class="bento-label">Lượt chơi hôm nay</span>
+                <span class="bento-icon"><i class="fa-solid fa-stopwatch"></i></span>
+            </div>
+            <div>
+                <div class="bento-value" id="kpi-sessions-today">@Model.TotalSessionsToday <small class="bento-sub d-inline">lượt</small></div>
+                <div class="bento-sub"><i class="fa-solid fa-circle-play me-1"></i>Phiên đã mở hôm nay</div>
+            </div>
+        </div>
+        <div class="bento-card bento-sky bento-col-4">
+            <div class="bento-top">
+                <span class="bento-label">Hóa đơn hôm nay</span>
+                <span class="bento-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
+            </div>
+            <div>
+                <div class="bento-value" id="kpi-invoices-today">@Model.TotalInvoicesToday <small class="bento-sub d-inline">hóa đơn</small></div>
+                <div class="bento-sub"><i class="fa-solid fa-check-double me-1"></i>Đã thanh toán thành công</div>
+            </div>
+        </div>
+        <div class="bento-card bento-teal bento-col-4">
+            <div class="bento-top">
+                <span class="bento-label">Nhân viên trực</span>
+                <span class="bento-icon"><i class="fa-solid fa-user-tie"></i></span>
+            </div>
+            <div>
+                <div class="bento-value" id="kpi-staff-online">@Model.OnlineStaffCount <small class="bento-sub d-inline">người</small></div>
+                <div class="bento-sub"><i class="fa-solid fa-clock-rotate-left me-1"></i>Đang trong ca làm việc</div>
+            </div>
         </div>
     </div>
 
-    <!-- Invoice Detail Modal -->
-    <div class="modal fade" id="invoiceDetailModal" tabindex="-1" aria-labelledby="invoiceDetailModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header border-0 pb-0" style="background-color: var(--surface-2);">
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4 pt-2">
-                    <div class="text-center mb-4">
-                        <div class="invoice-icon-circle mx-auto mb-3">
-                            <i class="fa-solid fa-receipt fa-2x text-primary animate-bounce"></i>
-                        </div>
-                        <h6 class="text-muted mb-1" id="detail-invoice-id">#--</h6>
-                        <h3 class="fw-bold text-success mb-0" id="detail-total">0 đ</h3>
-                    </div>
-                    
-                    <div class="divider mb-4"></div>
-                    
-                    <div class="row g-3 mb-4">
-                        <div class="col-6">
-                            <span class="text-muted d-block small">Bàn chơi</span>
-                            <strong class="text-dark" id="detail-table">--</strong>
-                        </div>
-                        <div class="col-6">
-                            <span class="text-muted d-block small">Loại bàn</span>
-                            <span class="badge bg-light text-dark" id="detail-table-type">--</span>
-                        </div>
-                        <div class="col-6">
-                            <span class="text-muted d-block small">Nhân viên phục vụ</span>
-                            <strong class="text-dark" id="detail-staff">--</strong>
-                        </div>
-                        <div class="col-6">
-                            <span class="text-muted d-block small">Thời gian thanh toán</span>
-                            <span class="text-dark fw-bold" id="detail-time">--</span>
-                        </div>
-                    </div>
-                    
-                    <div class="divider mb-4"></div>
-                    
-                    <h6 class="fw-bold mb-3"><i class="fa-solid fa-list-check text-primary me-2"></i>Chi tiết thanh toán</h6>
-                    <div class="row g-2 small mb-4">
-                        <div class="col-8 text-muted">Tiền giờ chơi</div>
-                        <div class="col-4 text-end text-dark fw-bold" id="detail-playing-fee">0 đ</div>
-                        
-                        <div class="col-8 text-muted">Tiền dịch vụ (đồ ăn/uống)</div>
-                        <div class="col-4 text-end text-dark fw-bold" id="detail-service-fee">0 đ</div>
-                        
-                        <div class="col-8 text-muted">Tổng phụ</div>
-                        <div class="col-4 text-end text-dark fw-bold" id="detail-subtotal">0 đ</div>
-                    </div>
-                    
-                    <div class="divider mb-4"></div>
-                    
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted">Phương thức thanh toán</span>
-                        <span class="badge bg-primary px-3 py-2" id="detail-payment-method">Tiền mặt</span>
+    <!-- Charts -->
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-xl-8">
+            <div class="panel h-100">
+                <div class="panel-head">
+                    <div>
+                        <h5 class="panel-title"><i class="fa-solid fa-chart-line"></i>Doanh thu 30 ngày gần nhất</h5>
+                        <p class="panel-sub">Tổng doanh thu theo hóa đơn mỗi ngày</p>
                     </div>
                 </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Đóng</button>
+                <div class="panel-body">
+                    <div class="chart-box"><canvas id="revenueTrendChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-4">
+            <div class="panel h-100">
+                <div class="panel-head">
+                    <div>
+                        <h5 class="panel-title"><i class="fa-solid fa-chart-pie"></i>Cơ cấu doanh thu</h5>
+                        <p class="panel-sub">Tiền giờ chơi và dịch vụ</p>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="chart-box"><canvas id="revenueBreakdownChart"></canvas></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="/lib/jquery/dist/jquery.min.js"></script>
-    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-xl-4">
+            <div class="panel h-100">
+                <div class="panel-head">
+                    <div>
+                        <h5 class="panel-title"><i class="fa-solid fa-chart-bar"></i>Doanh thu theo loại bàn</h5>
+                        <p class="panel-sub">Hiệu suất từng loại bàn</p>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="chart-box"><canvas id="revenueByTableTypeChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-8">
+            <div class="panel h-100">
+                <div class="panel-head">
+                    <div>
+                        <h5 class="panel-title"><i class="fa-solid fa-circle-dot"></i>Trạng thái bàn trực tuyến</h5>
+                        <p class="panel-sub">
+                            Trống <strong>@Model.CountAvailable</strong> &middot;
+                            Đang chơi <strong>@Model.CountPlaying</strong> &middot;
+                            Chờ <strong>@Model.CountWaiting</strong> &middot;
+                            Bảo trì <strong>@Model.CountMaintenance</strong>
+                        </p>
+                    </div>
+                    <span class="chip chip-success" id="live-connection-chip">
+                        <span class="dot dot-success pulse-dot"></span> Realtime
+                    </span>
+                </div>
+                <div class="panel-body flush">
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Bàn</th>
+                                    <th>Loại</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thời gian chơi</th>
+                                    <th class="num">Tạm tính</th>
+                                    <th class="actions"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="live-tables-body">
+                                @if (!Model.LiveTables.Any())
+                                {
+                                    <tr>
+                                        <td colspan="6">
+                                            <div class="empty-state">
+                                                <i class="fa-solid fa-inbox"></i>
+                                                <h6>Chưa có bàn nào</h6>
+                                                <p>Hãy tạo bàn tại trang Quản lý Bàn.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var table in Model.LiveTables)
+                                    {
+                                        var isPlaying = table.Status == 2;
+                                        var startTimeStr = isPlaying && table.ActiveSession != null ? table.ActiveSession.StartTime.ToString("o") : "";
+                                        var ordersTotal = isPlaying && table.ActiveSession != null ? table.ActiveSession.OrdersTotal : 0;
+                                        var currentTotal = isPlaying && table.ActiveSession != null ? table.ActiveSession.CurrentTotal : 0;
+
+                                        <tr data-table-id="@table.Id" data-status="@table.Status" data-start-time="@startTimeStr" data-price="@table.HourlyRate" data-orders-total="@ordersTotal" class="table-row-status">
+                                            <td class="cell-strong">@table.TableName</td>
+                                            <td><span class="chip chip-muted">@table.TableType</span></td>
+                                            <td>
+                                                @switch (table.Status)
+                                                {
+                                                    case 1:
+                                                        <span class="chip chip-success"><span class="dot dot-success"></span>Trống</span>
+                                                        break;
+                                                    case 2:
+                                                        <span class="chip chip-danger"><span class="dot dot-danger pulse-dot"></span>Đang chơi</span>
+                                                        break;
+                                                    case 3:
+                                                        <span class="chip chip-warning"><span class="dot dot-warning"></span>Chờ</span>
+                                                        break;
+                                                    case 4:
+                                                        <span class="chip chip-muted"><span class="dot dot-muted"></span>Bảo trì</span>
+                                                        break;
+                                                    default:
+                                                        <span class="chip chip-muted">Khác</span>
+                                                        break;
+                                                }
+                                            </td>
+                                            <td class="live-timer mono">—</td>
+                                            <td class="num money live-revenue">@(isPlaying ? currentTotal.ToString("N0") + " đ" : "—")</td>
+                                            <td class="actions">
+                                                <a href="/Admin/Tables/Index" class="btn btn-icon sm" title="Quản lý bàn">
+                                                    <i class="fa-solid fa-arrow-right"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoices + Leaderboard -->
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-xl-8">
+            <div class="panel h-100">
+                <div class="panel-head">
+                    <div>
+                        <h5 class="panel-title"><i class="fa-solid fa-file-invoice-dollar"></i>Hóa đơn thanh toán gần đây</h5>
+                        <p class="panel-sub">10 hóa đơn mới nhất</p>
+                    </div>
+                    <a href="/Admin/Revenue/Index" class="btn btn-soft btn-sm">Báo cáo doanh thu <i class="fa-solid fa-chevron-right"></i></a>
+                </div>
+                <div class="panel-body flush">
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Mã hóa đơn</th>
+                                    <th>Bàn</th>
+                                    <th>Nhân viên</th>
+                                    <th class="num">Thành tiền</th>
+                                    <th>Thời điểm</th>
+                                    <th class="actions"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-invoices-body">
+                                @if (!Model.RecentInvoices.Any())
+                                {
+                                    <tr>
+                                        <td colspan="6">
+                                            <div class="empty-state">
+                                                <i class="fa-solid fa-receipt"></i>
+                                                <h6>Chưa có hóa đơn</h6>
+                                                <p>Hóa đơn thanh toán sẽ hiển thị tại đây.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var invoice in Model.RecentInvoices)
+                                    {
+                                        <tr>
+                                            <td class="cell-strong mono">#@invoice.Id.ToString()[..8]</td>
+                                            <td><span class="chip chip-muted">@invoice.TableName</span></td>
+                                            <td>@invoice.StaffName</td>
+                                            <td class="num money">@invoice.Total.ToString("N0") đ</td>
+                                            <td class="cell-sub">@invoice.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td class="actions">
+                                                <button class="btn btn-icon sm btn-view-invoice-detail"
+                                                        data-id="@invoice.Id"
+                                                        data-table="@invoice.TableName"
+                                                        data-table-type="@invoice.TableType"
+                                                        data-staff="@invoice.StaffName"
+                                                        data-total="@invoice.Total"
+                                                        data-time="@invoice.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")"
+                                                        data-playing-fee="@invoice.PlayingFee"
+                                                        data-service-fee="@invoice.ServiceFee"
+                                                        data-combo-fee="@invoice.ComboFee"
+                                                        data-subtotal="@invoice.Subtotal"
+                                                        data-payment-method="@invoice.PaymentMethod"
+                                                        title="Chi tiết hóa đơn">
+                                                    <i class="fa-solid fa-circle-info"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-4">
+            <div class="panel h-100">
+                <div class="panel-head">
+                    <div>
+                        <h5 class="panel-title"><i class="fa-solid fa-trophy"></i>Top nhân viên</h5>
+                        <p class="panel-sub">Xếp hạng theo doanh thu</p>
+                    </div>
+                </div>
+                <div class="panel-body flush">
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:64px">Hạng</th>
+                                    <th>Nhân viên</th>
+                                    <th class="num">Số HĐ</th>
+                                    <th class="num">Doanh thu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.TopStaff.Any())
+                                {
+                                    <tr>
+                                        <td colspan="4">
+                                            <div class="empty-state">
+                                                <i class="fa-solid fa-ranking-star"></i>
+                                                <h6>Chưa có dữ liệu</h6>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    var rank = 1;
+                                    @foreach (var staff in Model.TopStaff)
+                                    {
+                                        var badgeClass = rank switch { 1 => "chip-warning", 2 => "chip-muted", 3 => "chip-danger", _ => "chip-muted" };
+                                        var rankIcon = rank == 1 ? "<i class=\"fa-solid fa-crown me-1\"></i>" : (rank == 2 ? "<i class=\"fa-solid fa-medal me-1\"></i>" : (rank == 3 ? "<i class=\"fa-solid fa-award me-1\"></i>" : ""));
+                                        <tr>
+                                            <td><span class="chip @badgeClass">@Html.Raw(rankIcon)@rank</span></td>
+                                            <td class="cell-strong">@staff.StaffName</td>
+                                            <td class="num">@staff.InvoicesCount</td>
+                                            <td class="num money">@staff.TotalRevenue.ToString("N0") đ</td>
+                                        </tr>
+                                        rank++;
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="panel">
+        <div class="panel-head">
+            <div>
+                <h5 class="panel-title"><i class="fa-solid fa-bolt"></i>Thao tác nhanh</h5>
+                <p class="panel-sub">Lối tắt tới các màn hình quản trị thường dùng</p>
+            </div>
+        </div>
+        <div class="panel-body">
+            <div class="quick-grid">
+                <a href="/Admin/Tables/Index" class="quick-card">
+                    <span class="quick-icon"><i class="fa-solid fa-table-cells"></i></span>
+                    <span><strong>Quản lý Bàn</strong><span>Cấu hình &amp; trạng thái</span></span>
+                </a>
+                <a href="/Admin/Products/Index" class="quick-card">
+                    <span class="quick-icon"><i class="fa-solid fa-box-open"></i></span>
+                    <span><strong>Sản phẩm</strong><span>Đồ ăn &amp; nước uống</span></span>
+                </a>
+                <a href="/Admin/Categories/Index" class="quick-card">
+                    <span class="quick-icon"><i class="fa-solid fa-tags"></i></span>
+                    <span><strong>Danh mục</strong><span>Phân loại sản phẩm</span></span>
+                </a>
+                <a href="/Admin/Combos/Index" class="quick-card">
+                    <span class="quick-icon"><i class="fa-solid fa-layer-group"></i></span>
+                    <span><strong>Gói Combo</strong><span>Ưu đãi theo giờ chơi</span></span>
+                </a>
+                <a href="/Admin/Revenue/Index" class="quick-card">
+                    <span class="quick-icon"><i class="fa-solid fa-chart-line"></i></span>
+                    <span><strong>Doanh thu</strong><span>Báo cáo chi tiết</span></span>
+                </a>
+                <a href="/Admin/Customers/Index" class="quick-card">
+                    <span class="quick-icon"><i class="fa-solid fa-users"></i></span>
+                    <span><strong>Khách hàng</strong><span>Lịch sử &amp; thống kê</span></span>
+                </a>
+                <a href="/Admin/Staff/Index" class="quick-card">
+                    <span class="quick-icon"><i class="fa-solid fa-users-gear"></i></span>
+                    <span><strong>Nhân viên</strong><span>Phân quyền &amp; ca làm</span></span>
+                </a>
+                <a href="/Profile/Index" class="quick-card">
+                    <span class="quick-icon"><i class="fa-solid fa-user"></i></span>
+                    <span><strong>Hồ sơ</strong><span>Đổi mật khẩu</span></span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice detail modal -->
+    <div class="modal fade" id="invoiceDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa-solid fa-receipt me-2 text-primary"></i>Chi tiết hóa đơn</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <div class="cell-sub" id="detail-invoice-id">#—</div>
+                        <div class="money-lg" id="detail-total">0 đ</div>
+                    </div>
+                    <div class="divider"></div>
+                    <dl class="mb-0">
+                        <div class="kv-row"><dt>Bàn chơi</dt><dd id="detail-table">—</dd></div>
+                        <div class="kv-row"><dt>Loại bàn</dt><dd id="detail-table-type">—</dd></div>
+                        <div class="kv-row"><dt>Nhân viên phục vụ</dt><dd id="detail-staff">—</dd></div>
+                        <div class="kv-row"><dt>Thời điểm thanh toán</dt><dd id="detail-time">—</dd></div>
+                    </dl>
+                    <div class="divider"></div>
+                    <dl class="mb-0">
+                        <div class="kv-row"><dt>Tiền giờ chơi</dt><dd id="detail-playing-fee">0 đ</dd></div>
+                        <div class="kv-row"><dt>Tiền combo</dt><dd id="detail-combo-fee">0 đ</dd></div>
+                        <div class="kv-row"><dt>Tiền dịch vụ</dt><dd id="detail-service-fee">0 đ</dd></div>
+                        <div class="kv-row"><dt>Tổng phụ</dt><dd id="detail-subtotal">0 đ</dd></div>
+                        <div class="kv-row"><dt>Phương thức thanh toán</dt><dd id="detail-payment-method">Tiền mặt</dd></div>
+                    </dl>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-soft w-100" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    @if (Model.CurrentRole != "SuperAdmin")
+    {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
-    <script src="/js/@jsFile" asp-append-version="true"></script>
-
     <script>
-        // Set Chart.js Defaults
-        Chart.defaults.font.family = "'Inter', sans-serif";
-        Chart.defaults.color = "#64748b";
+        (function () {
+            if (typeof Chart === 'undefined') return;
+            Chart.defaults.font.family = "'Google Sans Text', 'Inter', sans-serif";
+            Chart.defaults.color = '#64748b';
 
-        // Read initial data from C# Serialized Models
-        const dailyRevenueData = @Html.Raw(dailyRevenueJson);
-        const tableTypeData = @Html.Raw(revenueByTableTypeJson);
-        const playingVsServicesData = @Html.Raw(playingVsServicesJson);
+            const dailyRevenueData = @Html.Raw(dailyRevenueJson);
+            const tableTypeData = @Html.Raw(revenueByTableTypeJson);
+            const breakdownData = @Html.Raw(breakdownJson);
 
-        // Chart 1: Line Chart - Daily Revenue Trend
-        let lineChart = null;
-        function initLineChart(data) {
-            const ctx = document.getElementById('revenueTrendChart').getContext('2d');
-            
-            // Format labels and dataset
-            const labels = data.map(d => d.date);
-            const amounts = data.map(d => d.amount);
+            const money = v => Math.round(Number(v) || 0).toLocaleString('vi-VN') + ' đ';
 
-            if (lineChart) lineChart.destroy();
-
-            lineChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Doanh thu (đ)',
-                        data: amounts,
-                        borderColor: '#6366f1',
-                        backgroundColor: 'rgba(99, 102, 241, 0.05)',
-                        borderWidth: 3,
-                        pointBackgroundColor: '#6366f1',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                        fill: true,
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
+            /* --- Revenue trend --- */
+            const trendCtx = document.getElementById('revenueTrendChart');
+            let trendChart = null;
+            function renderTrend(data) {
+                if (!trendCtx) return;
+                if (trendChart) trendChart.destroy();
+                trendChart = new Chart(trendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d.date),
+                        datasets: [{
+                            label: 'Doanh thu (đ)',
+                            data: data.map(d => d.amount),
+                            borderColor: '#4f46e5',
+                            backgroundColor: 'rgba(79, 70, 229, .08)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#4f46e5',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            fill: true,
+                            tension: .35
+                        }]
                     },
-                    scales: {
-                        y: {
-                            grid: { color: '#f1f5f9' },
-                            ticks: {
-                                callback: function(value) {
-                                    return value.toLocaleString('vi-VN') + ' đ';
-                                }
-                            }
-                        },
-                        x: { grid: { display: false } }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { grid: { color: '#f1f5f9' }, ticks: { callback: v => Number(v).toLocaleString('vi-VN') + ' đ' } },
+                            x: { grid: { display: false } }
+                        }
                     }
-                }
-            });
-        }
+                });
+            }
 
-        // Chart 2: Column Chart - Revenue by Table Type
-        let barChart = null;
-        function initBarChart(data) {
-            const ctx = document.getElementById('revenueByTableTypeChart').getContext('2d');
-            const labels = data.map(d => d.type);
-            const amounts = data.map(d => d.amount);
-
-            if (barChart) barChart.destroy();
-
-            barChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: amounts,
-                        backgroundColor: ['#6366f1', '#a855f7', '#ec4899', '#0ea5e9'],
-                        borderRadius: 6,
-                        maxBarThickness: 40
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
+            /* --- Revenue by table type --- */
+            const typeCtx = document.getElementById('revenueByTableTypeChart');
+            if (typeCtx) {
+                new Chart(typeCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: tableTypeData.map(x => x.type),
+                        datasets: [{
+                            data: tableTypeData.map(x => x.amount),
+                            backgroundColor: ['#4f46e5', '#8b5cf6', '#0ea5e9', '#f59e0b', '#10b981'],
+                            borderRadius: 8,
+                            maxBarThickness: 34
+                        }]
                     },
-                    scales: {
-                        y: {
-                            grid: { color: '#f1f5f9' },
-                            ticks: {
-                                callback: function(value) {
-                                    return value.toLocaleString('vi-VN') + ' đ';
-                                }
-                            }
-                        },
-                        x: { grid: { display: false } }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { grid: { color: '#f1f5f9' }, ticks: { callback: v => Number(v).toLocaleString('vi-VN') + ' đ' } },
+                            x: { grid: { display: false } }
+                        }
                     }
-                }
-            });
-        }
+                });
+            }
 
-        // Chart 3: Pie Chart - Revenue distribution between Playing Time and Services
-        let pieChart = null;
-        function initPieChart(data) {
-            const ctx = document.getElementById('revenueBreakdownChart').getContext('2d');
-            const labels = data.map(d => d.label);
-            const amounts = data.map(d => d.amount);
-
-            // Handle empty data case
-            const hasData = amounts.some(a => a > 0);
-            const displayAmounts = hasData ? amounts : [1, 1]; // Mock equal slices if no data yet
-
-            if (pieChart) pieChart.destroy();
-
-            pieChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: displayAmounts,
-                        backgroundColor: ['#10b981', '#f59e0b'],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                boxWidth: 12,
-                                padding: 16
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const val = hasData ? amounts[context.dataIndex] : 0;
-                                    return ' ' + context.label + ': ' + val.toLocaleString('vi-VN') + ' đ';
+            /* --- Breakdown doughnut --- */
+            const breakCtx = document.getElementById('revenueBreakdownChart');
+            if (breakCtx) {
+                const hasData = breakdownData.some(x => x.amount > 0);
+                new Chart(breakCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: breakdownData.map(x => x.label),
+                        datasets: [{
+                            data: hasData ? breakdownData.map(x => x.amount) : [1, 1],
+                            backgroundColor: ['#10b981', '#f59e0b'],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '68%',
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14 } },
+                            tooltip: {
+                                callbacks: {
+                                    label: c => ' ' + c.label + ': ' + money(hasData ? breakdownData[c.dataIndex].amount : 0)
                                 }
                             }
                         }
-                    },
-                    cutout: '70%'
-                }
-            });
-        }
+                    }
+                });
+            }
 
-        // Initial chart renders
-        initLineChart(dailyRevenueData);
-        initBarChart(tableTypeData);
-        initPieChart(playingVsServicesData);
+            renderTrend(dailyRevenueData);
 
-        // Helper to format currency
-        function formatVnd(val) {
-            return Math.round(val).toLocaleString('vi-VN') + ' đ';
-        }
-
-        // Timer Interval for live active tables
-        function startLiveTimers() {
-            const rows = document.querySelectorAll('.table-row-status');
-            
-            rows.forEach(row => {
-                const status = parseInt(row.getAttribute('data-status'));
-                if (status === 2) { // Playing
-                    const startTimeStr = row.getAttribute('data-start-time');
-                    const pricePerHour = parseFloat(row.getAttribute('data-price')) || 0;
+            /* --- Live timers --- */
+            function startLiveTimers() {
+                document.querySelectorAll('.table-row-status').forEach(function (row) {
+                    const status = parseInt(row.getAttribute('data-status'));
+                    const timerCell = row.querySelector('.live-timer');
+                    const moneyCell = row.querySelector('.live-revenue');
+                    if (status !== 2) { if (timerCell) timerCell.textContent = '—'; return; }
+                    const startStr = row.getAttribute('data-start-time');
+                    if (!startStr) return;
+                    const price = parseFloat(row.getAttribute('data-price')) || 0;
                     const ordersTotal = parseFloat(row.getAttribute('data-orders-total')) || 0;
-                    
-                    if (startTimeStr) {
-                        const startTime = new Date(startTimeStr);
-                        
-                        function updateRowTimer() {
-                            const now = new Date();
-                            const diffMs = now - startTime;
-                            if (diffMs < 0) return;
-
-                            const diffSecs = Math.floor(diffMs / 1000);
-                            let formatTime = '';
-                            if (diffSecs <= 3600) {
-                                const remFirstHour = 3600 - diffSecs;
-                                const hours = Math.floor(remFirstHour / 3600);
-                                const minutes = Math.floor((remFirstHour % 3600) / 60);
-                                const seconds = remFirstHour % 60;
-                                formatTime = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
-                                row.querySelector('.live-timer').innerHTML = `<span class="timer-badge text-primary">${formatTime}</span>`;
-                            } else {
-                                const hours = Math.floor(diffSecs / 3600);
-                                const minutes = Math.floor((diffSecs % 3600) / 60);
-                                const seconds = diffSecs % 60;
-                                formatTime = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
-                                row.querySelector('.live-timer').innerHTML = `<span class="timer-badge text-teal fw-bold">${formatTime}</span>`;
-                            }
-
-                            // Calculate temporary playing cost (Minimum 1h rate)
-                            const durationHours = diffSecs / 3600.0;
-                            const playingFee = Math.max(pricePerHour, pricePerHour * durationHours);
-                            const totalAmount = playingFee + ordersTotal;
-
-                            row.querySelector('.live-revenue').textContent = formatVnd(totalAmount);
-                        }
-
-                        // Run once immediately and schedule every second
-                        updateRowTimer();
-                        row.timerInterval = setInterval(updateRowTimer, 1000);
+                    const start = new Date(startStr);
+                    function tick() {
+                        const diff = (Date.now() - start.getTime()) / 1000;
+                        if (diff < 0) return;
+                        const h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60), s = Math.floor(diff % 60);
+                        if (timerCell) timerCell.innerHTML = '<span class="timer-badge">' + [h, m, s].map(n => String(n).padStart(2, '0')).join(':') + '</span>';
+                        if (moneyCell) moneyCell.textContent = money(Math.max(price, price * (diff / 3600)) + ordersTotal);
                     }
-                } else {
-                    row.querySelector('.live-timer').textContent = '-';
-                }
+                    tick();
+                    row._timer = setInterval(tick, 1000);
+                });
+            }
+
+            function stopLiveTimers() {
+                document.querySelectorAll('.table-row-status').forEach(row => { if (row._timer) clearInterval(row._timer); });
+            }
+
+            startLiveTimers();
+
+            /* --- Invoice detail --- */
+            const PAYMENT = { 0: 'Tiền mặt', 1: 'Thẻ tín dụng', 2: 'Chuyển khoản' };
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('.btn-view-invoice-detail');
+                if (!btn) return;
+                const d = btn.dataset;
+                document.getElementById('detail-invoice-id').textContent = '#' + String(d.id).slice(0, 8);
+                document.getElementById('detail-total').textContent = money(d.total);
+                document.getElementById('detail-table').textContent = d.table || '—';
+                document.getElementById('detail-table-type').textContent = d.tableType || '—';
+                document.getElementById('detail-staff').textContent = d.staff || '—';
+                document.getElementById('detail-time').textContent = d.time || '—';
+                document.getElementById('detail-playing-fee').textContent = money(d.playingFee);
+                document.getElementById('detail-combo-fee').textContent = money(d.comboFee);
+                document.getElementById('detail-service-fee').textContent = money(d.serviceFee);
+                document.getElementById('detail-subtotal').textContent = money(d.subtotal);
+                document.getElementById('detail-payment-method').textContent = PAYMENT[parseInt(d.paymentMethod)] || 'Tiền mặt';
+                new bootstrap.Modal(document.getElementById('invoiceDetailModal')).show();
             });
-        }
 
-        // Clear existing intervals
-        function stopAllTimers() {
-            document.querySelectorAll('.table-row-status').forEach(row => {
-                if (row.timerInterval) {
-                    clearInterval(row.timerInterval);
-                }
-            });
-        }
+            /* --- Realtime refresh --- */
+            const token = document.querySelector('meta[name="api-token"]')?.content;
+            const apiBase = document.querySelector('meta[name="api-base-url"]')?.content || '';
+            const hubBase = document.querySelector('meta[name="hub-base-url"]')?.content || '';
 
-        startLiveTimers();
-
-        // SignalR Integration
-        const token = document.querySelector('meta[name="api-token"]')?.content;
-        const apiBaseUrl = document.querySelector('meta[name="api-base-url"]')?.content || 'http://localhost:8080/api/';
-        const hubBaseUrl = document.querySelector('meta[name="hub-base-url"]')?.content || 'http://localhost:8080';
-
-        if (token && window.signalR) {
-            const tableConnection = new signalR.HubConnectionBuilder()
-                .withUrl(hubBaseUrl + '/hubs/table', {
-                    accessTokenFactory: () => token
-                })
-                .withAutomaticReconnect()
-                .build();
-
-            async function fetchJsonSafely(url, options) {
+            async function fetchJson(url) {
                 try {
-                    const res = await fetch(url, options);
+                    const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
                     if (!res.ok) return null;
-                    const contentType = res.headers.get("content-type");
-                    if (contentType && contentType.indexOf("application/json") !== -1) {
-                        return await res.json();
-                    }
-                } catch (e) {
-                    console.warn("fetchJsonSafely error for " + url, e);
-                }
-                return null;
+                    const ct = res.headers.get('content-type') || '';
+                    return ct.indexOf('application/json') !== -1 ? await res.json() : null;
+                } catch (e) { return null; }
             }
 
-            async function refreshDashboard() {
-                try {
-                    const fetchOpts = { headers: { 'Authorization': 'Bearer ' + token } };
-
-                    // 1. Refresh Live Tables Grid
-                    const jsonTables = await fetchJsonSafely(apiBaseUrl + 'table-sessions/dashboard', fetchOpts);
-                    if (jsonTables) {
-                        const tables = jsonTables.data || [];
-                        
-                        stopAllTimers();
-                        
-                        const body = document.getElementById('live-tables-body');
-                        body.innerHTML = '';
-
-                        if (tables.length === 0) {
-                            body.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Không có dữ liệu bàn.</td></tr>`;
-                        } else {
-                            let countAvailable = 0, countPlaying = 0, countWaiting = 0, countMaintenance = 0;
-                            
-                            tables.forEach(table => {
-                                const isPlaying = table.status === 2;
-                                const startTimeStr = isPlaying && table.activeSession ? table.activeSession.startTime : '';
-                                const pricePerHour = table.hourlyRate;
-                                const ordersTotal = isPlaying && table.activeSession ? table.activeSession.ordersTotal : 0;
-                                const currentTotal = isPlaying && table.activeSession ? table.activeSession.currentTotal : 0;
-                                
-                                // Keep status count
-                                if (table.status === 1) countAvailable++;
-                                else if (table.status === 2) countPlaying++;
-                                else if (table.status === 3) countWaiting++;
-                                else if (table.status === 4) countMaintenance++;
-
-                                let badgeHtml = '';
-                                switch(table.status) {
-                                    case 1: badgeHtml = `<span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i>Trống</span>`; break;
-                                    case 2: badgeHtml = `<span class="badge bg-danger animate-pulse-badge"><i class="fa-solid fa-play me-1"></i>Đang chơi</span>`; break;
-                                    case 3: badgeHtml = `<span class="badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i>Chờ</span>`; break;
-                                    case 4: badgeHtml = `<span class="badge bg-secondary"><i class="fa-solid fa-screwdriver-wrench me-1"></i>Bảo trì</span>`; break;
-                                    default: badgeHtml = `<span class="badge bg-light text-dark">Khác</span>`;
-                                }
-
-                                const row = document.createElement('tr');
-                                row.className = 'table-row-status';
-                                row.setAttribute('data-table-id', table.id);
-                                row.setAttribute('data-status', table.status);
-                                row.setAttribute('data-start-time', startTimeStr);
-                                row.setAttribute('data-price', pricePerHour);
-                                row.setAttribute('data-orders-total', ordersTotal);
-
-                                row.innerHTML = `
-                                    <td class="ps-4 fw-bold text-gray-800">${table.tableName}</td>
-                                    <td><span class="badge bg-light text-dark">${table.tableType}</span></td>
-                                    <td>${badgeHtml}</td>
-                                    <td class="live-timer fw-mono">-</td>
-                                    <td class="live-revenue fw-bold text-success">${isPlaying ? formatVnd(currentTotal) : '-'}</td>
-                                    <td class="text-end pe-4">
-                                        <a href="/Admin/Tables/Index" class="btn btn-sm btn-outline-primary shadow-sm">
-                                            <i class="fa-solid fa-eye me-1"></i>Xem Bàn
-                                        </a>
-                                    </td>
-                                `;
-                                body.appendChild(row);
-                            });
-
-                            // Update active table count in top cards
-                            document.getElementById('kpi-active-tables').textContent = countPlaying;
-                        }
-                        
-                        startLiveTimers();
+            async function refresh() {
+                const summaryJson = await fetchJson(apiBase + 'revenues/total');
+                if (summaryJson?.data) {
+                    const s = summaryJson.data;
+                    const t = document.getElementById('kpi-revenue-today');
+                    const m = document.getElementById('kpi-revenue-month');
+                    const inv = document.getElementById('kpi-invoices-today');
+                    if (t) t.textContent = money(s.todayRevenue);
+                    if (m) m.textContent = money(s.monthRevenue);
+                    if (inv) inv.textContent = s.todayInvoices;
+                    if (s.dailyRevenues?.length) {
+                        renderTrend(s.dailyRevenues.map(d => ({ date: new Date(d.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }), amount: d.totalRevenue })));
                     }
+                }
 
-                    // 2. Refresh Overall statistics summary cards & charts from Revenues API
-                    const jsonRevenue = await fetchJsonSafely(apiBaseUrl + 'revenues/total', fetchOpts);
-                    if (jsonRevenue) {
-                        const summary = jsonRevenue.data;
-                        if (summary) {
-                            document.getElementById('kpi-revenue-today').textContent = formatVnd(summary.todayRevenue);
-                            document.getElementById('kpi-revenue-month').textContent = formatVnd(summary.monthRevenue);
-                            document.getElementById('kpi-invoices-today').textContent = summary.todayInvoices;
-                            
-                            // Re-render Daily revenue chart
-                            if (summary.dailyRevenues) {
-                                const chartData = summary.dailyRevenues.map(d => ({
-                                    date: new Date(d.date).toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'}),
-                                    amount: d.totalRevenue
-                                }));
-                                initLineChart(chartData);
-                            }
-                        }
-                    }
-
-                    // 3. Refresh today sessions count
-                    const jsonSessions = await fetchJsonSafely(apiBaseUrl + 'table-sessions?pageNumber=1&pageSize=1000', fetchOpts);
-                    if (jsonSessions) {
-                        const sessions = jsonSessions.data?.items || [];
-                        const todayLocal = new Date().toDateString();
-                        const countToday = sessions.filter(s => new Date(s.startTime).toDateString() === todayLocal).length;
-                        document.getElementById('kpi-sessions-today').textContent = countToday;
-                    }
-
-                    // 4. Refresh Recent Invoices
-                    const jsonInvoices = await fetchJsonSafely(apiBaseUrl + 'bills?pageNumber=1&pageSize=10', fetchOpts);
-                    if (jsonInvoices) {
-                        const bills = jsonInvoices.data?.items || [];
-                        const invoiceBody = document.getElementById('recent-invoices-body');
-                        invoiceBody.innerHTML = '';
-                        
-                        if (bills.length === 0) {
-                            invoiceBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Chưa có hóa đơn thanh toán gần đây.</td></tr>`;
-                        } else {
-                            bills.forEach(invoice => {
-                                const tr = document.createElement('tr');
-                                const localTime = new Date(invoice.createdAt).toLocaleString('vi-VN', {
-                                    day: '2-digit', month: '2-digit', year: 'numeric',
-                                    hour: '2-digit', minute: '2-digit'
-                                });
-                                tr.innerHTML = `
-                                    <td class="ps-4 fw-bold">#${invoice.id.substring(0, 8)}</td>
-                                    <td><span class="badge bg-light text-dark">${invoice.tableName}</span></td>
-                                    <td>${invoice.staffName}</td>
-                                    <td class="fw-bold text-success">${formatVnd(invoice.total)}</td>
-                                    <td>${localTime}</td>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-primary btn-view-invoice-detail"
-                                                data-id="${invoice.id}"
-                                                data-table="${invoice.tableName}"
-                                                data-table-type="${invoice.tableType}"
-                                                data-staff="${invoice.staffName}"
-                                                data-total="${invoice.total}"
-                                                data-time="${localTime}"
-                                                data-playing-fee="${invoice.playingFee}"
-                                                data-service-fee="${invoice.serviceFee}"
-                                                data-subtotal="${invoice.subtotal}"
-                                                data-payment-method="${invoice.paymentMethod}">
-                                            <i class="fa-solid fa-circle-info"></i> Xem
-                                        </button>
-                                    </td>
-                                `;
-                                invoiceBody.appendChild(tr);
-                            });
-                        }
-                    }
-
-                    // 5. Refresh Online Staff Shifts
-                    const jsonShifts = await fetchJsonSafely(apiBaseUrl + 'shifts/today', fetchOpts);
-                    if (jsonShifts) {
-                        const shifts = jsonShifts.data || [];
-                        const countOnline = shifts.filter(s => s.checkOut === null).length;
-                        document.getElementById('kpi-staff-online').textContent = countOnline;
-                    }
-                } catch (e) {
-                    console.error("Dashboard real-time update error:", e);
+                const shiftsJson = await fetchJson(apiBase + 'shifts/today');
+                if (shiftsJson?.data) {
+                    const el = document.getElementById('kpi-staff-online');
+                    if (el) el.innerHTML = shiftsJson.data.filter(x => x.checkOut === null).length + ' <small class="bento-sub d-inline">người</small>';
                 }
             }
 
-            // Connection events binding
-            tableConnection.on('TableStatusChanged', refreshDashboard);
-            tableConnection.on('SessionUpdated', refreshDashboard);
-            tableConnection.on('ReceiveTableUpdate', refreshDashboard);
-
-            tableConnection.start()
-                .then(() => console.log('SignalR connected to TableHub'))
-                .catch(err => console.error('SignalR Hub Connection Error: ', err));
-        }
-
-        // Invoice Detail Modal Trigger (using Delegation)
-        $(document).on('click', '.btn-view-invoice-detail', function() {
-            const btn = $(this);
-            $('#detail-invoice-id').text('#' + btn.data('id').substring(0, 8));
-            $('#detail-total').text(formatVnd(parseFloat(btn.data('total'))));
-            $('#detail-table').text(btn.data('table'));
-            $('#detail-table-type').text(btn.data('table-type') || 'Standard');
-            $('#detail-staff').text(btn.data('staff'));
-            $('#detail-time').text(btn.data('time'));
-            $('#detail-playing-fee').text(formatVnd(parseFloat(btn.data('playing-fee'))));
-            $('#detail-service-fee').text(formatVnd(parseFloat(btn.data('service-fee'))));
-            $('#detail-subtotal').text(formatVnd(parseFloat(btn.data('subtotal'))));
-            
-            // Payment method mapping
-            const paymentMethodInt = parseInt(btn.data('payment-method'));
-            let methodStr = 'Tiền mặt';
-            if (paymentMethodInt === 1) methodStr = 'Thẻ tín dụng';
-            else if (paymentMethodInt === 2) methodStr = 'Chuyển khoản';
-            $('#detail-payment-method').text(methodStr);
-
-            // Open the Modal
-            const myModal = new bootstrap.Modal(document.getElementById('invoiceDetailModal'));
-            myModal.show();
-        });
+            if (token && window.signalR) {
+                const conn = new signalR.HubConnectionBuilder()
+                    .withUrl(hubBase + '/hubs/table', { accessTokenFactory: () => token })
+                    .withAutomaticReconnect()
+                    .build();
+                conn.on('TableStatusChanged', refresh);
+                conn.on('SessionUpdated', refresh);
+                conn.on('ReceiveTableUpdate', refresh);
+                conn.start().then(function () {
+                    const chip = document.getElementById('live-connection-chip');
+                    if (chip) chip.classList.remove('chip-warning');
+                }).catch(function (err) { console.warn('SignalR:', err); });
+            }
+        })();
     </script>
-</body>
-</html>
+    }
+}

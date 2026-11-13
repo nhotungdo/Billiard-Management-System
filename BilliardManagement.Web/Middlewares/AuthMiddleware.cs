@@ -10,6 +10,7 @@ namespace BilliardManagement.Web.Middlewares
             "/auth/login",
             "/auth/register",
             "/auth/forgotpassword",
+            "/auth/logout",
             "/accessdenied",
             "/error",
         ];
@@ -96,6 +97,13 @@ namespace BilliardManagement.Web.Middlewares
 
             // Admin routes — Admin and SuperAdmin can access /Admin/*
             if (path.StartsWith("/admin") && role != "Admin" && role != "SuperAdmin")
+            {
+                context.Response.Redirect("/AccessDenied");
+                return;
+            }
+
+            // SuperAdmin routes — only SuperAdmin can access /SuperAdmin/*
+            if (path.StartsWith("/superadmin") && role != "SuperAdmin")
             {
                 context.Response.Redirect("/AccessDenied");
                 return;

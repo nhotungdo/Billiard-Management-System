@@ -58,6 +58,9 @@
 
     window.createProductViaApi = async function (formEl) {
         const fd = new FormData(formEl);
+        fd.set('isAvailable', formEl.isAvailable && formEl.isAvailable.checked ? 'true' : 'false');
+        if (!fd.get('description')) fd.set('description', '');
+        if (!fd.get('stock')) fd.set('stock', '0');
         const res = await fetch(API_BASE + 'products', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + API_TOKEN },
@@ -221,13 +224,14 @@
         tr.id = 'row-' + id;
         tr.dataset.tableId = id;
         tr.dataset.status = status;
+        const price = table.pricePerHour || table.PricePerHour || 0;
         tr.innerHTML = `
-            <td class="text-muted row-index">+</td>
-            <td><strong class="table-name">${table.tableName || table.TableName}</strong></td>
-            <td><span class="badge bg-secondary bg-opacity-75">${table.tableType || table.TableType}</span></td>
-            <td class="fw-500">${(table.pricePerHour || table.PricePerHour || 0).toLocaleString('vi-VN')} đ/giờ</td>
-            <td><span class="badge bg-${cfg.badge}" id="status-badge-${id}"><i class="fa-solid fa-${cfg.icon} me-1"></i>${cfg.text}</span></td>
-            <td class="text-center text-muted small">Mới tạo</td>`;
+            <td class="row-index">•</td>
+            <td class="cell-strong table-name">${table.tableName || table.TableName}</td>
+            <td><span class="chip chip-muted">${table.tableType || table.TableType}</span></td>
+            <td class="num">${Number(price).toLocaleString('vi-VN')} đ/giờ</td>
+            <td><span class="chip chip-${cfg.badge === 'dark' ? 'muted' : cfg.badge}" id="status-badge-${id}"><i class="fa-solid fa-${cfg.icon} me-1"></i>${cfg.text}</span></td>
+            <td class="actions"></td>`;
         tbody.prepend(tr);
         const countEl = document.getElementById('table-count');
         if (countEl) countEl.textContent = tbody.querySelectorAll('tr[id^="row-"]').length;
@@ -241,23 +245,23 @@
         const id = product.id || product.Id;
         const img = window.resolveImageUrl(product.imageUrl || product.ImageUrl);
         const available = product.isAvailable ?? product.IsAvailable;
-        const col = document.createElement('div');
-        col.className = 'col-6 col-md-4 col-lg-3';
-        col.id = 'product-card-' + id;
-        col.innerHTML = `
-            <div class="card h-100 shadow-sm product-card">
-                <div class="product-img-wrap">
-                    ${img ? `<img src="${img}" class="card-img-top product-img" alt="">` :
-                `<div class="product-img-placeholder"><i class="fa-solid fa-box-open"></i></div>`}
-                </div>
-                <div class="card-body">
-                    <h6 class="card-title mb-1">${product.name || product.Name}</h6>
-                    <p class="text-primary fw-bold mb-1">${(product.price || product.Price || 0).toLocaleString('vi-VN')} đ</p>
-                    <span class="badge ${available ? 'bg-success' : 'bg-secondary'}">${available ? 'Đang bán' : 'Ngừng bán'}</span>
-                    <div class="small text-muted mt-1">${product.category || product.Category || ''}</div>
+        const card = document.createElement('article');
+        card.className = 'product-card';
+        card.id = 'product-card-' + id;
+        const thumb = img
+            ? `<img src="${img}" alt="${product.name || ''}" />`
+            : `<i class="fa-solid fa-box-open"></i>`;
+        card.innerHTML = `
+            <div class="product-thumb">${thumb}</div>
+            <div class="product-info">
+                <h6 class="product-name text-truncate-1">${product.name || product.Name}</h6>
+                <div class="product-price">${Number(product.price || product.Price || 0).toLocaleString('vi-VN')} đ</div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="chip ${available ? 'chip-success' : 'chip-muted'}">${available ? 'Đang bán' : 'Ngừng bán'}</span>
+                    <span class="cell-sub">${product.category || product.Category || ''}</span>
                 </div>
             </div>`;
-        grid.prepend(col);
+        grid.prepend(card);
         const countEl = document.getElementById('product-count');
         if (countEl) countEl.textContent = grid.querySelectorAll('[id^="product-card-"]').length;
     };

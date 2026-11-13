@@ -1,297 +1,192 @@
 @page
 @model BilliardManagement.Web.Pages.Admin.Tables.IndexModel
-@{ Layout = null; }
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Billiard Admin Panel</title>
-    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="/css/admin.css" asp-append-version="true" />
-    <link rel="stylesheet" href="/BilliardManagement.Web.styles.css" asp-append-version="true" />
-    @{
-        var apiToken = HttpContext.Session.GetString("JWToken");
-    }
-    @if (!string.IsNullOrEmpty(apiToken))
-    {
-        <meta name="api-token" content="@apiToken" />
-        <meta name="api-base-url" content="http://localhost:8080/api/" />
-        <meta name="api-origin" content="http://localhost:8080" />
-        <meta name="hub-base-url" content="http://localhost:8080" />
-    }
-</head>
-<body class="admin-body">
-    <div id="admin-wrapper">
-        <partial name="_AdminSidebar" />
-        <div id="admin-content-wrapper">
-            <nav id="admin-topbar">
-                <div class="topbar-left">
-                    <button class="sidebar-toggle-btn" id="sidebarToggle" title="Toggle Sidebar">
-                        <i class="fa-solid fa-bars"></i>
-                    </button>
-                    <div class="topbar-breadcrumb">
-                        <span class="breadcrumb-label">@(ViewData["BreadcrumbTitle"] ?? ViewData["Title"])</span>
-                    </div>
-                </div>
-                <div class="topbar-right">
-                    <span class="role-badge admin-badge">
-                        <i class="fa-solid fa-shield-halved me-1"></i> Admin
-                    </span>
-                    <div class="dropdown user-dropdown">
-                        <button class="btn user-avatar-btn dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="avatar-circle">
-                                <i class="fa-solid fa-user-tie"></i>
-                            </div>
-                            <span class="user-name d-none d-md-inline">@HttpContext.Session.GetString("FullName")</span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end user-menu" aria-labelledby="userDropdown">
-                            <li class="dropdown-header">
-                                <div class="user-info-header">
-                                    <div class="avatar-circle-sm"><i class="fa-solid fa-user-tie"></i></div>
-                                    <div>
-                                        <div class="fw-600">@HttpContext.Session.GetString("FullName")</div>
-                                        <div class="text-muted small">@HttpContext.Session.GetString("Username")</div>
-                                    </div>
-                                </div>
-                            </li>
-                            <li><hr class="dropdown-divider" /></li>
-                            <li>
-                                <a class="dropdown-item" href="/Auth/Logout">
-                                    <i class="fa-solid fa-right-from-bracket me-2 text-danger"></i>Đăng xuất
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </nav>
-            <main id="admin-content">
-                @if (TempData["SuccessMessage"] != null)
-                {
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                }
-                @if (TempData["ErrorMessage"] != null)
-                {
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="fa-solid fa-triangle-exclamation me-2"></i>@TempData["ErrorMessage"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                }
-
 @{
-    
     ViewData["Title"] = "Quản lý Bàn";
+    var tableTypes = new[] { "Pool 8 Ball", "Pool 9 Ball", "Snooker", "Carom", "Libre", "English Billiards", "Russian Pyramid", "VIP", "Phòng đôi", "Bàn thi đấu" };
 }
 
-<div id="app-toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100;"></div>
-
-<div class="dashboard-header mb-4">
-    <h1 class="page-title"><i class="fa-solid fa-table-cells me-2"></i>Quản lý Bàn Bida</h1>
-    <p class="page-subtitle">Danh sách tất cả bàn và trạng thái hiện tại — cập nhật realtime</p>
+<div class="page-head">
+    <div>
+        <h1 class="page-title"><i class="fa-solid fa-table-cells"></i>Quản lý Bàn</h1>
+        <p class="page-subtitle">Cấu hình bàn, đổi trạng thái và theo dõi lịch sử thay đổi — cập nhật realtime.</p>
+    </div>
+    <div class="page-actions">
+        <button class="btn btn-soft" type="button" id="reloadTablesBtn">
+            <i class="fa-solid fa-rotate"></i>Làm mới
+        </button>
+        <button class="btn btn-accent" type="button" data-bs-toggle="modal" data-bs-target="#createTableModal">
+            <i class="fa-solid fa-plus"></i>Tạo bàn mới
+        </button>
+    </div>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
-    <div class="alert alert-warning alert-dismissible fade show">
+    <div class="alert alert-warning" role="alert">
         <i class="fa-solid fa-triangle-exclamation me-2"></i>@Model.ErrorMessage
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
 
-<!-- Stats Row -->
-<div class="row g-3 mb-4" id="table-stats-row">
-    <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm" style="border-left: 4px solid #1cc88a !important;">
-            <div class="card-body d-flex align-items-center gap-3 py-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center"
-                     style="width:48px;height:48px;background:rgba(28,200,138,.15)">
-                    <i class="fa-solid fa-circle-check text-success fs-5"></i>
-                </div>
-                <div>
-                    <div class="text-muted small">Trống bàn</div>
-                    <div class="fw-bold fs-4 text-success" id="stat-available">@Model.CountAvailable</div>
-                </div>
-            </div>
+<!-- Stats -->
+<div class="stat-grid">
+    <div class="stat-card stat-success">
+        <span class="stat-icon"><i class="fa-solid fa-circle-check"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Trống bàn</div>
+            <div class="stat-value" id="stat-available">@Model.CountAvailable</div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm" style="border-left: 4px solid #e74a3b !important;">
-            <div class="card-body d-flex align-items-center gap-3 py-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center"
-                     style="width:48px;height:48px;background:rgba(231,74,59,.15)">
-                    <i class="fa-solid fa-circle-play text-danger fs-5"></i>
-                </div>
-                <div>
-                    <div class="text-muted small">Đang chơi</div>
-                    <div class="fw-bold fs-4 text-danger" id="stat-playing">@Model.CountPlaying</div>
-                </div>
-            </div>
+    <div class="stat-card stat-danger">
+        <span class="stat-icon"><i class="fa-solid fa-circle-play"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Đang chơi</div>
+            <div class="stat-value" id="stat-playing">@Model.CountPlaying</div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm" style="border-left: 4px solid #f6c23e !important;">
-            <div class="card-body d-flex align-items-center gap-3 py-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center"
-                     style="width:48px;height:48px;background:rgba(246,194,62,.15)">
-                    <i class="fa-solid fa-clock text-warning fs-5"></i>
-                </div>
-                <div>
-                    <div class="text-muted small">Chờ</div>
-                    <div class="fw-bold fs-4 text-warning" id="stat-waiting">@Model.CountWaiting</div>
-                </div>
-            </div>
+    <div class="stat-card stat-warning">
+        <span class="stat-icon"><i class="fa-solid fa-clock"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Chờ</div>
+            <div class="stat-value" id="stat-waiting">@Model.CountWaiting</div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm" style="border-left: 4px solid #858796 !important;">
-            <div class="card-body d-flex align-items-center gap-3 py-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center"
-                     style="width:48px;height:48px;background:rgba(133,135,150,.15)">
-                    <i class="fa-solid fa-wrench text-secondary fs-5"></i>
-                </div>
-                <div>
-                    <div class="text-muted small">Bảo trì</div>
-                    <div class="fw-bold fs-4 text-secondary" id="stat-maintenance">@Model.CountMaintenance</div>
-                </div>
-            </div>
+    <div class="stat-card stat-teal">
+        <span class="stat-icon"><i class="fa-solid fa-wrench"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Bảo trì</div>
+            <div class="stat-value" id="stat-maintenance">@Model.CountMaintenance</div>
         </div>
     </div>
 </div>
 
-<!-- Search & Filter Card -->
-<div class="card border-0 shadow-sm rounded-4 mb-4">
-    <div class="card-body p-3">
-        <div class="row g-3 align-items-center">
-            <div class="col-md-6 col-lg-5">
-                <div class="input-group">
-                    <span class="input-group-text bg-light border-end-0 text-muted">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                    </span>
-                    <input type="text" id="adminTableSearchInput" class="form-control bg-light border-start-0 ps-0" placeholder="Tìm theo tên bàn..." />
-                </div>
-            </div>
-            <div class="col-md-4 col-lg-4">
-                <select id="adminTableStatusFilter" class="form-select bg-light">
-                    <option value="">-- Tất cả trạng thái --</option>
-                    <option value="1">Trống bàn</option>
-                    <option value="2">Đang chơi</option>
-                    <option value="3">Chờ thanh toán</option>
-                    <option value="4">Bảo trì</option>
-                </select>
-            </div>
-            <div class="col-md-2 col-lg-3">
-                <button type="button" id="resetAdminTableFilter" class="btn btn-outline-secondary w-100" title="Đặt lại bộ lọc">
-                    <i class="fa-solid fa-rotate-left me-1"></i>Đặt lại
-                </button>
-            </div>
+<!-- Filters -->
+<div class="filter-bar">
+    <div class="field flex-grow-1" style="max-width:320px">
+        <label for="adminTableSearchInput">Tìm bàn</label>
+        <div class="input-icon">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="adminTableSearchInput" class="form-control" placeholder="Nhập tên bàn..." />
         </div>
+    </div>
+    <div class="field" style="min-width:190px">
+        <label for="adminTableStatusFilter">Trạng thái</label>
+        <select id="adminTableStatusFilter" class="form-select">
+            <option value="">Tất cả trạng thái</option>
+            <option value="1">Trống bàn</option>
+            <option value="2">Đang chơi</option>
+            <option value="3">Chờ</option>
+            <option value="4">Bảo trì</option>
+        </select>
+    </div>
+    <div class="field">
+        <label>&nbsp;</label>
+        <button type="button" id="resetAdminTableFilter" class="btn btn-soft">
+            <i class="fa-solid fa-rotate-left"></i>Đặt lại
+        </button>
     </div>
 </div>
 
-<!-- Main Table Card -->
-<div class="card-panel">
-    <div class="panel-header d-flex justify-content-between align-items-center">
-        <h5 class="panel-title mb-0">Danh sách bàn (<span id="table-count">@Model.Tables.Count</span> bàn)</h5>
-        <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#createTableModal">
-                <i class="fas fa-plus me-1"></i>Tạo bàn mới
-            </button>
-            <button class="btn btn-sm btn-outline-secondary" type="button" onclick="window.location.reload()">
-                <i class="fas fa-rotate me-1"></i>Làm mới
-            </button>
+<!-- Table list -->
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h5 class="panel-title"><i class="fa-solid fa-list"></i>Danh sách bàn</h5>
+            <p class="panel-sub"><span id="table-count">@Model.Tables.Count</span> bàn đang được quản lý</p>
         </div>
     </div>
-    <div class="panel-body p-0">
-        <div class="table-responsive">
+    <div class="panel-body flush">
+        <div class="table-wrap">
             <table class="data-table" id="tables-list">
                 <thead>
                     <tr>
-                        <th style="width:50px">#</th>
+                        <th style="width:52px">#</th>
                         <th>Tên bàn</th>
                         <th>Loại</th>
-                        <th>Giá/giờ</th>
+                        <th class="num">Giá/giờ</th>
                         <th>Trạng thái</th>
-                        <th style="width:300px" class="text-center">Hành động</th>
+                        <th class="actions" style="width:280px">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody id="tables-tbody">
                     @if (!Model.Tables.Any())
                     {
                         <tr id="empty-row">
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <i class="fa-solid fa-inbox fa-2x mb-2 d-block"></i>
-                                Không có dữ liệu bàn
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <i class="fa-solid fa-inbox"></i>
+                                    <h6>Chưa có bàn nào</h6>
+                                    <p>Nhấn "Tạo bàn mới" để thêm bàn đầu tiên cho cửa hàng.</p>
+                                </div>
                             </td>
                         </tr>
                     }
-                    @{ int i = 1; }
-                    @foreach (var t in Model.Tables)
+                    else
                     {
-                        var cfg = t.Status switch
+                        var i = 1;
+                        foreach (var t in Model.Tables)
                         {
-                            1 => ("success", "Trống bàn", "circle-check"),
-                            2 => ("primary", "Đang chơi", "circle-play"),
-                            3 => ("warning", "Đặt trước", "clock"),
-                            4 => ("danger", "Bảo trì", "wrench"),
-                            _ => ("dark", "Không xác định", "question")
-                        };
-                        <tr id="row-@t.Id" data-table-id="@t.Id" data-status="@t.Status">
-                            <td class="text-muted row-index">@(i++)</td>
-                            <td><strong class="table-name">@t.TableName</strong></td>
-                            <td>
-                                <span class="badge bg-secondary bg-opacity-75">@t.TableType</span>
-                            </td>
-                            <td class="fw-500">@t.PricePerHour.ToString("N0") đ/giờ</td>
-                            <td>
-                                <span class="badge bg-@cfg.Item1" id="status-badge-@t.Id">
-                                    <i class="fa-solid fa-@cfg.Item3 me-1"></i>@cfg.Item2
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                <div class="d-flex align-items-center justify-content-center gap-2">
-                                    <select class="form-select form-select-sm status-select"
-                                            data-table-id="@t.Id"
-                                            data-original="@t.Status"
-                                            style="max-width: 130px;">
-                                        @if (t.Status == 1) { <option value="Available" selected>Trống bàn</option> } else { <option value="Available">Trống bàn</option> }
-                                        @if (t.Status == 2) { <option value="Playing" selected>Đang chơi</option> } else { <option value="Playing">Đang chơi</option> }
-                                        @if (t.Status == 3) { <option value="Waiting" selected>Chờ</option> } else { <option value="Waiting">Chờ</option> }
-                                        @if (t.Status == 4) { <option value="Maintenance" selected>Bảo trì</option> } else { <option value="Maintenance">Bảo trì</option> }
-                                    </select>
-                                    <span class="status-spinner d-none" id="spinner-@t.Id">
-                                        <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                            var cfg = t.Status switch
+                            {
+                                1 => ("chip-success", "Trống bàn", "circle-check"),
+                                2 => ("chip-danger", "Đang chơi", "circle-play"),
+                                3 => ("chip-warning", "Chờ", "clock"),
+                                4 => ("chip-muted", "Bảo trì", "wrench"),
+                                _ => ("chip-muted", "Không xác định", "question")
+                            };
+                            var statusKey = t.Status switch
+                            {
+                                1 => "Available",
+                                2 => "Playing",
+                                3 => "Waiting",
+                                4 => "Maintenance",
+                                _ => "Available"
+                            };
+                            <tr id="row-@t.Id" data-table-id="@t.Id" data-status="@t.Status">
+                                <td class="row-index">@(i++)</td>
+                                <td class="cell-strong table-name">@t.TableName</td>
+                                <td><span class="chip chip-muted">@t.TableType</span></td>
+                                <td class="num">@t.PricePerHour.ToString("N0") đ</td>
+                                <td>
+                                    <span class="chip @cfg.Item1" id="status-badge-@t.Id">
+                                        <i class="fa-solid fa-@cfg.Item3 me-1"></i>@cfg.Item2
                                     </span>
-                                    <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-sm btn-outline-info view-history-btn"
-                                                data-id="@t.Id"
-                                                data-tablename="@t.TableName"
-                                                title="Lịch sử trạng thái">
+                                </td>
+                                <td class="actions">
+                                    <div class="d-inline-flex align-items-center gap-2">
+                                        <select class="form-select form-select-sm status-select"
+                                                data-table-id="@t.Id"
+                                                data-original="@t.Status"
+                                                style="max-width:140px">
+                                            <option value="Available">Trống bàn</option>
+                                            <option value="Playing">Đang chơi</option>
+                                            <option value="Waiting">Chờ</option>
+                                            <option value="Maintenance">Bảo trì</option>
+                                        </select>
+                                        <span class="status-spinner d-none" id="spinner-@t.Id">
+                                            <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                                        </span>
+                                        <button type="button" class="btn btn-icon sm view-history-btn" data-id="@t.Id" data-tablename="@t.TableName" title="Lịch sử trạng thái">
                                             <i class="fa-solid fa-clock-rotate-left"></i>
                                         </button>
-                                        <button type="button" class="btn btn-sm btn-outline-primary edit-table-btn"
+                                        <button type="button" class="btn btn-icon sm edit-table-btn"
                                                 data-id="@t.Id"
                                                 data-tablename="@t.TableName"
                                                 data-tabletype="@t.TableType"
                                                 data-priceperhour="@t.PricePerHour"
-                                                data-status="@(t.Status switch { 1 => "Available", 2 => "Playing", 3 => "Waiting", 4 => "Maintenance", _ => "Available" })"
+                                                data-status="@statusKey"
                                                 data-description="@t.Description"
-                                                title="Sửa Bàn">
+                                                title="Sửa bàn">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
-                                        <form method="post" asp-page-handler="Delete" asp-route-id="@t.Id" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bàn này?');" style="display:inline;">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa Bàn">
+                                        <form method="post" asp-page-handler="Delete" asp-route-id="@t.Id" class="d-inline" data-confirm="Bạn có chắc chắn muốn xóa bàn này?">
+                                            <button type="submit" class="btn btn-icon sm danger" title="Xóa bàn">
                                                 <i class="fa-solid fa-trash"></i>
                                             </button>
                                         </form>
                                     </div>
-                                </div>
-                            </td>
-                        </tr>
+                                </td>
+                            </tr>
+                        }
                     }
                 </tbody>
             </table>
@@ -301,83 +196,74 @@
 
 <partial name="_CreateTableModal" />
 
-<!-- Table Status History Modal -->
-<div class="modal fade" id="statusHistoryModal" tabindex="-1" aria-labelledby="statusHistoryModalLabel" aria-hidden="true">
+<!-- Status history -->
+<div class="modal fade" id="statusHistoryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content shadow border-0">
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title font-weight-bold" id="statusHistoryModalLabel">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
                     <i class="fa-solid fa-clock-rotate-left me-2 text-warning"></i>
-                    Lịch sử trạng thái - <span id="historyModalTableName" class="text-info">Bàn</span>
+                    Lịch sử trạng thái — <span id="historyModalTableName" class="text-primary">Bàn</span>
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
-            <div class="modal-body p-0">
-                <div class="table-responsive" style="max-height: 450px;">
-                    <table class="table table-hover table-striped mb-0 align-middle">
-                        <thead class="table-dark position-sticky top-0" style="z-index: 1;">
+            <div class="modal-body flush">
+                <div class="table-wrap" style="max-height:440px">
+                    <table class="data-table">
+                        <thead>
                             <tr>
                                 <th>Thời gian</th>
                                 <th>Trạng thái cũ</th>
                                 <th>Trạng thái mới</th>
                                 <th>Người thực hiện</th>
-                                <th>Lý do / Ghi chú</th>
+                                <th>Lý do</th>
                             </tr>
                         </thead>
                         <tbody id="history-tbody">
                             <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">
-                                    <span class="spinner-border spinner-border-sm text-primary me-2" role="status"></span>
-                                    Đang tải lịch sử...
-                                </td>
+                                <td colspan="5" class="text-center py-4 text-muted">Đang tải lịch sử…</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-            <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Đóng</button>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Đóng</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Edit Table Modal -->
-<div class="modal fade" id="editTableModal" tabindex="-1" aria-labelledby="editTableModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<!-- Edit table -->
+<div class="modal fade" id="editTableModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form method="post" asp-page-handler="Update">
                 <input type="hidden" asp-for="EditId" id="editId" />
                 <div class="modal-header">
-                    <h5 class="modal-title font-weight-bold" id="editTableModalLabel"><i class="fa-solid fa-pen-to-square me-2 text-primary"></i>Sửa thông tin bàn</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title"><i class="fa-solid fa-pen-to-square me-2 text-primary"></i>Sửa thông tin bàn</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label asp-for="EditTable.TableName" class="form-label font-weight-bold">Tên bàn</label>
+                        <label asp-for="EditTable.TableName" class="form-label">Tên bàn</label>
                         <input asp-for="EditTable.TableName" id="editTableName" class="form-control" required />
                     </div>
                     <div class="mb-3">
-                        <label asp-for="EditTable.TableType" class="form-label font-weight-bold">Loại bàn</label>
+                        <label asp-for="EditTable.TableType" class="form-label">Loại bàn</label>
                         <select asp-for="EditTable.TableType" id="editTableType" class="form-select" required>
-                            <option value="Pool 8 Ball">Pool 8 Ball</option>
-                            <option value="Pool 9 Ball">Pool 9 Ball</option>
-                            <option value="Snooker">Snooker</option>
-                            <option value="Carom">Carom</option>
-                            <option value="Libre">Libre</option>
-                            <option value="English Billiards">English Billiards</option>
-                            <option value="Russian Pyramid">Russian Pyramid</option>
-                            <option value="VIP">VIP</option>
-                            <option value="Phòng đôi">Phòng đôi</option>
-                            <option value="Bàn thi đấu">Bàn thi đấu</option>
+                            @foreach (var type in tableTypes)
+                            {
+                                <option value="@type">@type</option>
+                            }
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label asp-for="EditTable.PricePerHour" class="form-label font-weight-bold">Giá mỗi giờ (VNĐ)</label>
+                        <label asp-for="EditTable.PricePerHour" class="form-label">Giá mỗi giờ (VNĐ)</label>
                         <input asp-for="EditTable.PricePerHour" id="editPricePerHour" type="number" step="1000" min="0" class="form-control" required />
                     </div>
                     <div class="mb-3">
-                        <label asp-for="EditTable.Status" class="form-label font-weight-bold">Trạng thái</label>
+                        <label asp-for="EditTable.Status" class="form-label">Trạng thái</label>
                         <select asp-for="EditTable.Status" id="editStatus" class="form-select">
                             <option value="Available">Trống bàn</option>
                             <option value="Playing">Đang chơi</option>
@@ -385,358 +271,254 @@
                             <option value="Maintenance">Bảo trì</option>
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label asp-for="EditTable.Description" class="form-label font-weight-bold">Mô tả (Tùy chọn)</label>
+                    <div class="mb-0">
+                        <label asp-for="EditTable.Description" class="form-label">Mô tả</label>
                         <textarea asp-for="EditTable.Description" id="editDescription" class="form-control" rows="3"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i>Lưu thay đổi</button>
+                    <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-accent"><i class="fa-solid fa-floppy-disk me-1"></i>Lưu thay đổi</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-            </main>
-            <footer class="admin-footer">
-                <div class="text-muted small">&copy; 2026 Billiard Management System &mdash; Admin Panel</div>
-            </footer>
-        </div>
-    </div>
-    <div id="loading-overlay">
-        <div class="loading-spinner">
-            <div class="spinner-ring"></div>
-            <p class="mt-3 text-white">Đang tải...</p>
-        </div>
-    </div>
-    <script src="/lib/jquery/dist/jquery.min.js"></script>
-    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/admin.js" asp-append-version="true"></script>
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script src="/js/table-status.js" asp-append-version="true"></script>
+    <script src="/js/create-entity.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+            const API_BASE = document.querySelector('meta[name="api-base-url"]')?.content || '';
+            const API_TOKEN = document.querySelector('meta[name="api-token"]')?.content || '';
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="/js/table-status.js" asp-append-version="true"></script>
-<script src="/js/create-entity.js" asp-append-version="true"></script>
-<style>
-    .fw-500 { font-weight: 500; }
-    .status-select:disabled { opacity: 0.7; }
-</style>
-<script>
-    const API_BASE = document.querySelector('meta[name="api-base-url"]')?.content || 'http://localhost:8080/api/';
-    const API_TOKEN = document.querySelector('meta[name="api-token"]')?.content || '';
+            const STATUS_ENUM = { Available: 1, Playing: 2, Waiting: 3, Maintenance: 4 };
 
-    const STATUS_ENUM = {
-        Available: 1,
-        Playing: 2,
-        Waiting: 3,
-        Maintenance: 4
-    };
+            let tablesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Tables.Select(t => new
+            {
+                id = t.Id,
+                tableName = t.TableName,
+                tableType = t.TableType,
+                status = t.Status,
+                pricePerHour = t.PricePerHour
+            })));
 
-    let tablesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Tables.Select(t => new {
-        id = t.Id,
-        tableName = t.TableName,
-        tableType = t.TableType,
-        status = t.Status,
-        pricePerHour = t.PricePerHour
-    })));
+            const recalcStats = () => updateTableStatusStats(tablesData);
 
-    function showToast(message, type) {
-        const container = document.getElementById('app-toast-container');
-        const id = 'toast-' + Date.now();
-        const bg = type === 'success' ? 'text-bg-success' : 'text-bg-danger';
-        const html = `<div id="${id}" class="toast align-items-center ${bg} border-0" role="alert">
-            <div class="d-flex">
-                <div class="toast-body">${message}</div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-            </div></div>`;
-        container.insertAdjacentHTML('beforeend', html);
-        const el = document.getElementById(id);
-        const toast = new bootstrap.Toast(el, { delay: 3500 });
-        toast.show();
-        el.addEventListener('hidden.bs.toast', () => el.remove());
-    }
-
-    function recalcStats() {
-        updateTableStatusStats(tablesData);
-    }
-
-    function applyStatusToRow(tableId, status) {
-        const row = document.getElementById('row-' + tableId);
-        if (row) row.dataset.status = status;
-        renderTableStatusBadge(status, 'status-badge-' + tableId);
-        const sel = document.querySelector(`.status-select[data-table-id="${tableId}"]`);
-        if (sel) {
-            const cfg = getTableStatusConfig(status);
-            sel.value = cfg.key;
-            sel.dataset.original = status;
-        }
-        const item = tablesData.find(t => t.id === tableId);
-        if (item) item.status = status;
-        recalcStats();
-    }
-
-    async function updateTableStatus(tableId, statusKey, reason = '', force = false) {
-        const spinner = document.getElementById('spinner-' + tableId);
-        const select = document.querySelector(`.status-select[data-table-id="${tableId}"]`);
-        if (select) select.disabled = true;
-        if (spinner) spinner.classList.remove('d-none');
-
-        try {
-            const res = await fetch(API_BASE + 'tables/' + tableId + '/status', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + API_TOKEN
-                },
-                body: JSON.stringify({ status: statusKey, reason: reason, force: force })
-            });
-
-            let json;
-            const contentType = res.headers.get("content-type");
-            if (contentType && contentType.indexOf("application/json") !== -1) {
-                json = await res.json();
-            } else {
-                const text = await res.text();
-                throw new Error(text || `Lỗi hệ thống (${res.status})`);
-            }
-
-            if (!res.ok || !(json.success ?? json.Success)) {
-                throw new Error(json.message || 'Không thể cập nhật trạng thái bàn');
-            }
-
-            const data = json.data || json.Data;
-            const newStatus = STATUS_ENUM[statusKey] || data?.status || data?.Status;
-            applyStatusToRow(tableId, newStatus);
-            Swal.fire({
-                icon: 'success',
-                title: 'Thành công',
-                text: 'Cập nhật trạng thái bàn thành công',
-                timer: 1500,
-                showConfirmButton: false
-            });
-        } catch (err) {
-            if (select) select.value = getTableStatusConfig(parseInt(select.dataset.original)).key;
-            Swal.fire({
-                icon: 'error',
-                title: 'Thất bại',
-                text: err.message || 'Không thể cập nhật trạng thái bàn'
-            });
-        } finally {
-            if (select) select.disabled = false;
-            if (spinner) spinner.classList.add('d-none');
-        }
-    }
-
-    $(document).on('change', '.status-select', async function () {
-        const tableId = this.dataset.tableId;
-        const newKey = this.value;
-        const original = parseInt(this.dataset.original);
-        const newStatus = STATUS_ENUM[newKey];
-        if (newStatus === original) return;
-
-        const isCurrentlyPlaying = (original === 2); // 2 = Playing
-        let title = `Thay đổi trạng thái sang ${getTableStatusConfig(newStatus).text}?`;
-        let htmlContent = `
-            <div class="mb-3 text-start">
-                <label class="form-label small fw-bold">Lý do thay đổi (Tùy chọn):</label>
-                <textarea id="swal-reason" class="form-control form-control-sm" rows="2" placeholder="Nhập lý do..."></textarea>
-            </div>
-        `;
-
-        if (isCurrentlyPlaying && (newStatus === 1 || newStatus === 3 || newStatus === 4)) {
-            htmlContent += `
-                <div class="form-check form-switch text-start mt-2">
-                    <input class="form-check-input" type="checkbox" id="swal-force" checked>
-                    <label class="form-check-label text-danger small fw-bold" for="swal-force">
-                        Cưỡng ép thay đổi (Kết thúc phiên chơi đang hoạt động)
-                    </label>
-                </div>
-            `;
-        }
-
-        const selectElement = this;
-
-        const { value: formValues } = await Swal.fire({
-            title: title,
-            html: htmlContent,
-            focusConfirm: false,
-            showCancelButton: true,
-            confirmButtonText: 'Xác nhận',
-            cancelButtonText: 'Hủy',
-            preConfirm: () => {
-                return {
-                    reason: document.getElementById('swal-reason').value,
-                    force: document.getElementById('swal-force') ? document.getElementById('swal-force').checked : false
-                }
-            }
-        });
-
-        if (formValues) {
-            updateTableStatus(tableId, newKey, formValues.reason, formValues.force);
-        } else {
-            // Reset select
-            selectElement.value = getTableStatusConfig(original).key;
-        }
-    });
-
-    async function loadTableHistory(tableId, tableName) {
-        const tbody = document.getElementById('history-tbody');
-        document.getElementById('historyModalTableName').textContent = tableName;
-        
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">
-            <span class="spinner-border spinner-border-sm text-primary me-2" role="status"></span>
-            Đang tải lịch sử...
-        </td></tr>`;
-
-        const modal = new bootstrap.Modal(document.getElementById('statusHistoryModal'));
-        modal.show();
-
-        try {
-            const res = await fetch(API_BASE + 'tables/' + tableId + '/history', {
-                method: 'GET',
-                headers: {
-                    'Authorization': 'Bearer ' + API_TOKEN
-                }
-            });
-
-            if (!res.ok) throw new Error('Không thể tải lịch sử thay đổi trạng thái');
-
-            const json = await res.json();
-            const list = json.data || json.Data || [];
-
-            if (list.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">Không có lịch sử thay đổi trạng thái nào</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = list.map(item => {
-                const date = new Date(item.changedAt || item.ChangedAt).toLocaleString('vi-VN');
-                const oldCfg = getTableStatusConfig(item.oldStatus || item.OldStatus);
-                const newCfg = getTableStatusConfig(item.newStatus || item.NewStatus);
-                const changer = item.changedByName || item.ChangedByName || 'Hệ thống';
-                const reason = item.reason || item.Reason || '—';
-
-                return `<tr>
-                    <td>${date}</td>
-                    <td><span class="badge bg-${oldCfg.badge}"><i class="fa-solid fa-${oldCfg.icon} me-1"></i>${oldCfg.text}</span></td>
-                    <td><span class="badge bg-${newCfg.badge}"><i class="fa-solid fa-${newCfg.icon} me-1"></i>${newCfg.text}</span></td>
-                    <td><strong class="text-dark">${changer}</strong></td>
-                    <td class="text-secondary small">${reason}</td>
-                </tr>`;
-            }).join('');
-
-        } catch (err) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i>Lỗi: ${err.message}</td></tr>`;
-        }
-    }
-
-    $(document).on('click', '.view-history-btn', function() {
-        const id = $(this).data('id');
-        const name = $(this).data('tablename');
-        loadTableHistory(id, name);
-    });
-
-    connectTableStatusHub({
-        onStatusChanged: function (payload) {
-            const status = payload.status !== undefined ? payload.status : payload.Status;
-            const tableId = payload.tableId || payload.TableId;
-            applyStatusToRow(tableId, status);
-        },
-        onTableCreated: function (payload) {
-            const id = payload.id || payload.Id;
-            if (!document.getElementById('row-' + id)) {
-                tablesData.unshift({
-                    id: id,
-                    tableName: payload.tableName || payload.TableName,
-                    tableType: payload.tableType || payload.TableType,
-                    status: payload.status ?? payload.Status,
-                    pricePerHour: payload.pricePerHour || payload.PricePerHour
+            /* Đồng bộ giá trị select với trạng thái hiện tại của bàn */
+            function syncStatusSelects() {
+                document.querySelectorAll('.status-select').forEach(function (sel) {
+                    const original = parseInt(sel.dataset.original);
+                    if (!isNaN(original)) sel.value = getTableStatusConfig(original).key;
                 });
-                window.appendTableRow(payload);
+            }
+            syncStatusSelects();
+
+            function applyStatusToRow(tableId, status) {
+                const row = document.getElementById('row-' + tableId);
+                if (row) row.dataset.status = status;
+                renderTableStatusBadge(status, 'status-badge-' + tableId);
+                const sel = document.querySelector('.status-select[data-table-id="' + tableId + '"]');
+                if (sel) {
+                    sel.value = getTableStatusConfig(status).key;
+                    sel.dataset.original = status;
+                }
+                const item = tablesData.find(t => t.id === tableId);
+                if (item) item.status = status;
                 recalcStats();
             }
-        }
-    });
 
-    bindCreateTableForm({
-        onCreated: function (table) {
-            const id = table.id || table.Id;
-            tablesData.unshift({
-                id: id,
-                tableName: table.tableName || table.TableName,
-                tableType: table.tableType || table.TableType,
-                status: table.status ?? table.Status,
-                pricePerHour: table.pricePerHour || table.PricePerHour
-            });
-            window.appendTableRow(table);
-            recalcStats();
-        }
-    });
+            async function updateTableStatus(tableId, statusKey, reason, force) {
+                const spinner = document.getElementById('spinner-' + tableId);
+                const select = document.querySelector('.status-select[data-table-id="' + tableId + '"]');
+                if (select) select.disabled = true;
+                if (spinner) spinner.classList.remove('d-none');
 
-    $(document).ready(function() {
-        $(".edit-table-btn").on("click", function() {
-            var id = $(this).data("id");
-            var name = $(this).data("tablename");
-            var type = $(this).data("tabletype");
-            var price = $(this).data("priceperhour");
-            var status = $(this).data("status");
-            var description = $(this).data("description");
-
-            $("#editId").val(id);
-            $("#editTableName").val(name);
-            $("#editTableType").val(type);
-            $("#editPricePerHour").val(price);
-            $("#editStatus").val(status);
-            $("#editDescription").val(description);
-
-            var editModal = new bootstrap.Modal(document.getElementById('editTableModal'));
-            editModal.show();
-        });
-
-        function filterAdminTables() {
-            const query = (document.getElementById('adminTableSearchInput')?.value || '').toLowerCase().trim();
-            const status = document.getElementById('adminTableStatusFilter')?.value || '';
-
-            const rows = document.querySelectorAll('#tables-tbody tr');
-            let visibleCount = 0;
-
-            rows.forEach(row => {
-                if (row.id === 'empty-row') return;
-                const name = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
-                const statusBadge = row.querySelector('.status-dot');
-                let rowStatus = '';
-                if (statusBadge) {
-                    if (statusBadge.classList.contains('active')) rowStatus = '1';
-                    else if (statusBadge.classList.contains('playing')) rowStatus = '2';
-                    else if (statusBadge.classList.contains('waiting')) rowStatus = '3';
-                    else if (statusBadge.classList.contains('maintenance')) rowStatus = '4';
+                try {
+                    const res = await fetch(API_BASE + 'tables/' + tableId + '/status', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_TOKEN },
+                        body: JSON.stringify({ status: statusKey, reason: reason || '', force: !!force })
+                    });
+                    const ct = res.headers.get('content-type') || '';
+                    const json = ct.indexOf('application/json') !== -1 ? await res.json() : null;
+                    if (!res.ok || !(json?.success ?? json?.Success)) {
+                        throw new Error(json?.message || 'Không thể cập nhật trạng thái bàn');
+                    }
+                    const data = json.data || json.Data;
+                    const newStatus = STATUS_ENUM[statusKey] || data?.status || data?.Status;
+                    applyStatusToRow(tableId, newStatus);
+                    showToast('Đã cập nhật trạng thái bàn.', 'success');
+                } catch (err) {
+                    if (select) select.value = getTableStatusConfig(parseInt(select.dataset.original)).key;
+                    showToast(err.message || 'Không thể cập nhật trạng thái bàn', 'error');
+                } finally {
+                    if (select) select.disabled = false;
+                    if (spinner) spinner.classList.add('d-none');
                 }
+            }
 
-                const matchesQuery = !query || name.includes(query);
-                const matchesStatus = !status || rowStatus === status;
+            document.addEventListener('change', function (e) {
+                const select = e.target.closest('.status-select');
+                if (!select) return;
 
-                if (matchesQuery && matchesStatus) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
+                const tableId = select.dataset.tableId;
+                const newKey = select.value;
+                const original = parseInt(select.dataset.original);
+                const newStatus = STATUS_ENUM[newKey];
+                if (newStatus === original) return;
+
+                const isPlaying = original === 2;
+                const reason = window.prompt('Lý do thay đổi trạng thái (không bắt buộc):', '');
+                if (reason === null) {
+                    select.value = getTableStatusConfig(original).key;
+                    return;
                 }
+                let force = false;
+                if (isPlaying && newStatus !== 2) {
+                    force = !!(await confirmAction({
+                        title: 'Kết thúc phiên đang chơi?',
+                        message: 'Bàn đang có khách chơi. Thay đổi trạng thái sẽ kết thúc phiên hiện tại.',
+                        confirmText: 'Kết thúc phiên'
+                    }));
+                    if (!force) {
+                        select.value = getTableStatusConfig(original).key;
+                        return;
+                    }
+                }
+                updateTableStatus(tableId, newKey, reason, force);
             });
 
-            const countEl = document.getElementById('table-count');
-            if (countEl) countEl.innerText = visibleCount;
-        }
+            async function loadTableHistory(tableId, tableName) {
+                const tbody = document.getElementById('history-tbody');
+                document.getElementById('historyModalTableName').textContent = tableName;
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Đang tải lịch sử…</td></tr>';
+                new bootstrap.Modal(document.getElementById('statusHistoryModal')).show();
 
-        document.getElementById('adminTableSearchInput')?.addEventListener('input', filterAdminTables);
-        document.getElementById('adminTableStatusFilter')?.addEventListener('change', filterAdminTables);
-        document.getElementById('resetAdminTableFilter')?.addEventListener('click', function() {
-            if (document.getElementById('adminTableSearchInput')) document.getElementById('adminTableSearchInput').value = '';
-            if (document.getElementById('adminTableStatusFilter')) document.getElementById('adminTableStatusFilter').value = '';
-            filterAdminTables();
-        });
-    });
-</script>
-</body>
-</html>
+                try {
+                    const res = await fetch(API_BASE + 'tables/' + tableId + '/history', {
+                        headers: { 'Authorization': 'Bearer ' + API_TOKEN }
+                    });
+                    if (!res.ok) throw new Error('Không thể tải lịch sử thay đổi trạng thái');
+                    const json = await res.json();
+                    const list = json.data || json.Data || [];
+                    if (!list.length) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Chưa có thay đổi trạng thái nào</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = list.map(function (item) {
+                        const date = new Date(item.changedAt || item.ChangedAt).toLocaleString('vi-VN');
+                        const oldCfg = getTableStatusConfig(item.oldStatus || item.OldStatus);
+                        const newCfg = getTableStatusConfig(item.newStatus || item.NewStatus);
+                        const changer = item.changedByName || item.ChangedByName || 'Hệ thống';
+                        const reason = item.reason || item.Reason || '—';
+                        return '<tr>' +
+                            '<td>' + date + '</td>' +
+                            '<td><span class="chip ' + oldCfg.chip + '">' + oldCfg.text + '</span></td>' +
+                            '<td><span class="chip ' + newCfg.chip + '">' + newCfg.text + '</span></td>' +
+                            '<td class="cell-strong">' + changer + '</td>' +
+                            '<td class="cell-sub">' + reason + '</td>' +
+                            '</tr>';
+                    }).join('');
+                } catch (err) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">' + err.message + '</td></tr>';
+                }
+            }
+
+            document.addEventListener('click', function (e) {
+                const historyBtn = e.target.closest('.view-history-btn');
+                if (historyBtn) {
+                    loadTableHistory(historyBtn.dataset.id, historyBtn.dataset.tablename);
+                    return;
+                }
+                const editBtn = e.target.closest('.edit-table-btn');
+                if (editBtn) {
+                    document.getElementById('editId').value = editBtn.dataset.id;
+                    document.getElementById('editTableName').value = editBtn.dataset.tablename;
+                    document.getElementById('editTableType').value = editBtn.dataset.tabletype;
+                    document.getElementById('editPricePerHour').value = editBtn.dataset.priceperhour;
+                    document.getElementById('editStatus').value = editBtn.dataset.status;
+                    document.getElementById('editDescription').value = editBtn.dataset.description || '';
+                    new bootstrap.Modal(document.getElementById('editTableModal')).show();
+                }
+            });
+
+            /* Client-side filtering */
+            function filterTables() {
+                const query = (document.getElementById('adminTableSearchInput')?.value || '').toLowerCase().trim();
+                const status = document.getElementById('adminTableStatusFilter')?.value || '';
+                let visible = 0;
+                document.querySelectorAll('#tables-tbody tr').forEach(function (row) {
+                    if (row.id === 'empty-row') return;
+                    const name = (row.querySelector('.table-name')?.textContent || '').toLowerCase();
+                    const rowStatus = row.dataset.status;
+                    const matchName = !query || name.includes(query);
+                    const matchStatus = !status || rowStatus === status;
+                    row.style.display = (matchName && matchStatus) ? '' : 'none';
+                    if (matchName && matchStatus) visible++;
+                });
+                const countEl = document.getElementById('table-count');
+                if (countEl) countEl.innerText = visible;
+            }
+
+            document.getElementById('adminTableSearchInput')?.addEventListener('input', filterTables);
+            document.getElementById('adminTableStatusFilter')?.addEventListener('change', filterTables);
+            document.getElementById('resetAdminTableFilter')?.addEventListener('click', function () {
+                document.getElementById('adminTableSearchInput').value = '';
+                document.getElementById('adminTableStatusFilter').value = '';
+                filterTables();
+            });
+            document.getElementById('reloadTablesBtn')?.addEventListener('click', () => location.reload());
+
+            /* Confirm delete forms */
+            document.addEventListener('submit', async function (e) {
+                const form = e.target.closest('form[data-confirm]');
+                if (!form) return;
+                e.preventDefault();
+                const ok = await confirmAction({
+                    title: 'Xóa bàn',
+                    message: form.dataset.confirm,
+                    confirmText: 'Xóa'
+                });
+                if (ok) form.submit();
+            });
+
+            bindCreateTableForm({
+                onCreated: function (table) {
+                    const id = table.id || table.Id;
+                    tablesData.unshift({
+                        id: id,
+                        tableName: table.tableName || table.TableName,
+                        tableType: table.tableType || table.TableType,
+                        status: table.status ?? table.Status,
+                        pricePerHour: table.pricePerHour || table.PricePerHour
+                    });
+                    window.appendTableRow(table);
+                    recalcStats();
+                }
+            });
+
+            connectTableStatusHub({
+                onStatusChanged: function (payload) {
+                    applyStatusToRow(payload.tableId || payload.TableId, payload.status !== undefined ? payload.status : payload.Status);
+                },
+                onTableCreated: function (payload) {
+                    const id = payload.id || payload.Id;
+                    if (!document.getElementById('row-' + id)) {
+                        tablesData.unshift({
+                            id: id,
+                            tableName: payload.tableName || payload.TableName,
+                            tableType: payload.tableType || payload.TableType,
+                            status: payload.status ?? payload.Status,
+                            pricePerHour: payload.pricePerHour || payload.PricePerHour
+                        });
+                        window.appendTableRow(payload);
+                        recalcStats();
+                    }
+                }
+            });
+        })();
+    </script>
+}

@@ -1,149 +1,164 @@
 @page
 @model BilliardManagement.Web.Pages.Auth.LoginModel
-@{ Layout = null; }
+@{
+    Layout = null;
+    ViewData["Title"] = "Đăng nhập";
+}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Billiard Pro</title>
+    <title>Đăng nhập &mdash; BilliardPro</title>
     <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Google+Sans+Text:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Google+Sans+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
-    <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="/BilliardManagement.Web.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Google+Sans+Text:wght@400;500;600;700&family=Google+Sans+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" />
+    <link rel="stylesheet" href="/css/auth.css" asp-append-version="true" />
 </head>
 <body>
+    <div class="auth-shell">
+        <!-- Showcase -->
+        <aside class="auth-aside">
+            <a class="auth-brand" href="/Auth/Login">
+                <span class="mark"><i class="fa-solid fa-circle-dot"></i></span>
+                <span>
+                    <span class="name d-block">BilliardPro</span>
+                    <span class="tag">Billiard Management</span>
+                </span>
+            </a>
 
-@{
-    
-    ViewData["Title"] = "Đăng nhập";
-}
-
-<link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
-
-<div class="auth-body">
-    <!-- Header -->
-    <header class="auth-header">
-        <a href="#" class="auth-logo">
-            BilliardPro
-        </a>
-        <a href="#" class="auth-help" title="Trợ giúp">
-            <i class="fa-regular fa-circle-question"></i>
-        </a>
-    </header>
-
-    <!-- Main Content -->
-    <div class="auth-card-container">
-        <div class="auth-card">
-            <!-- Icon Box -->
-            <div class="auth-icon-box">
-                <!-- A cue ball/aim icon matching BilliardPro billiard theme -->
-                <i class="fa-solid fa-crosshairs"></i>
+            <div class="auth-hero">
+                <h1>Quản lý vận hành <em>cửa hàng bida</em> trong một nơi duy nhất.</h1>
+                <p>
+                    Theo dõi bàn, phiên chơi, đồ uống và doanh thu theo thời gian thực.
+                    Dành riêng cho SuperAdmin, Admin cửa hàng và nhân viên.
+                </p>
+                <div class="auth-points">
+                    <div class="auth-point">
+                        <span class="ic"><i class="fa-solid fa-table-cells"></i></span>
+                        <div>
+                            <strong>Sơ đồ bàn trực tuyến</strong>
+                            <span>Mở / gia hạn / kết thúc phiên chơi chỉ trong vài giây.</span>
+                        </div>
+                    </div>
+                    <div class="auth-point">
+                        <span class="ic"><i class="fa-solid fa-chart-line"></i></span>
+                        <div>
+                            <strong>Báo cáo doanh thu đa cửa hàng</strong>
+                            <span>So sánh hiệu quả giữa các chi nhánh theo ngày, tháng.</span>
+                        </div>
+                    </div>
+                    <div class="auth-point">
+                        <span class="ic"><i class="fa-solid fa-shield-halved"></i></span>
+                        <div>
+                            <strong>Phân quyền theo vai trò</strong>
+                            <span>Mỗi người chỉ thấy đúng phần việc được phân công.</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Title -->
-            <h1 class="auth-title">Chào mừng trở lại</h1>
-            <p class="auth-subtitle">Đăng nhập để quản lý bàn bida của bạn</p>
-
-            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-            {
-                <div class="auth-alert-danger alert alert-dismissible fade show" role="alert">
-                    <i class="fa-solid fa-triangle-exclamation me-2"></i>
-                    <div>@Model.ErrorMessage</div>
-                    <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
-
-            <form method="post" id="loginForm">
-                <!-- Username -->
-                <div class="auth-form-group">
-                    <label asp-for="LoginData.Username" class="auth-label">Email hoặc Tên đăng nhập</label>
-                    <div class="auth-input-wrapper">
-                        <input class="auth-input" asp-for="LoginData.Username" type="text" placeholder="username@example.com" required autocomplete="username" />
-                        <i class="fa-regular fa-user auth-input-icon"></i>
-                    </div>
-                    <span asp-validation-for="LoginData.Username" class="text-danger small mt-1 d-block"></span>
-                </div>
-
-                <!-- Password -->
-                <div class="auth-form-group">
-                    <div class="auth-label-row">
-                        <label asp-for="LoginData.Password" class="auth-label">Mật khẩu</label>
-                        <a href="/Auth/ForgotPassword" class="auth-label-link">Quên mật khẩu?</a>
-                    </div>
-                    <div class="auth-input-wrapper">
-                        <input class="auth-input auth-input-password" asp-for="LoginData.Password" type="password" placeholder="••••••••" required autocomplete="current-password" id="passwordInput" />
-                        <i class="fa-solid fa-lock auth-input-icon"></i>
-                        <button type="button" class="auth-input-action" id="togglePasswordBtn" title="Hiện mật khẩu">
-                            <i class="fa-regular fa-eye" id="togglePasswordIcon"></i>
-                        </button>
-                    </div>
-                    <span asp-validation-for="LoginData.Password" class="text-danger small mt-1 d-block"></span>
-                </div>
-
-                <!-- Remember Me -->
-                <div class="auth-checkbox-group">
-                    <input type="checkbox" id="rememberMe" class="auth-checkbox-input" />
-                    <label for="rememberMe" class="auth-checkbox-label">Ghi nhớ đăng nhập</label>
-                </div>
-
-                <!-- Submit Button -->
-                <button type="submit" class="auth-btn">
-                    <span>Đăng nhập</span>
-                    <i class="fa-solid fa-arrow-right-long ms-1"></i>
-                </button>
-            </form>
-
-            <!-- Card Footer Link -->
-            <div class="auth-card-footer text-muted small">
-                <i class="fa-solid fa-shield-halved me-1 text-primary"></i>Tài khoản do Quản trị viên (Admin) tạo và phân quyền
+            <div class="auth-stat-strip">
+                <div><b>3</b><span>Vai trò quản trị</span></div>
+                <div><b>24/7</b><span>Cập nhật trạng thái bàn</span></div>
+                <div><b>1</b><span>Hệ thống duy nhất</span></div>
             </div>
-        </div>
+        </aside>
+
+        <!-- Form -->
+        <main class="auth-main">
+            <div class="auth-card">
+                <div class="auth-card-head">
+                    <h2>Đăng nhập</h2>
+                    <p>Nhập thông tin tài khoản được cấp để tiếp tục.</p>
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="auth-alert auth-alert-danger" role="alert">
+                        <i class="fa-solid fa-circle-exclamation mt-1"></i>
+                        <div>@Model.ErrorMessage</div>
+                    </div>
+                }
+
+                <form method="post" id="loginForm" novalidate>
+                    <div class="auth-group">
+                        <label asp-for="LoginData.Username">Tên đăng nhập</label>
+                        <div class="auth-input-wrap">
+                            <i class="fa-regular fa-user"></i>
+                            <input class="auth-input" asp-for="LoginData.Username" type="text" placeholder="admin" required autocomplete="username" />
+                        </div>
+                        <span asp-validation-for="LoginData.Username" class="text-danger small mt-1 d-block"></span>
+                    </div>
+
+                    <div class="auth-group">
+                        <div class="row">
+                            <label asp-for="LoginData.Password">Mật khẩu</label>
+                            <a href="/Auth/ForgotPassword" class="auth-link">Quên mật khẩu?</a>
+                        </div>
+                        <div class="auth-input-wrap">
+                            <i class="fa-solid fa-lock"></i>
+                            <input class="auth-input" asp-for="LoginData.Password" type="password" id="passwordInput" placeholder="••••••••" required autocomplete="current-password" />
+                            <button type="button" class="toggle" id="togglePasswordBtn" title="Hiện mật khẩu" aria-label="Hiện mật khẩu">
+                                <i class="fa-regular fa-eye" id="togglePasswordIcon"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="LoginData.Password" class="text-danger small mt-1 d-block"></span>
+                    </div>
+
+                    <div class="auth-group">
+                        <label class="auth-check">
+                            <input type="checkbox" id="rememberMe" />
+                            <span>Ghi nhớ đăng nhập trên thiết bị này</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="auth-submit" id="loginSubmit">
+                        <span>Đăng nhập</span>
+                        <i class="fa-solid fa-arrow-right-long"></i>
+                    </button>
+                </form>
+
+                <div class="auth-demo">
+                    <span><i class="fa-solid fa-circle-info me-1 text-warning"></i>Tài khoản dùng thử</span>
+                    <code>admin / 123456</code>
+                </div>
+
+                <div class="auth-note">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>Tài khoản do quản trị viên cấp và phân quyền. Liên hệ quản trị viên cửa hàng nếu bạn quên mật khẩu.</span>
+                </div>
+
+                <div class="auth-foot">
+                    &copy; 2026 BilliardPro &middot; Hệ thống quản lý quán bida
+                </div>
+            </div>
+        </main>
     </div>
-
-    <!-- Footer -->
-    <footer class="auth-footer">
-        <div class="auth-footer-brand">BilliardPro</div>
-        <div>&copy; 2026 BilliardPro. All rights reserved.</div>
-        <div class="auth-footer-links">
-            <a href="#" class="auth-footer-link">Terms of Service</a>
-            <a href="#" class="auth-footer-link">Privacy Policy</a>
-            <a href="#" class="auth-footer-link">Contact Support</a>
-        </div>
-    </footer>
-</div>
 
     <script src="/lib/jquery/dist/jquery.min.js"></script>
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/site.js" asp-append-version="true"></script>
     <partial name="_ValidationScriptsPartial" />
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const passwordInput = document.getElementById("passwordInput");
-            const togglePasswordBtn = document.getElementById("togglePasswordBtn");
-            const togglePasswordIcon = document.getElementById("togglePasswordIcon");
+        (function () {
+            const passwordInput = document.getElementById('passwordInput');
+            const toggleBtn = document.getElementById('togglePasswordBtn');
+            const toggleIcon = document.getElementById('togglePasswordIcon');
 
-            if (togglePasswordBtn && passwordInput && togglePasswordIcon) {
-                togglePasswordBtn.addEventListener("click", function () {
-                    const isPassword = passwordInput.getAttribute("type") === "password";
-                    
-                    // Toggle type
-                    passwordInput.setAttribute("type", isPassword ? "text" : "password");
-                    
-                    // Toggle icon class
-                    if (isPassword) {
-                        togglePasswordIcon.classList.remove("fa-regular", "fa-eye");
-                        togglePasswordIcon.classList.add("fa-regular", "fa-eye-slash");
-                        togglePasswordBtn.setAttribute("title", "Ẩn mật khẩu");
-                    } else {
-                        togglePasswordIcon.classList.remove("fa-regular", "fa-eye-slash");
-                        togglePasswordIcon.classList.add("fa-regular", "fa-eye");
-                        togglePasswordBtn.setAttribute("title", "Hiện mật khẩu");
-                    }
-                });
-            }
-        });
+            toggleBtn?.addEventListener('click', function () {
+                const isPassword = passwordInput.getAttribute('type') === 'password';
+                passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+                toggleIcon.classList.toggle('fa-eye', isPassword);
+                toggleIcon.classList.toggle('fa-eye-slash', !isPassword);
+                toggleBtn.setAttribute('title', isPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu');
+            });
+
+            document.getElementById('loginForm')?.addEventListener('submit', function () {
+                const btn = document.getElementById('loginSubmit');
+                btn.disabled = true;
+                btn.querySelector('span').textContent = 'Đang đăng nhập…';
+            });
+        })();
     </script>
 </body>
 </html>

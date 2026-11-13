@@ -1,39 +1,219 @@
 @model BilliardManagement.Web.Models.StoreComparisonViewModel
 @using System.Text.Json
-<div class="dashboard-header mb-4"><h1 class="page-title">@Model.Title</h1><p class="text-muted">Doanh thu hóa đơn và phiên chơi theo ngày UTC · Tối đa 366 ngày</p></div>
-<form method="get" class="card-panel p-4 mb-4">
-    <div class="row g-3">
-        <div class="col-md-5"><fieldset><legend class="fs-6">Cửa hàng (bỏ chọn tất cả để xem toàn hệ thống)</legend><div class="d-flex flex-wrap gap-3" style="max-height:160px;overflow:auto">
-        @foreach (var store in Model.Stores)
-        {
-            <label class="form-check"><input class="form-check-input" type="checkbox" name="StoreIds" value="@store.Id" checked="@Model.StoreIds.Contains(store.Id)" /> @store.Name @(!store.IsActive ? "(Ngừng)" : "")</label>
-        }
-        </div></fieldset></div>
-        <div class="col-md-3"><label for="reportFrom" class="form-label">Từ ngày</label><input id="reportFrom" name="FromDate" value="@Model.FromDate.ToString("yyyy-MM-dd")" type="date" class="form-control" required /></div>
-        <div class="col-md-3"><label for="reportTo" class="form-label">Đến ngày</label><input id="reportTo" name="ToDate" value="@Model.ToDate.ToString("yyyy-MM-dd")" type="date" class="form-control" required /></div>
-        <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary">Lọc</button></div>
+@{
+    var title = string.IsNullOrWhiteSpace(Model.Title) ? "So sánh cửa hàng" : Model.Title;
+    var totalRevenue = Model.Rows.Sum(s => s.Revenue);
+}
+
+<div class="page-head">
+    <div>
+        <h1 class="page-title"><i class="fa-solid fa-chart-column"></i>@title</h1>
+        <p class="page-subtitle">Doanh thu hóa đơn và phiên chơi theo ngày — tối đa 366 ngày.</p>
+    </div>
+</div>
+
+<form method="get" class="filter-bar">
+    <div class="field flex-grow-1" style="min-width:280px">
+        <label>Cửa hàng <span class="text-muted fw-normal">(bỏ chọn để xem toàn hệ thống)</span></label>
+        <div class="d-flex flex-wrap gap-3" style="max-height:120px;overflow:auto">
+            @foreach (var store in Model.Stores)
+            {
+                    <label class="form-check d-flex align-items-center gap-2">
+                        @Html.Raw($"<input class=\"form-check-input\" type=\"checkbox\" name=\"StoreIds\" value=\"{store.Id}\" {(Model.StoreIds.Contains(store.Id) ? "checked" : "")} />")
+                        <span class="small">@store.Name@(store.IsActive ? "" : " (Ngừng)")</span>
+                    </label>
+            }
+            @if (!Model.Stores.Any())
+            {
+                <span class="cell-sub">Chưa có cửa hàng trong hệ thống.</span>
+            }
+        </div>
+    </div>
+    <div class="field">
+        <label for="reportFrom">Từ ngày</label>
+        <input id="reportFrom" name="FromDate" value="@(Model.FromDate.ToString("yyyy-MM-dd"))" type="date" class="form-control" required />
+    </div>
+    <div class="field">
+        <label for="reportTo">Đến ngày</label>
+        <input id="reportTo" name="ToDate" value="@(Model.ToDate.ToString("yyyy-MM-dd"))" type="date" class="form-control" required />
+    </div>
+    <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn btn-accent" type="submit"><i class="fa-solid fa-filter"></i>Lọc</button>
     </div>
 </form>
-@if (Model.ErrorMessage != null) { <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div> }
-else if (!Model.Rows.Any()) { <div class="alert alert-info">Chưa có cửa hàng để hiển thị báo cáo.</div> }
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>@Model.ErrorMessage
+    </div>
+}
+else if (!Model.Rows.Any())
+{
+    <div class="panel">
+        <div class="panel-body">
+            <div class="empty-state">
+                <i class="fa-solid fa-store"></i>
+                <h6>Chưa có dữ liệu để so sánh</h6>
+                <p>Chọn ít nhất một cửa hàng đang hoạt động để xem báo cáo.</p>
+            </div>
+        </div>
+    </div>
+}
 else
 {
-    <div class="card-panel p-4 mb-4"><h5>Doanh thu theo ngày — @Model.Rows.Sum(s => s.Revenue).ToString("N0") đ</h5><div style="height:350px"><canvas id="storeComparisonChart"></canvas></div></div>
-    <div class="row g-4"><div class="col-lg-8"><div class="card-panel"><div class="panel-body table-responsive"><table class="data-table">
-    <thead><tr><th>Cửa hàng</th><th>Doanh thu</th><th>Phiên trong kỳ</th><th>Bàn đang chơi / tổng</th><th>Tỷ trọng</th></tr></thead><tbody>
-    @foreach (var store in Model.Rows.OrderByDescending(s => s.Revenue))
-    {
-        var total = Model.Rows.Sum(s => s.Revenue);
-        <tr><td>@store.StoreName</td><td>@store.Revenue.ToString("N0") đ</td><td>@store.Sessions</td><td>@store.ActiveTables / @store.TableCount</td><td>@(total == 0 ? "0" : (store.Revenue / total * 100).ToString("N1"))%</td></tr>
-    }
-    </tbody></table></div></div></div><div class="col-lg-4"><div class="card-panel p-4"><h5>Tỷ trọng doanh thu</h5><div style="height:280px"><canvas id="storeComparisonShare"></canvas></div></div></div></div>
+    <div class="stat-grid">
+        <div class="stat-card stat-success">
+            <span class="stat-icon"><i class="fa-solid fa-sack-dollar"></i></span>
+            <div class="stat-body">
+                <div class="stat-label">Tổng doanh thu</div>
+                <div class="stat-value">@totalRevenue.ToString("N0") đ</div>
+                <div class="stat-sub">Trong khoảng đang lọc</div>
+            </div>
+        </div>
+        <div class="stat-card stat-info">
+            <span class="stat-icon"><i class="fa-solid fa-store"></i></span>
+            <div class="stat-body">
+                <div class="stat-label">Số cửa hàng</div>
+                <div class="stat-value">@Model.Rows.Count</div>
+                <div class="stat-sub">Có dữ liệu trong kỳ</div>
+            </div>
+        </div>
+        <div class="stat-card stat-violet">
+            <span class="stat-icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
+            <div class="stat-body">
+                <div class="stat-label">Tổng phiên chơi</div>
+                <div class="stat-value">@Model.Rows.Sum(s => s.Sessions)</div>
+                <div class="stat-sub">Phiên đã mở trong kỳ</div>
+            </div>
+        </div>
+        <div class="stat-card stat-teal">
+            <span class="stat-icon"><i class="fa-solid fa-table-cells"></i></span>
+            <div class="stat-body">
+                <div class="stat-label">Bàn đang chơi</div>
+                <div class="stat-value">@Model.Rows.Sum(s => s.ActiveTables)</div>
+                <div class="stat-sub">Trên tổng @Model.Rows.Sum(s => s.TableCount) bàn</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-xl-8">
+            <div class="panel h-100">
+                <div class="panel-head">
+                    <div>
+                        <h5 class="panel-title"><i class="fa-solid fa-chart-column"></i>Doanh thu theo ngày</h5>
+                        <p class="panel-sub">Tổng @totalRevenue.ToString("N0") đ</p>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="chart-box"><canvas id="storeComparisonChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-4">
+            <div class="panel h-100">
+                <div class="panel-head">
+                    <div>
+                        <h5 class="panel-title"><i class="fa-solid fa-chart-pie"></i>Tỷ trọng doanh thu</h5>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="chart-box"><canvas id="storeComparisonShare"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-head">
+            <div>
+                <h5 class="panel-title"><i class="fa-solid fa-table-list"></i>Bảng so sánh cửa hàng</h5>
+                <p class="panel-sub">Sắp xếp theo doanh thu giảm dần</p>
+            </div>
+        </div>
+        <div class="panel-body flush">
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Cửa hàng</th>
+                            <th class="num">Doanh thu</th>
+                            <th class="num">Phiên trong kỳ</th>
+                            <th class="num">Bàn đang chơi / tổng</th>
+                            <th class="num">Nhân viên</th>
+                            <th class="num">Tỷ trọng</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var store in Model.Rows.OrderByDescending(s => s.Revenue))
+                        {
+                            var share = totalRevenue > 0 ? (store.Revenue / totalRevenue * 100) : 0;
+                            <tr>
+                                <td class="cell-strong">@store.StoreName</td>
+                                <td class="num money">@store.Revenue.ToString("N0") đ</td>
+                                <td class="num">@store.Sessions</td>
+                                <td class="num">@store.ActiveTables / @store.TableCount</td>
+                                <td class="num">@store.StaffCount</td>
+                                <td class="num">@share.ToString("N1")%</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-    (() => {
-        const rows = @Html.Raw(JsonSerializer.Serialize(Model.Rows, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
-        const colors = ['#4f46e5','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6'];
-        new Chart(document.getElementById('storeComparisonChart'), {type:'bar',data:{labels:rows[0].dailyRevenues.map(d=>d.date.slice(0,10)),datasets:rows.map((s,i)=>({label:s.storeName,data:s.dailyRevenues.map(d=>d.totalRevenue),backgroundColor:colors[i%colors.length]}))},options:{maintainAspectRatio:false,scales:{y:{beginAtZero:true}},plugins:{legend:{position:'bottom'}}}});
-        new Chart(document.getElementById('storeComparisonShare'), {type:'doughnut',data:{labels:rows.map(s=>s.storeName),datasets:[{data:rows.map(s=>s.revenue),backgroundColor:colors}]},options:{maintainAspectRatio:false}});
-    })();
+        (function () {
+            if (typeof Chart === 'undefined') return;
+            const rows = @Html.Raw(JsonSerializer.Serialize(Model.Rows, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#8b5cf6', '#ec4899'];
+            const labels = (rows[0]?.dailyRevenues || []).map(d => String(d.date).slice(0, 10));
+
+            const chart = document.getElementById('storeComparisonChart');
+            if (chart) {
+                new Chart(chart, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: rows.map((s, i) => ({
+                            label: s.storeName,
+                            data: (s.dailyRevenues || []).map(d => d.totalRevenue),
+                            backgroundColor: colors[i % colors.length],
+                            borderRadius: 5
+                        }))
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { callback: v => Number(v).toLocaleString('vi-VN') + ' đ' } },
+                            x: { grid: { display: false } }
+                        },
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+            }
+
+            const share = document.getElementById('storeComparisonShare');
+            if (share) {
+                new Chart(share, {
+                    type: 'doughnut',
+                    data: {
+                        labels: rows.map(s => s.storeName),
+                        datasets: [{ data: rows.map(s => s.revenue), backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '66%',
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 11, padding: 12, font: { size: 11 } } } }
+                    }
+                });
+            }
+        })();
     </script>
 }

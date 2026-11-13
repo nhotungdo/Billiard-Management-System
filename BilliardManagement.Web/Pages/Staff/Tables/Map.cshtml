@@ -1,2889 +1,627 @@
 @page
 @model BilliardManagement.Web.Pages.Staff.Tables.MapModel
+@using System.Text.Json
 @{
-    Layout = null;
-    var apiToken = HttpContext.Session.GetString("JWToken");
+    ViewData["Title"] = "Sơ đồ bàn";
 }
-@functions {
-    public string GetStatusCssClass(int status) => status switch {
-        1 => "available",
-        2 => "playing",
-        3 => "waiting",
-        4 => "maintenance",
-        _ => "unknown"
-    };
 
-    public string GetStatusBadgeClass(int status) => status switch {
-        1 => "success",
-        2 => "primary",
-        3 => "warning",
-        4 => "danger",
-        _ => "secondary"
-    };
+<div class="page-head">
+    <div>
+        <h1 class="page-title"><i class="fa-solid fa-map-location-dot"></i>Sơ đồ bàn</h1>
+        <p class="page-subtitle">Mở, gia hạn, kết thúc phiên chơi và gọi món cho khách — cập nhật realtime.</p>
+    </div>
+    <div class="page-actions">
+        <span class="chip chip-muted mono" id="clockDisplay">--:--:--</span>
+        <button class="btn btn-soft" type="button" id="refreshMapBtn">
+            <i class="fa-solid fa-rotate"></i>Làm mới
+        </button>
+    </div>
+</div>
 
-    public string GetStatusText(int status) => status switch {
-        1 => "Trống bàn",
-        2 => "Đang chơi",
-        3 => "Chờ",
-        4 => "Bảo trì",
-        _ => "Không xác định"
-    };
-
-    public string FormatTimer(int? totalSeconds) {
-        if (!totalSeconds.HasValue || totalSeconds <= 0) return "00:00:00";
-        var h = totalSeconds.Value / 3600;
-        var m = (totalSeconds.Value % 3600) / 60;
-        var s = totalSeconds.Value % 60;
-        return $"{h:D2}:{m:D2}:{s:D2}";
-    }
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>@Model.ErrorMessage
+    </div>
 }
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Staff - Table Map / Floor Plan</title>
-    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="/css/staff.css" asp-append-version="true" />
-    <link rel="stylesheet" href="/BilliardManagement.Web.styles.css" asp-append-version="true" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    @if (!string.IsNullOrEmpty(apiToken))
-    {
-        <meta name="api-token" content="@apiToken" />
-        <meta name="api-base-url" content="http://localhost:8080/api/" />
-        <meta name="api-origin" content="http://localhost:8080" />
-        <meta name="hub-base-url" content="http://localhost:8080" />
-    }
-    <style>
-        /* Modern Premium Aesthetic Style Modifications */
-        body.staff-body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f1f5f9;
-        }
 
-        #staff-content {
-            padding: 24px;
-        }
+<div class="stat-grid">
+    <div class="stat-card stat-success">
+        <span class="stat-icon"><i class="fa-solid fa-circle-check"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Bàn trống</div>
+            <div class="stat-value" id="stat-available">@Model.CountAvailable</div>
+        </div>
+    </div>
+    <div class="stat-card stat-danger">
+        <span class="stat-icon"><i class="fa-solid fa-circle-play"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Đang chơi</div>
+            <div class="stat-value" id="stat-playing">@Model.CountPlaying</div>
+        </div>
+    </div>
+    <div class="stat-card stat-warning">
+        <span class="stat-icon"><i class="fa-solid fa-clock"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Đang chờ</div>
+            <div class="stat-value" id="stat-waiting">@Model.CountWaiting</div>
+        </div>
+    </div>
+    <div class="stat-card stat-muted">
+        <span class="stat-icon"><i class="fa-solid fa-wrench"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Bảo trì</div>
+            <div class="stat-value" id="stat-maintenance">@Model.CountMaintenance</div>
+        </div>
+    </div>
+    <div class="stat-card stat-accent">
+        <span class="stat-icon"><i class="fa-solid fa-sack-dollar"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Doanh thu phiên đang mở</div>
+            <div class="stat-value" id="active-revenue-display">@Model.ActiveSessionsRevenue.ToString("N0") đ</div>
+        </div>
+    </div>
+</div>
 
-        /* Stats Section */
-        .stat-card-custom {
-            background: #ffffff;
-            border-radius: 16px;
-            padding: 20px;
-            border: 1px solid rgba(226, 232, 240, 0.8);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            transition: transform 0.2s;
-        }
-        .stat-card-custom:hover {
-            transform: translateY(-2px);
-        }
-        .stat-icon-custom {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.4rem;
-        }
-
-        /* Filter Section & Legend */
-        .filter-panel {
-            background: #ffffff;
-            border-radius: 16px;
-            padding: 16px 20px;
-            border: 1px solid rgba(226, 232, 240, 0.8);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-        }
-        .filter-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .btn-filter {
-            border: 1px solid #cbd5e1;
-            background: #ffffff;
-            color: #475569;
-            font-weight: 500;
-            padding: 8px 16px;
-            border-radius: 9999px;
-            transition: all 0.2s;
-            font-size: 0.875rem;
-        }
-        .btn-filter:hover, .btn-filter.active {
-            background: #0ea5e9;
-            color: #ffffff;
-            border-color: #0ea5e9;
-            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
-        }
-
-        .legend-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-            align-items: center;
-            font-size: 0.875rem;
-            color: #475569;
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 500;
-        }
-        .legend-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-        .dot-available { background-color: #10b981; box-shadow: 0 0 8px #10b981; }
-        .dot-playing { background-color: #0ea5e9; box-shadow: 0 0 8px #0ea5e9; }
-        .dot-waiting { background-color: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
-        .dot-maintenance { background-color: #ef4444; box-shadow: 0 0 8px #ef4444; }
-
-        /* Premium Visual Table Grid Layout */
-        .tables-grid {
-            margin-top: 24px;
-        }
-        .table-card-col {
-            transition: all 0.3s ease;
-        }
-        .billiard-table-card {
-            background: #ffffff;
-            border-radius: 20px;
-            border: 1px solid rgba(226, 232, 240, 0.8);
-            position: relative;
-            display: flex;
-            flex-column: column;
-            overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            min-height: 250px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
-            cursor: pointer;
-        }
-        .billiard-table-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 6px;
-            background: #94a3b8;
-            transition: background 0.3s ease;
-        }
-
-        /* Glowing and Colored Borders according to status */
-        .billiard-table-card.status-available::before { background: #10b981; }
-        .billiard-table-card.status-playing::before { background: #0ea5e9; }
-        .billiard-table-card.status-waiting::before { background: #f59e0b; }
-        .billiard-table-card.status-maintenance::before { background: #ef4444; }
-
-        .billiard-table-card.status-available:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 24px -10px rgba(16, 185, 129, 0.3);
-            border-color: rgba(16, 185, 129, 0.3);
-        }
-        .billiard-table-card.status-playing:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 24px -10px rgba(14, 165, 233, 0.3);
-            border-color: rgba(14, 165, 233, 0.3);
-        }
-        .billiard-table-card.status-waiting:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 24px -10px rgba(245, 158, 11, 0.3);
-            border-color: rgba(245, 158, 11, 0.3);
-        }
-        .billiard-table-card.status-maintenance:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 24px -10px rgba(239, 68, 68, 0.3);
-            border-color: rgba(239, 68, 68, 0.3);
-        }
-
-        .card-table-badge {
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 4px 10px;
-            border-radius: 9999px;
-        }
-
-        /* Special VIP Table Style */
-        .billiard-table-card.table-vip {
-            border: 2px solid rgba(245, 158, 11, 0.3);
-        }
-        .billiard-table-card.table-vip::after {
-            content: 'VIP';
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: #ffffff;
-            font-size: 0.65rem;
-            font-weight: 800;
-            padding: 2px 6px;
-            border-radius: 4px;
-            letter-spacing: 0.5px;
-            box-shadow: 0 2px 4px rgba(217, 119, 6, 0.3);
-        }
-
-        /* Card Content Inner details */
-        .card-table-title {
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: #1e293b;
-        }
-        .card-table-type {
-            font-size: 0.8rem;
-            color: #64748b;
-            font-weight: 500;
-        }
-        .card-table-rate {
-            font-size: 0.85rem;
-            color: #475569;
-            font-weight: 600;
-            background: #f8fafc;
-            padding: 4px 8px;
-            border-radius: 6px;
-        }
-
-        /* Visual cue ball visual placeholder */
-        .table-visual-graphic {
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 12px 0;
-            font-size: 1.8rem;
-            color: #cbd5e1;
-        }
-        .status-available .table-visual-graphic { color: #10b981; }
-        .status-playing .table-visual-graphic { color: #0ea5e9; }
-        .status-reserved .table-visual-graphic { color: #f59e0b; }
-        .status-maintenance .table-visual-graphic { color: #ef4444; }
-
-        /* Dynamic Playing Info */
-        .card-playing-info {
-            background-color: #f0f9ff;
-            border-radius: 12px;
-            border: 1px solid #e0f2fe;
-            padding: 10px 12px;
-        }
-        .card-timer-display {
-            font-family: 'Consolas', monospace;
-            font-weight: 700;
-            font-size: 1.05rem;
-            padding: 2px 6px;
-            border-radius: 6px;
-        }
-        .card-timer-display.timer-ok { background-color: #e0f2fe; color: #0369a1; }
-        .card-timer-display.timer-warning { background-color: #fef3c7; color: #b45309; }
-        .card-timer-display.timer-expired { background-color: #fee2e2; color: #b91c1c; animation: cardTimerPulse 1s infinite alternate; }
-
-        @@keyframes cardTimerPulse {
-            from { opacity: 1; }
-            to { opacity: 0.6; }
-        }
-
-        /* Modal specific styling */
-        .details-stat-box {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 12px;
-            text-align: center;
-        }
-        .details-stat-val {
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: #1e293b;
-        }
-        .details-stat-lbl {
-            font-size: 0.75rem;
-            color: #64748b;
-            text-transform: uppercase;
-            font-weight: 600;
-            margin-top: 4px;
-        }
-
-        .services-table th {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 700;
-            color: #64748b;
-        }
-
-        /* Preset Hour Buttons */
-        .btn-hour-preset {
-            flex: 1;
-            min-width: 60px;
-        }
-
-        /* Product Selector in Order Modal */
-        .order-product-item {
-            transition: all 0.2s;
-        }
-        .order-product-item:hover {
-            background-color: #f8fafc;
-            border-color: #cbd5e1 !important;
-        }
-        .qty-input {
-            width: 48px;
-            text-align: center;
-            font-weight: 700;
-        }
-
-        .btn-staff-primary {
-            background: linear-gradient(135deg, #10b981, #059669);
-            border: none;
-            color: #ffffff;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        .btn-staff-primary:hover {
-            background: linear-gradient(135deg, #059669, #047857);
-            color: #ffffff;
-        }
-    </style>
-</head>
-<body class="staff-body">
-    <div id="staff-wrapper">
-        <partial name="_StaffSidebar" />
-        <div id="staff-content-wrapper">
-            <nav id="staff-topbar">
-                <div class="topbar-left">
-                    <button class="sidebar-toggle-btn" id="sidebarToggle" title="Toggle Sidebar">
-                        <i class="fa-solid fa-bars"></i>
-                    </button>
-                    <div class="topbar-breadcrumb">
-                        <span class="breadcrumb-label">Staff - Sơ đồ bàn</span>
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h5 class="panel-title"><i class="fa-solid fa-table-cells"></i>Bàn trong cửa hàng</h5>
+            <p class="panel-sub">Chạm vào một bàn để mở phiên chơi, gọi món hoặc thanh toán.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="chip chip-success"><span class="dot dot-success"></span>Trống <strong id="legend-available">@Model.CountAvailable</strong></span>
+            <span class="chip chip-danger"><span class="dot dot-danger"></span>Đang chơi <strong id="legend-playing">@Model.CountPlaying</strong></span>
+            <span class="chip chip-warning"><span class="dot dot-warning"></span>Chờ <strong id="legend-waiting">@Model.CountWaiting</strong></span>
+            <span class="chip chip-muted"><span class="dot dot-muted"></span>Bảo trì <strong id="legend-maintenance">@Model.CountMaintenance</strong></span>
+        </div>
+    </div>
+    <div class="panel-body">
+        <div class="table-grid" id="tableGrid">
+            @if (!Model.TableDashboard.Any())
+            {
+                <div style="grid-column:1/-1">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-table-cells"></i>
+                        <h6>Chưa có bàn nào trong cửa hàng</h6>
+                        <p>Liên hệ Admin cửa hàng để thêm bàn.</p>
                     </div>
                 </div>
-                <div class="topbar-right">
-                    <span class="role-badge staff-badge">
-                        <i class="fa-solid fa-id-badge me-1"></i> Staff
-                    </span>
-                    <div class="dropdown user-dropdown">
-                        <button class="btn user-avatar-btn dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="avatar-circle staff-avatar">
-                                <i class="fa-solid fa-user"></i>
-                            </div>
-                            <span class="user-name d-none d-md-inline">@HttpContext.Session.GetString("FullName")</span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end user-menu" aria-labelledby="userDropdown">
-                            <li class="dropdown-header">
-                                <div class="user-info-header">
-                                    <div class="avatar-circle-sm staff-avatar"><i class="fa-solid fa-user"></i></div>
-                                    <div>
-                                        <div class="fw-600">@HttpContext.Session.GetString("FullName")</div>
-                                        <div class="text-muted small">@HttpContext.Session.GetString("Username")</div>
-                                    </div>
-                                </div>
-                            </li>
-                            <li><hr class="dropdown-divider" /></li>
-                            <li>
-                                <a class="dropdown-item" href="/Auth/Logout">
-                                    <i class="fa-solid fa-right-from-bracket me-2 text-danger"></i>Đăng xuất
-                                </a>
-                            </li>
-                        </ul>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Table action modal -->
+<div class="modal fade" id="tableModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tableModalTitle">Bàn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body" id="tableModalBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order modal -->
+<div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-cart-plus me-2 text-primary"></i>Gọi món</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <div class="input-icon flex-grow-1" style="max-width:280px">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="orderSearchInput" class="form-control" placeholder="Tìm sản phẩm..." />
                     </div>
                 </div>
-            </nav>
-            <main id="staff-content">
-                <div class="dashboard-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <div>
-                        <h1 class="page-title"><i class="fa-solid fa-map-location-dot me-2 text-primary"></i>Sơ đồ bàn trực quan</h1>
-                        <p class="page-subtitle">Xem trạng thái bàn bida realtime, quản lý phiên chơi và dịch vụ nhanh chóng</p>
-                    </div>
-                    <div>
-                        <button type="button" class="btn btn-primary px-4 py-2.5 rounded-pill fw-bold shadow-sm" onclick="openApplyComboModal()">
-                            <i class="fa-solid fa-layer-group me-2"></i>Áp Dụng Gói Combo
-                        </button>
-                    </div>
+                <div class="table-wrap" style="max-height:380px;overflow:auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th class="num">Giá</th>
+                                <th class="num" style="width:120px">Số lượng</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orderProductBody"></tbody>
+                    </table>
                 </div>
-
-                <!-- TOP COMBO PACKAGES BAR -->
-                <div class="card border-0 shadow-sm rounded-4 mb-4 bg-gradient bg-light overflow-hidden border-start border-primary border-4">
-                    <div class="card-body p-3">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div>
-                                <h6 class="fw-bold text-primary mb-1">
-                                    <i class="fa-solid fa-gift me-2"></i>Danh Sách Gói Combo Ưu Đãi
-                                </h6>
-                                <small class="text-muted">Xem thông tin và áp dụng gói Combo (nước uống, đồ ăn, thêm giờ chơi) trực tiếp cho bàn đang chơi</small>
-                            </div>
-                        </div>
-
-                        @if (Model.Combos != null && Model.Combos.Any())
-                        {
-                            <div class="d-flex flex-wrap gap-2 mt-3 pt-2 border-top">
-                                @foreach (var c in Model.Combos)
-                                {
-                                    <div class="badge bg-white text-dark border border-primary-subtle p-2.5 rounded-3 shadow-xs d-flex align-items-center gap-2 combo-card-item"
-                                         onclick="openApplyComboModal('@c.ComboCode')"
-                                         style="cursor: pointer; transition: all 0.2s;"
-                                         onmouseover="this.classList.add('border-primary', 'shadow-sm')"
-                                         onmouseout="this.classList.remove('border-primary', 'shadow-sm')"
-                                         title="Bấm để mở màn thanh toán gói combo @c.Name">
-                                        <span class="badge bg-primary font-monospace fs-6">@c.ComboCode</span>
-                                        <span class="fw-bold fs-6 text-dark">@c.Name</span>
-                                        @if (c.IsVip || c.Name.Contains("VIP", StringComparison.OrdinalIgnoreCase) || c.ComboCode.Contains("VIP", StringComparison.OrdinalIgnoreCase))
-                                        {
-                                            <span class="badge bg-warning text-dark border border-warning-subtle fw-bold"><i class="fa-solid fa-crown me-1"></i>Combo VIP</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle fw-semibold">Combo Thường</span>
-                                        }
-                                        <span class="text-success fw-bold fs-6">@c.Price.ToString("N0") đ</span>
-                                        @if (c.PlayingHours > 0)
-                                        {
-                                            <span class="badge bg-info-subtle text-info border border-info-subtle">+@c.PlayingHours giờ bàn (Miễn tiền giờ)</span>
-                                        }
-                                        <button type="button" class="btn btn-sm btn-success rounded-pill px-2.5 py-1 ms-1 fw-bold text-white shadow-xs">
-                                            <i class="fa-solid fa-credit-card me-1"></i>Thanh toán
-                                        </button>
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <div class="cell-sub" id="orderSummary">Chưa chọn món nào</div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-accent" id="submitOrderBtn"><i class="fa-solid fa-check"></i>Gửi đơn</button>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+<!-- Combo modal -->
+<div class="modal fade" id="comboModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-layer-group me-2 text-primary"></i>Áp dụng gói Combo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                @if (!Model.Combos.Any())
                 {
-                    <div class="alert alert-warning mb-4">@Model.ErrorMessage</div>
+                    <div class="empty-state">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <h6>Chưa có gói combo nào</h6>
+                        <p>Liên hệ Admin cửa hàng để tạo gói combo.</p>
+                    </div>
                 }
-
-                <!-- Statistics Section -->
-                <div class="row g-3 mb-4">
-                    <div class="col-6 col-lg">
-                        <div class="stat-card-custom">
-                            <div class="stat-icon-custom bg-success bg-opacity-10 text-success">
-                                <i class="fa-solid fa-circle-check"></i>
-                            </div>
-                            <div>
-                                <div class="text-muted small">Trống bàn</div>
-                                <div class="fw-bold fs-4" id="stat-available">@Model.CountAvailable</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6 col-lg">
-                        <div class="stat-card-custom">
-                            <div class="stat-icon-custom bg-primary bg-opacity-10 text-primary">
-                                <i class="fa-solid fa-play"></i>
-                            </div>
-                            <div>
-                                <div class="text-muted small">Đang chơi</div>
-                                <div class="fw-bold fs-4" id="stat-playing">@Model.CountPlaying</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6 col-lg">
-                        <div class="stat-card-custom">
-                            <div class="stat-icon-custom bg-warning bg-opacity-10 text-warning">
-                                <i class="fa-solid fa-clock"></i>
-                            </div>
-                            <div>
-                                <div class="text-muted small">Chờ</div>
-                                <div class="fw-bold fs-4" id="stat-waiting">@Model.CountWaiting</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6 col-lg">
-                        <div class="stat-card-custom">
-                            <div class="stat-icon-custom bg-danger bg-opacity-10 text-danger">
-                                <i class="fa-solid fa-wrench"></i>
-                            </div>
-                            <div>
-                                <div class="text-muted small">Bảo trì</div>
-                                <div class="fw-bold fs-4" id="stat-maintenance">@Model.CountMaintenance</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-lg-3">
-                        <div class="stat-card-custom border-primary border-opacity-25" style="background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);">
-                            <div class="stat-icon-custom bg-info bg-opacity-10 text-info">
-                                <i class="fa-solid fa-money-bill-wave"></i>
-                            </div>
-                            <div>
-                                <div class="text-muted small">Doanh thu tạm tính</div>
-                                <div class="fw-bold fs-5 text-success" id="active-revenue-display">
-                                    @Model.ActiveSessionsRevenue.ToString("N0") đ
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Filters and Legend Panel -->
-                <div class="filter-panel mb-4">
-                    <div class="filter-buttons" id="status-filters">
-                        <button class="btn-filter active" data-filter="all">Tất cả</button>
-                        <button class="btn-filter" data-filter="available">Trống bàn</button>
-                        <button class="btn-filter" data-filter="playing">Đang chơi</button>
-                        <button class="btn-filter" data-filter="waiting">Chờ</button>
-                        <button class="btn-filter" data-filter="maintenance">Bảo trì</button>
-                    </div>
-                    <div class="legend-container">
-                        <div class="legend-item"><span class="legend-dot dot-available"></span>Trống bàn</div>
-                        <div class="legend-item"><span class="legend-dot dot-playing"></span>Đang chơi</div>
-                        <div class="legend-item"><span class="legend-dot dot-waiting"></span>Chờ</div>
-                        <div class="legend-item"><span class="legend-dot dot-maintenance"></span>Bảo trì</div>
-                    </div>
-                </div>
-
-                <!-- Interactive Tables Map Grid -->
-                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 tables-grid" id="tables-map-container">
-                    @if (!Model.TableDashboard.Any())
-                    {
-                        <div class="col-12 text-center py-5 text-muted">
-                            <i class="fa-solid fa-table-cells-large fa-3x mb-3 d-block"></i>
-                            Chưa có bàn bida nào được cấu hình trong hệ thống.
-                        </div>
-                    }
-                    @foreach (var table in Model.TableDashboard)
-                    {
-                        var isPlaying = table.Status == 2;
-                        var session = table.ActiveSession;
-                        var isVip = table.TableType.Contains("VIP", StringComparison.OrdinalIgnoreCase);
-
-                        <div class="col table-card-col" 
-                             data-status-key="@GetStatusCssClass(table.Status)"
-                             data-table-type="@table.TableType">
-                            <div class="billiard-table-card h-100 p-3 d-flex flex-column status-@GetStatusCssClass(table.Status) @(isVip ? "table-vip" : "")"
-                                 id="table-card-@table.Id"
-                                 data-table-id="@table.Id">
-                                
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                        <h4 class="card-table-title mb-0">@table.TableName</h4>
-                                        <span class="card-table-type">@table.TableType</span>
-                                    </div>
-                                    <span class="card-table-badge bg-@GetStatusBadgeClass(table.Status) text-white" id="badge-@table.Id">
-                                        @GetStatusText(table.Status)
-                                    </span>
-                                </div>
-
-                                <div class="table-visual-graphic flex-grow-1 my-2 text-center">
-                                    @if (table.Status == 1)
-                                    {
-                                        <i class="fa-solid fa-circle-check"></i>
-                                    }
-                                    else if (table.Status == 2)
-                                    {
-                                        <i class="fa-solid fa-play fa-spin-pulse"></i>
-                                    }
-                                    else if (table.Status == 3)
-                                    {
-                                        <i class="fa-solid fa-clock"></i>
-                                    }
-                                    else if (table.Status == 4)
-                                    {
-                                        <i class="fa-solid fa-wrench"></i>
-                                    }
-                                </div>
-
-                                <div class="mb-3">
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <span class="text-muted small">Đơn giá:</span>
-                                        <span class="card-table-rate">@table.HourlyRate.ToString("N0") đ/h</span>
-                                    </div>
-
-                                    <!-- Playing details container on card -->
-                                    <div class="card-playing-info mt-2" id="playing-info-@table.Id" style="@(isPlaying ? "" : "display:none;")">
-                                        @if (session != null)
-                                        {
-                                            var comboEndTime = session.ComboEndTime ?? (session.ComboDurationMinutes > 0 ? session.StartTime.AddMinutes(session.ComboDurationMinutes) : (DateTime?)null);
-                                            var hasCombo = comboEndTime.HasValue;
-                                            var isPayLater = !hasCombo && (session.DurationHours == 0 || !session.EndTime.HasValue);
-                                            var remaining = session.RemainingSeconds;
-                                            var elapsed = Math.Max(0, (int)(DateTime.UtcNow - session.StartTime).TotalSeconds);
-                                            var remCombo = hasCombo ? (int)(comboEndTime.Value - DateTime.UtcNow).TotalSeconds : 0;
-                                            
-                                            <div class="d-flex justify-content-between small text-muted mb-1">
-                                                <span>Bắt đầu:</span>
-                                                <span class="text-dark fw-bold">@session.StartTime.ToLocalTime().ToString("HH:mm")</span>
-                                            </div>
-                                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <span class="small @(hasCombo ? (remCombo > 0 ? "text-success" : "text-danger") : "text-muted") fw-bold" id="card-timer-label-@table.Id">
-                                                    @(hasCombo ? (remCombo > 0 ? "Còn lại (Combo):" : "Quá giờ Combo:") : (isPayLater ? "Đã chơi:" : "Còn lại:"))
-                                                </span>
-                                                <span class="card-timer-display @(hasCombo ? (remCombo > 0 ? "text-success fw-bold" : "timer-expired") : (isPayLater ? "text-primary fw-bold fs-6" : (remaining <= 0 ? "timer-expired" : remaining < 900 ? "timer-warning" : "timer-ok")))"
-                                                      id="card-timer-@table.Id"
-                                                      data-mode="@(hasCombo ? "combo" : (isPayLater ? "paylater" : "prepaid"))"
-                                                      data-start-time="@session.StartTime.ToString("o")"
-                                                      data-end-time="@(session.EndTime?.ToString("o") ?? session.StartTime.AddHours(session.DurationHours).ToString("o"))"
-                                                      data-combo-end-time="@(comboEndTime?.ToString("o") ?? "")"
-                                                      data-remaining="@remaining">
-                                                    @(hasCombo ? (remCombo > 0 ? FormatTimer(remCombo) : "+" + FormatTimer(Math.Abs(remCombo))) : (isPayLater ? FormatTimer(elapsed) : FormatTimer(remaining)))
-                                                </span>
-                                            </div>
-                                            <div class="d-flex justify-content-between fw-bold text-success border-top pt-1 mt-1">
-                                                <span class="small">Tạm tính:</span>
-                                                <span class="small" id="card-total-price-@table.Id">@session.CurrentTotal.ToString("N0") đ</span>
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <span class="small text-muted">Thời gian:</span>
-                                                <span class="card-timer-display timer-ok">00:00:00</span>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-
-                                <div class="mt-auto border-top pt-3" id="card-action-box-@table.Id">
-                                    @if (table.Status == 1)
-                                    {
-                                        <button class="btn btn-sm btn-staff-primary w-100 py-2 btn-card-start" 
-                                                data-table-id="@table.Id" 
-                                                data-table-name="@table.TableName">
-                                            <i class="fa-solid fa-play me-1"></i> Bắt đầu chơi
-                                        </button>
-                                    }
-                                    else if (table.Status == 2)
-                                    {
-                                        <button class="btn btn-sm btn-outline-primary w-100 py-2 btn-card-details" 
-                                                data-table-id="@table.Id" 
-                                                data-table-name="@table.TableName">
-                                            <i class="fa-solid fa-circle-info me-1"></i> Xem chi tiết / Gọi món
-                                        </button>
-                                    }
-                                    else
-                                    {
-                                        <button class="btn btn-sm btn-outline-secondary w-100 py-2 btn-card-details" 
-                                                data-table-id="@table.Id" 
-                                                data-table-name="@table.TableName">
-                                            <i class="fa-solid fa-arrows-spin me-1"></i> Thay đổi trạng thái
-                                        </button>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    }
-                </div>
-            </main>
-            <footer class="staff-footer">
-                <div class="text-muted small">&copy; 2026 Billiard Management System &mdash; Staff Portal</div>
-            </footer>
-        </div>
-    </div>
-
-    <!-- MAIN INTERACTIVE DETAILS MODAL -->
-    <div class="modal fade" id="tableDetailsModal" tabindex="-1" aria-labelledby="tableDetailsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-                <div class="modal-header border-bottom-0 pb-0">
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body pt-0">
-                    <div class="text-center mb-4">
-                        <div class="avatar-circle staff-avatar rounded-circle bg-opacity-10 bg-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; font-size: 1.8rem; color: #0ea5e9;">
-                            <i class="fa-solid fa-table-cells-large"></i>
-                        </div>
-                        <h3 class="fw-bold text-dark mb-1" id="detailsModalTableName">BÀN XX</h3>
-                        <span class="badge bg-secondary mb-2" id="detailsModalTableType">Pool 8 Ball</span>
-                        <div class="d-flex justify-content-center gap-2 mt-2">
-                            <span class="badge" id="detailsModalTableStatus">Trống bàn</span>
-                            <span class="badge bg-light text-dark border" id="detailsModalTableRate">50.000 đ/giờ</span>
-                        </div>
-                    </div>
-
-                    <!-- AVAILABLE STATE OPERATION VIEW -->
-                    <div id="op-available-view" class="table-op-view" style="display:none;">
-                        <div class="bg-light p-3 rounded-4 mb-4 border">
-                            <h6 class="fw-bold mb-3 text-success"><i class="fa-solid fa-circle-play me-2"></i>Bắt đầu phiên chơi mới</h6>
-                            
-                            <div class="row g-2 mb-3">
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label fw-bold small text-secondary">Tên khách hàng <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="detailsCustomerName" placeholder="Tên khách hàng" required />
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label fw-bold small text-secondary">Số điện thoại <span class="text-danger">*</span></label>
-                                    <input type="tel" class="form-control" id="detailsCustomerPhone" placeholder="Số điện thoại (0912345678)" required pattern="0[0-9]{9}" maxlength="10" title="Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0" />
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label fw-bold small text-secondary">Chế độ mở bàn</label>
-                                <div class="d-flex gap-2 mb-2">
-                                    <button type="button" class="btn btn-outline-primary active btn-details-mode flex-fill fw-bold py-2" data-mode="paylater">
-                                        ⚡ Mở bàn theo giờ (Thanh toán sau)
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary btn-details-mode flex-fill fw-bold py-2" data-mode="prepaid">
-                                        ⏱️ Đặt giờ (Trả trước)
-                                    </button>
-                                </div>
-
-                                <div class="details-paylater-notice alert alert-info py-2 px-3 small border-info-subtle mb-0 rounded-3">
-                                    <i class="fa-solid fa-circle-info text-info me-1"></i> Khách hàng chơi tự do theo giờ. Tiền giờ sẽ tự động tính theo thời gian chơi thực tế đến khi trả bàn & thanh toán.
-                                </div>
-
-                                <div class="details-prepaid-box mt-2" style="display:none;">
-                                    <label class="form-label fw-bold small text-secondary">Số giờ chơi đăng ký ban đầu</label>
-                                    <div class="d-flex gap-2 mb-3">
-                                        <button type="button" class="btn btn-outline-secondary btn-hour-preset" data-hours="1">1h</button>
-                                        <button type="button" class="btn btn-outline-secondary btn-hour-preset active" data-hours="2">2h</button>
-                                        <button type="button" class="btn btn-outline-secondary btn-hour-preset" data-hours="3">3h</button>
-                                        <button type="button" class="btn btn-outline-secondary btn-hour-preset" data-hours="4">4h</button>
-                                    </div>
-                                    <input type="number" class="form-control" id="modalStartHoursInput" min="1" max="24" value="2" placeholder="Nhập số giờ (1 - 24)" />
-                                </div>
-                            </div>
-
-                            <div class="mb-3 border-top pt-3">
-                                <label class="form-label fw-bold small text-secondary d-block">Gọi món nhanh (Tuỳ chọn)</label>
-                                <div style="max-height: 120px; overflow-y: auto;" class="pe-2">
-                                    @foreach (var p in Model.Products)
-                                    {
-                                        <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-1">
-                                            <div>
-                                                <span class="small fw-bold text-dark">@p.Name</span>
-                                                <span class="small text-primary fw-bold ms-2">@p.Price.ToString("N0") đ</span>
-                                            </div>
-                                            <div class="d-flex align-items-center gap-1">
-                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-qty-minus py-0 px-2" data-target="details-quick-qty-@p.Id">-</button>
-                                                <input type="number" class="form-control form-control-sm quick-qty-input-details" id="details-quick-qty-@p.Id" data-product-id="@p.Id" data-price="@p.Price" value="0" min="0" max="@p.Stock" style="width: 45px; text-align: center;">
-                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-qty-plus py-0 px-2" data-target="details-quick-qty-@p.Id" data-max="@p.Stock">+</button>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-
-                            <div class="mb-3 border-top pt-3 bg-white p-3 rounded border details-prepaid-payment-container" style="display:none;">
-                                <div class="d-flex justify-content-between align-items-center mb-3 pt-2">
-                                    <span class="fw-bold text-dark">Tổng tiền trả trước:</span>
-                                    <span class="fw-bold fs-5 text-success" id="detailsPrepaidTotal">0 đ</span>
-                                </div>
-                                <label class="form-label fw-bold small text-secondary">Phương thức thanh toán <span class="text-danger">*</span></label>
-                                <select class="form-select form-select-sm" id="detailsPrepaidPaymentMethod">
-                                    <option value="0" selected>💵 Tiền mặt</option>
-                                    <option value="2">📲 Chuyển khoản QR</option>
-                                </select>
-
-                                <div class="qr-payment-container text-center mt-3 p-3 bg-white rounded border border-success" id="detailsQrContainer" style="display: none;">
-                                    <div class="badge bg-success-subtle text-success fw-bold px-3 py-2 rounded-pill mb-2">
-                                        <i class="fa-solid fa-qrcode me-1"></i>Quét mã QR Chuyển khoản VietQR
-                                    </div>
-                                    <div>
-                                        <img src="https://img.vietqr.io/image/BIDV-113366668888-print.png" alt="Mã QR Thanh toán BIDV" class="img-fluid rounded border shadow-sm my-2" style="max-width: 240px; width: 100%;" />
-                                    </div>
-                                    <div class="small text-muted mt-1">
-                                        Ngân hàng: <strong>BIDV</strong> | STK: <strong>113366668888</strong>
-                                    </div>
-                                    <div class="small text-success fw-bold mt-1">
-                                        Vui lòng quét mã QR trên để chuyển khoản. Sau khi xác nhận tiền đã vào tài khoản, bấm nút <strong>Duyệt thanh toán</strong> để mở bàn.
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button class="btn btn-success w-100 py-2.5 fw-bold" id="btnDetailsStartSession">
-                                <i class="fa-solid fa-credit-card me-2"></i>Thanh toán & Mở bàn ngay
-                            </button>
-                        </div>
-
-                        <!-- Modify Status Options -->
-                        <div class="border-top pt-3">
-                            <label class="form-label fw-bold small text-secondary mb-2">Thay đổi trạng thái bàn sang:</label>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-sm btn-outline-warning flex-fill btn-change-status-direct" data-status-key="Waiting">
-                                    <i class="fa-solid fa-clock me-1"></i>Chờ
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger flex-fill btn-change-status-direct" data-status-key="Maintenance">
-                                    <i class="fa-solid fa-wrench me-1"></i>Bảo trì
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- PLAYING STATE OPERATION VIEW -->
-                    <div id="op-playing-view" class="table-op-view" style="display:none;">
-                        <div class="bg-primary bg-opacity-10 text-primary p-2 rounded mb-3 d-flex align-items-center" id="playingCustomerInfo" style="display:none;">
-                            <i class="fa-solid fa-user-circle fs-4 me-2"></i>
-                            <div>
-                                <div class="fw-bold" id="playingCustomerName"></div>
-                                <div class="small" id="playingCustomerPhone"></div>
-                            </div>
-                        </div>
-
-                        <div class="row g-2 mb-3">
-                            <div class="col">
-                                <div class="details-stat-box">
-                                    <div class="details-stat-val" id="detailsStartTime">--:--</div>
-                                    <div class="details-stat-lbl">Giờ vào</div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="details-stat-box">
-                                    <div class="details-stat-val text-info" id="detailsElapsedTime">00:00:00</div>
-                                    <div class="details-stat-lbl">Đã chơi</div>
-                                </div>
-                            </div>
-                            <div class="col" id="detailsRemainingTimeCol">
-                                <div class="details-stat-box">
-                                    <div class="details-stat-val text-warning" id="detailsRemainingTime">00:00:00</div>
-                                    <div class="details-stat-lbl">Còn lại</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Active order items and cost details -->
-                        <div class="border rounded-4 p-3 mb-4 bg-light">
-                            <h6 class="fw-bold mb-2 text-dark"><i class="fa-solid fa-receipt me-2 text-primary"></i>Hóa đơn tạm tính</h6>
-                            <div class="table-responsive" style="max-height: 150px; overflow-y: auto;">
-                                <table class="table table-sm table-borderless align-middle services-table mb-2">
-                                    <thead>
-                                        <tr class="border-bottom">
-                                            <th>Dịch vụ</th>
-                                            <th class="text-center">SL</th>
-                                            <th class="text-end">Đơn giá</th>
-                                            <th class="text-end">Thành tiền</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="detailsServicesList">
-                                        <!-- Order items list populated dynamically -->
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div class="border-top pt-2 mt-2">
-                                <div class="d-flex justify-content-between text-muted small mb-1">
-                                    <span>Tiền giờ chơi:</span>
-                                    <span class="fw-bold text-dark" id="detailsTablePrice">0 đ</span>
-                                </div>
-                                <div class="d-flex justify-content-between text-muted small mb-1">
-                                    <span>Tiền nước & dịch vụ:</span>
-                                    <span class="fw-bold text-dark" id="detailsOrdersPrice">0 đ</span>
-                                </div>
-                                <div class="d-flex justify-content-between fw-bold text-success border-top pt-2 mt-2">
-                                    <span>Tổng tạm tính:</span>
-                                    <span class="fs-5" id="detailsTotalPrice">0 đ</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Operations options -->
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-primary btn-lg fs-6 py-2.5 fw-bold" id="btnDetailsOrderTrigger">
-                                <i class="fa-solid fa-plus-minus me-2"></i>Gọi Đồ Ăn / Đồ Uống
-                            </button>
-                            <div class="row g-2">
-                                <div class="col">
-                                    <button class="btn btn-outline-warning w-100 py-2.5 fw-bold" id="btnDetailsExtendTrigger">
-                                        <i class="fa-solid fa-clock me-2"></i>Gia hạn chơi
-                                    </button>
-                                </div>
-                                <div class="col">
-                                    <button class="btn btn-danger w-100 py-2.5 fw-bold" id="btnDetailsEndTrigger">
-                                        <i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Trả bàn
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- RESERVED / MAINTENANCE OPERATION VIEW -->
-                    <div id="op-other-view" class="table-op-view" style="display:none;">
-                        <div class="bg-light p-4 rounded-4 text-center mb-4 border">
-                            <p class="text-muted mb-3" id="otherStatusMessage">Bàn đang ở trạng thái bảo trì hoặc đặt trước.</p>
-                            <button class="btn btn-primary w-100 py-2.5 fw-bold" id="btnResetToAvailable">
-                                <i class="fa-solid fa-arrows-spin me-2"></i>Mở lại bàn (Available)
-                            </button>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- START SESSION MODAL -->
-    <div class="modal fade" id="startSessionModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold text-success"><i class="fa-solid fa-circle-play me-2"></i>Bắt đầu phiên chơi mới</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <h6 class="mb-3 text-dark">Bàn lựa chọn: <strong id="startModalTableName" class="text-primary"></strong></h6>
-                    
-                    <div class="row g-2 mb-3">
-                        <div class="col-12 col-md-6">
-                            <label class="form-label fw-bold small text-secondary">Tên khách hàng <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="startCustomerName" placeholder="Tên khách hàng" required />
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label fw-bold small text-secondary">Số điện thoại <span class="text-danger">*</span></label>
-                            <input type="tel" class="form-control" id="startCustomerPhone" placeholder="Số điện thoại (0912345678)" required pattern="0[0-9]{9}" maxlength="10" title="Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0" />
-                        </div>
-                    </div>
-
+                else
+                {
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-secondary">Chế độ mở bàn</label>
-                        <div class="d-flex gap-2 mb-2 flex-wrap">
-                            <button type="button" class="btn btn-outline-primary active btn-start-mode flex-fill fw-bold py-2" data-mode="paylater">
-                                ⚡ Mở bàn theo giờ (Thanh toán sau)
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary btn-start-mode flex-fill fw-bold py-2" data-mode="prepaid">
-                                ⏱️ Đặt giờ (Trả trước)
-                            </button>
-                            <button type="button" class="btn btn-outline-success btn-start-mode flex-fill fw-bold py-2" data-mode="combo">
-                                🎁 Mở bằng Combo
-                            </button>
-                        </div>
-
-                        <div class="start-paylater-notice alert alert-info py-2 px-3 small border-info-subtle mb-0 rounded-3">
-                            <i class="fa-solid fa-circle-info text-info me-1"></i> Mặc định mở bàn 1 tiếng (tính phí 1 giờ tối thiểu). Khi trôi qua 1 tiếng, tiền giờ sẽ tự động tính thêm theo thời gian chơi thực tế.
-                        </div>
-
-                        <div class="start-prepaid-box mt-2" style="display:none;">
-                            <label class="form-label fw-bold small text-secondary">Số giờ chơi đăng ký ban đầu</label>
-                            <div class="d-flex gap-2 mb-3">
-                                <button type="button" class="btn btn-outline-secondary btn-hour-preset-direct" data-hours="1">1h</button>
-                                <button type="button" class="btn btn-outline-secondary btn-hour-preset-direct active" data-hours="2">2h</button>
-                                <button type="button" class="btn btn-outline-secondary btn-hour-preset-direct" data-hours="3">3h</button>
-                                <button type="button" class="btn btn-outline-secondary btn-hour-preset-direct" data-hours="4">4h</button>
-                            </div>
-                            <input type="number" class="form-control" id="customHoursInput" placeholder="Số giờ tùy chỉnh (1 - 24)" min="1" max="24" value="2" />
-                        </div>
-
-                        <div class="start-combo-box mt-2" id="startComboBox" style="display:none;">
-                            <label class="form-label fw-bold small text-secondary"><i class="fa-solid fa-layer-group text-success me-1"></i>Chọn gói Combo ưu đãi</label>
-                            <select class="form-select fw-bold text-success" id="startComboSelect">
-                                <option value="" selected>-- Chọn gói Combo --</option>
-                                @foreach (var c in (Model.Combos ?? new List<BilliardManagement.Web.Models.ComboDto>()).Where(c => c.IsActive))
-                                {
-                                    <option value="@c.Id" data-code="@c.ComboCode" data-price="@c.Price" data-hours="@c.PlayingHours" data-name="@c.Name" data-vip="@(c.IsVip ? "true" : "false")">
-                                        🎁 @c.ComboCode - @c.Name (@c.Price.ToString("N0") đ - @c.PlayingHours giờ chơi)
-                                    </option>
-                                }
-                            </select>
-                            <div class="alert alert-success py-2 px-3 small border-success-subtle mt-2 mb-0 rounded-3" id="startComboInfo" style="display:none;">
-                                <i class="fa-solid fa-circle-check text-success me-1"></i> Trong thời gian Combo, <strong>miễn phí hoàn toàn tiền bàn</strong>. Nếu chơi quá giờ Combo sẽ bắt đầu tính tiền bàn từ thời điểm hết Combo.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3 border-top pt-3">
-                        <label class="form-label fw-bold small text-secondary d-block">Gọi món nhanh (Tuỳ chọn)</label>
-                        <div style="max-height: 120px; overflow-y: auto;" class="pe-2">
-                            @foreach (var p in Model.Products)
+                        <label class="form-label" for="comboSelect">Chọn gói combo</label>
+                        <select id="comboSelect" class="form-select">
+                            @foreach (var combo in Model.Combos)
                             {
-                                <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-1">
-                                    <div>
-                                        <span class="small fw-bold text-dark">@p.Name</span>
-                                        <span class="small text-primary fw-bold ms-2">@p.Price.ToString("N0") đ</span>
-                                    </div>
-                                    <div class="d-flex align-items-center gap-1">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-qty-minus py-0 px-2" data-target="start-quick-qty-@p.Id">-</button>
-                                        <input type="number" class="form-control form-control-sm quick-qty-input-start" id="start-quick-qty-@p.Id" data-product-id="@p.Id" data-price="@p.Price" value="0" min="0" max="@p.Stock" style="width: 45px; text-align: center;">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-qty-plus py-0 px-2" data-target="start-quick-qty-@p.Id" data-max="@p.Stock">+</button>
-                                    </div>
-                                </div>
+                                <option value="@combo.ComboCode" data-hours="@combo.PlayingHours">
+                                    @combo.Name — @combo.Price.ToString("N0") đ@(combo.PlayingHours > 0 ? $" (+{combo.PlayingHours}h)" : "")
+                                </option>
                             }
-                        </div>
-                    </div>
-
-                    <div class="mb-3 border-top pt-3 bg-light p-3 rounded start-prepaid-payment-container" style="display:none;">
-                        <div class="d-flex justify-content-between align-items-center mb-3 pt-2">
-                            <span class="fw-bold text-dark">Tổng tiền trả trước:</span>
-                            <span class="fw-bold fs-5 text-success" id="startPrepaidTotal">0 đ</span>
-                        </div>
-                        <label class="form-label fw-bold small text-secondary">Phương thức thanh toán <span class="text-danger">*</span></label>
-                        <select class="form-select form-select-sm" id="startPrepaidPaymentMethod">
-                            <option value="0" selected>💵 Tiền mặt</option>
-                            <option value="2">📲 Chuyển khoản QR</option>
                         </select>
-
-                        <div class="qr-payment-container text-center mt-3 p-3 bg-white rounded border border-success" id="startQrContainer" style="display: none;">
-                            <div class="badge bg-success-subtle text-success fw-bold px-3 py-2 rounded-pill mb-2">
-                                <i class="fa-solid fa-qrcode me-1"></i>Quét mã QR Chuyển khoản VietQR
-                            </div>
-                            <div>
-                                <img src="https://img.vietqr.io/image/BIDV-113366668888-print.png" alt="Mã QR Thanh toán BIDV" class="img-fluid rounded border shadow-sm my-2" style="max-width: 240px; width: 100%;" />
-                            </div>
-                            <div class="small text-muted mt-1">
-                                Ngân hàng: <strong>BIDV</strong> | STK: <strong>113366668888</strong>
-                            </div>
-                            <div class="small text-success fw-bold mt-1">
-                                Vui lòng quét mã QR trên để chuyển khoản. Sau khi xác nhận tiền đã vào tài khoản, bấm nút <strong>Duyệt thanh toán</strong> bên dưới để mở bàn.
-                            </div>
-                        </div>
                     </div>
-
-                    <button type="button" class="btn btn-success w-100 fw-bold py-2.5 fs-6" id="btnConfirmStart">
-                        <i class="fa-solid fa-play me-2"></i>Mở Bàn Theo Giờ Ngay
-                    </button>
-                </div>
+                    <div id="comboDetail" class="cell-sub"></div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-accent" id="applyComboBtn"><i class="fa-solid fa-check"></i>Áp dụng</button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- EXTEND SESSION MODAL -->
-    <div class="modal fade" id="extendSessionModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold text-warning"><i class="fa-solid fa-clock me-2"></i>Gia hạn phiên chơi</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <h6 class="mb-3 text-dark">Gia hạn cho bàn: <strong id="extendModalTableName" class="text-primary"></strong></h6>
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-outline-primary btn-extend-option py-2.5" data-minutes="30">Gia hạn thêm 30 phút (+30m)</button>
-                        <button type="button" class="btn btn-outline-primary btn-extend-option py-2.5" data-minutes="60">Gia hạn thêm 1 giờ (+60m)</button>
-                        <button type="button" class="btn btn-outline-primary btn-extend-option py-2.5" data-minutes="120">Gia hạn thêm 2 giờ (+120m)</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ORDER PRODUCTS / SERVICES MODAL -->
-    <div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold text-primary"><i class="fa-solid fa-plus-minus me-2"></i>Gọi đồ uống & Snack — <span id="orderModalTableName"></span></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <!-- Category Tabs -->
-                        <div class="col-12 col-md-4 border-end mb-3 mb-md-0">
-                            <div class="list-group list-group-flush" id="orderCategoryTabs" role="tablist">
-                                <a class="list-group-item list-group-item-action active" id="cat-all-tab" data-bs-toggle="list" href="#cat-all" role="tab">Tất cả</a>
-                                @foreach (var cat in Model.Products.Select(p => p.Category).Distinct())
-                                {
-                                    <a class="list-group-item list-group-item-action" id="cat-@cat.Replace(" ", "-")-tab" data-bs-toggle="list" href="#cat-@cat.Replace(" ", "-")" role="tab">@cat</a>
-                                }
-                            </div>
-                        </div>
-                        <!-- Product search and list -->
-                        <div class="col-12 col-md-8">
-                            <input type="text" class="form-control mb-3" id="orderProductSearch" placeholder="Tìm tên đồ uống, đồ ăn..." />
-                            
-                            <div class="tab-content" id="orderProductTabContent" style="max-height: 350px; overflow-y: auto; padding-right: 4px;">
-                                <div class="tab-pane fade show active" id="cat-all" role="tabpanel">
-                                    <div class="row g-2" id="productListContainer">
-                                        @foreach (var p in Model.Products)
-                                        {
-                                            <div class="col-12 product-search-item" data-product-name="@p.Name.ToLower()" data-product-category="@p.Category">
-                                                <div class="d-flex align-items-center justify-content-between p-2 border rounded order-product-item">
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        <div class="avatar-circle staff-avatar rounded bg-opacity-10 bg-success text-success fw-bold d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 0.9rem;">
-                                                            @p.Name.Substring(0, 1).ToUpper()
-                                                        </div>
-                                                        <div>
-                                                            <div class="fw-bold text-dark small">@p.Name</div>
-                                                            <div class="text-primary small fw-600">
-                                                                @p.Price.ToString("N0") đ 
-                                                                <span class="text-muted small fw-normal">(Kho: @p.Stock)</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="d-flex align-items-center gap-1">
-                                                        <button type="button" class="btn btn-sm btn-outline-secondary btn-qty-minus py-0 px-2" data-product-id="@p.Id">-</button>
-                                                        <input type="number" class="form-control form-control-sm qty-input" 
-                                                               id="qty-@p.Id" 
-                                                               data-product-id="@p.Id"
-                                                               data-product-name="@p.Name"
-                                                               data-product-price="@p.Price"
-                                                               value="0" 
-                                                               min="0" 
-                                                               max="@p.Stock" />
-                                                        <button type="button" class="btn btn-sm btn-outline-secondary btn-qty-plus py-0 px-2" data-product-id="@p.Id" data-max="@p.Stock">+</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Cart summary footer -->
-                    <div id="orderSummaryContainer" class="mt-3 p-3 bg-light rounded border d-none">
-                        <h6 class="fw-bold mb-2">Đơn hàng tạm tính (<span id="orderSummaryCount">0</span> món)</h6>
-                        <ul class="list-unstyled mb-2 ps-1" id="orderSummaryList" style="max-height: 120px; overflow-y: auto;"></ul>
-                        <div class="d-flex justify-content-between align-items-center fw-bold text-dark border-top pt-2">
-                            <span>Thành tiền đơn mới:</span>
-                            <span id="orderSummaryTotal">0 đ</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
-                    <button type="button" class="btn btn-primary fw-bold" id="btnConfirmOrder">Xác nhận gọi món</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- END SESSION / PAYMENT MODAL -->
-    <div class="modal fade" id="endSessionModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold text-danger"><i class="fa-solid fa-stop me-2"></i>Kết thúc phiên chơi — Trả bàn</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <h6 class="mb-3 text-dark">Bàn thanh toán: <strong id="endModalTableName" class="text-primary"></strong></h6>
-                    
-                    <div class="bg-light rounded border p-3 mb-3">
-                        <div class="d-flex justify-content-between mb-2" id="modalComboFeeRow">
-                            <span class="text-secondary small"><i class="fa-solid fa-gift text-success me-1"></i>Tiền gói Combo:</span>
-                            <span class="fw-bold text-success" id="modalComboFee">0 đ</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-secondary small"><i class="fa-solid fa-utensils text-primary me-1"></i>Đồ ăn & dịch vụ:</span>
-                            <span class="fw-bold text-dark" id="modalServiceFee">0 đ</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-secondary small" id="modalTableFeeLabel"><i class="fa-solid fa-clock text-warning me-1"></i>Tiền bàn sau Combo:</span>
-                            <span class="fw-bold text-dark" id="modalPlayingFee">0 đ</span>
-                        </div>
-                        <div class="d-flex justify-content-between fw-bold text-dark border-top pt-2 mt-2 fs-6">
-                            <span>TỔNG THÀNH TIỀN:</span>
-                            <span id="modalSubtotalFee" class="text-primary fw-bold fs-5">0 đ</span>
-                        </div>
-                    </div>
-
-                    <div class="alert alert-info border-0 rounded-3 small mb-3">
-                        <i class="fa-solid fa-circle-check me-2 text-success"></i>Phiên chơi này đã được thanh toán trả trước khi mở bàn. Xác nhận kết thúc bàn chơi và trả bàn về trạng thái Trống?
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-danger fw-bold" id="btnConfirmEnd"><i class="fa-solid fa-stop me-1"></i>Xác nhận kết thúc bàn</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- LOADING OVERLAY -->
-    <div id="loading-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
-        <div class="loading-spinner text-center">
-            <div class="spinner-border text-light" style="width: 3rem; height: 3rem;" role="status"></div>
-            <p class="mt-3 text-white fw-bold">Đang tải dữ liệu...</p>
-        </div>
-    </div>
-
-    <script src="/lib/jquery/dist/jquery.min.js"></script>
-    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/staff.js" asp-append-version="true"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+@section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
     <script src="/js/table-status.js" asp-append-version="true"></script>
-
-    <!-- APPLY & PAY COMBO MODAL -->
-    <div class="modal fade" id="headerApplyComboModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                <div class="modal-header bg-gradient bg-primary text-white p-3">
-                    <h5 class="modal-title fw-bold">
-                        <i class="fa-solid fa-credit-card me-2"></i>Thanh Toán & Áp Dụng Gói Combo
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <!-- Combo Summary & Payment Amount Header Box -->
-                    <div class="card border-success border-2 bg-success-subtle rounded-4 p-3 mb-4 shadow-sm" id="comboPaymentSummaryBox">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div>
-                                <span class="badge bg-primary font-monospace fs-6 mb-1" id="paymentComboCode">COMBO</span>
-                                <h5 class="fw-bold text-dark mb-0" id="paymentComboName">Chưa chọn gói Combo</h5>
-                                <div class="small text-muted mt-1" id="paymentComboDesc">Vui lòng chọn gói Combo bên dưới</div>
-                            </div>
-                            <div class="text-end">
-                                <div class="small text-muted fw-semibold">TỔNG TIỀN THANH TOÁN</div>
-                                <div class="fs-2 fw-bold text-success" id="paymentComboAmount">0 đ</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row g-3">
-                        <!-- Left Column: Combo & Table Selection -->
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold small text-secondary">
-                                    <i class="fa-solid fa-layer-group text-primary me-1"></i>Gói Combo áp dụng <span class="text-danger">*</span>
-                                </label>
-                                <select class="form-select form-select-lg fw-bold text-primary" id="applyComboPackageSelect" required>
-                                    <option value="" selected>-- Chọn gói Combo --</option>
-                                    @foreach (var c in Model.Combos)
-                                    {
-                                        <option value="@c.ComboCode" data-price="@c.Price" data-hours="@c.PlayingHours" data-name="@c.Name" data-desc="@c.Description">
-                                            🎁 @c.ComboCode - @c.Name (@c.Price.ToString("N0") đ)
-                                        </option>
-                                    }
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label fw-bold small text-secondary">
-                                    <i class="fa-solid fa-table-cells text-primary me-1"></i>Chọn bàn áp dụng <span class="text-danger">*</span>
-                                </label>
-                                <select class="form-select fw-semibold" id="applyComboTableSelect" required>
-                                    <option value="" selected>-- Chọn bàn áp dụng --</option>
-                                    <optgroup label="Bàn đang chơi (Cộng giờ & Đồ ăn vào bàn)">
-                                        @foreach (var t in Model.TableDashboard.Where(t => t.Status == 2 && t.ActiveSession != null))
-                                        {
-                                            <option value="session:@(t.ActiveSession?.Id)" data-type="playing" data-table-id="@t.Id">
-                                                🎱 @t.TableName (Đang chơi)
-                                            </option>
-                                        }
-                                    </optgroup>
-                                    <optgroup label="Bàn trống (Thanh toán & Mở bàn mới)">
-                                        @foreach (var t in Model.TableDashboard.Where(t => t.Status == 1))
-                                        {
-                                            <option value="table:@t.Id" data-type="available" data-table-id="@t.Id">
-                                                🟢 @t.TableName (Trống bàn)
-                                            </option>
-                                        }
-                                    </optgroup>
-                                </select>
-                            </div>
-
-                            <div id="startSessionForComboFields" class="card bg-light border-0 p-3 rounded-3 mb-3" style="display:none;">
-                                <h6 class="fw-bold small text-primary mb-2">
-                                    <i class="fa-solid fa-user-tag me-1"></i>Thông tin mở bàn mới
-                                </h6>
-                                <div class="mb-2">
-                                    <label class="form-label fw-bold small text-secondary">Tên khách hàng <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control form-control-sm" id="applyComboCustomerName" value="Khách vãng lai" placeholder="Tên khách hàng" required />
-                                </div>
-                                <div class="mb-0">
-                                    <label class="form-label fw-bold small text-secondary">Số điện thoại <span class="text-danger">*</span></label>
-                                    <input type="tel" class="form-control form-control-sm" id="applyComboCustomerPhone" value="0900000000" placeholder="0912345678" required pattern="0[0-9]{9}" maxlength="10" />
-                                </div>
-                            </div>
-
-                            <!-- Quick Product Ordering in Combo Modal -->
-                            <div class="mb-3 border-top pt-3">
-                                <label class="form-label fw-bold small text-secondary d-block">
-                                    <i class="fa-solid fa-utensils text-primary me-1"></i>Gọi món kèm theo (Tuỳ chọn)
-                                </label>
-                                <div style="max-height: 140px; overflow-y: auto;" class="pe-2 border rounded p-2 bg-light">
-                                    @foreach (var p in Model.Products)
-                                    {
-                                        <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-1">
-                                            <div>
-                                                <span class="small fw-bold text-dark">@p.Name</span>
-                                                <span class="small text-primary fw-bold ms-2">@p.Price.ToString("N0") đ</span>
-                                            </div>
-                                            <div class="d-flex align-items-center gap-1">
-                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-qty-minus py-0 px-2" data-target="combo-quick-qty-@p.Id">-</button>
-                                                <input type="number" class="form-control form-control-sm quick-qty-input-combo" id="combo-quick-qty-@p.Id" data-product-id="@p.Id" data-price="@p.Price" value="0" min="0" max="@p.Stock" style="width: 45px; text-align: center;">
-                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-qty-plus py-0 px-2" data-target="combo-quick-qty-@p.Id" data-max="@p.Stock">+</button>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Right Column: Payment Method & QR Checkout -->
-                        <div class="col-md-6 border-start-md">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold small text-secondary">
-                                    <i class="fa-solid fa-wallet text-primary me-1"></i>Phương thức thanh toán <span class="text-danger">*</span>
-                                </label>
-                                <select class="form-select fw-semibold" id="applyComboPaymentMethod">
-                                    <option value="0" selected>💵 Tiền mặt (Cash)</option>
-                                    <option value="2">📲 Chuyển khoản QR (VietQR)</option>
-                                </select>
-                            </div>
-
-                            <!-- QR Code Payment Box -->
-                            <div id="comboQrPaymentContainer" class="text-center p-3 border rounded-4 bg-white shadow-xs" style="display:none;">
-                                <div class="small fw-bold text-primary mb-1">Mã QR Thanh Toán Chuyển Khoản</div>
-                                <img id="comboQrImage" src="" alt="Mã QR VietQR" class="img-fluid rounded border shadow-sm my-2" style="max-width: 210px; width: 100%;" />
-                                <div class="small text-muted mt-1">Quét mã QR để thanh toán đúng <strong id="comboQrAmountText" class="text-success fs-6">0 đ</strong></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer bg-light p-3">
-                    <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-success px-4 py-2.5 rounded-pill fw-bold shadow-sm" id="btnSubmitApplyCombo">
-                        <i class="fa-solid fa-circle-check me-2"></i>Duyệt Thanh Toán & Áp Dụng Combo
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // Store in-memory representation of table and session states
-        let tablesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TableDashboard));
-        const apiBaseUrl = '@(apiToken != null ? "http://localhost:8080/api/" : "")';
-        const apiToken = '@(HttpContext.Session.GetString("JWToken") ?? "")';
+        (function () {
+            const API_BASE = document.querySelector('meta[name="api-base-url"]')?.content || '';
+            const API_TOKEN = document.querySelector('meta[name="api-token"]')?.content || '';
 
-        // Modals Instances
-        const detailsModal = new bootstrap.Modal(document.getElementById('tableDetailsModal'));
-        const startModal = new bootstrap.Modal(document.getElementById('startSessionModal'));
-        const extendModal = new bootstrap.Modal(document.getElementById('extendSessionModal'));
-        const orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
-        const endModal = new bootstrap.Modal(document.getElementById('endSessionModal'));
-        const applyComboModalInstance = new bootstrap.Modal(document.getElementById('headerApplyComboModal'));
+            let tables = @Html.Raw(JsonSerializer.Serialize(Model.TableDashboard, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            const products = @Html.Raw(JsonSerializer.Serialize(Model.Products, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            const combos = @Html.Raw(JsonSerializer.Serialize(Model.Combos, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
 
-        let selectedTableId = null;
-        let selectedSessionId = null;
+            let currentTableId = null;
+            let currentSessionId = null;
+            const orderQuantities = {};
+            let timers = [];
 
-        // Display Loading Spinner
-        function toggleLoading(show) {
-            $('#loading-overlay').css('display', show ? 'flex' : 'none');
-        }
+            const money = v => Math.round(Number(v) || 0).toLocaleString('vi-VN') + ' đ';
 
-        // Show Swal Toasts
-        function showNotification(title, icon = 'success', text = '') {
-            Swal.fire({
-                title: title,
-                text: text,
-                icon: icon,
-                timer: 2000,
-                showConfirmButton: false,
-                toast: true,
-                position: 'top-end'
-            });
-        }
-
-        // Standard fetch API call helper
-        async function makeApiCall(endpoint, method, payload = null) {
-            const headers = { 'Content-Type': 'application/json' };
-            if (apiToken) headers['Authorization'] = 'Bearer ' + apiToken;
-
-            const config = {
-                method: method,
-                headers: headers
-            };
-            if (payload) config.body = JSON.stringify(payload);
-
-            const res = await fetch('http://localhost:8080/api/' + endpoint, config);
-            let json;
-            try {
-                json = await res.json();
-            } catch (e) {
-                const text = await res.text();
-                json = { success: false, message: text || `Lỗi hệ thống (${res.status})` };
-            }
-            if (!res.ok || !(json.success ?? json.Success)) {
-                throw new Error(json.message || 'Yêu cầu không thành công');
-            }
-            return json.data || json.Data || json;
-        }
-
-        // Recalculate stats dashboard cards (Available, Playing, Waiting, Maintenance)
-        function recalculateStats() {
-            let available = 0, playing = 0, waiting = 0, maintenance = 0, revenue = 0;
-            tablesData.forEach(t => {
-                if (t.Status === 1 || t.status === 1) available++;
-                else if (t.Status === 2 || t.status === 2) {
-                    playing++;
-                    const session = t.ActiveSession || t.activeSession;
-                    if (session) {
-                        revenue += Number(session.CurrentTotal || session.currentTotal || 0);
-                    }
+            async function api(endpoint, method, payload) {
+                const headers = { 'Content-Type': 'application/json' };
+                if (API_TOKEN) headers['Authorization'] = 'Bearer ' + API_TOKEN;
+                const config = { method: method, headers: headers };
+                if (payload) config.body = JSON.stringify(payload);
+                const res = await fetch(API_BASE + endpoint, config);
+                let json;
+                try { json = await res.json(); }
+                catch (e) { json = { success: false, message: 'Lỗi hệ thống (' + res.status + ')' }; }
+                if (!res.ok || !(json.success ?? json.Success)) {
+                    throw new Error(json.message || json.Message || 'Yêu cầu không thành công');
                 }
-                else if (t.Status === 3 || t.status === 3) waiting++;
-                else if (t.Status === 4 || t.status === 4) maintenance++;
-            });
-
-            $('#stat-available').text(available);
-            $('#stat-playing').text(playing);
-            $('#stat-waiting').text(waiting);
-            $('#stat-maintenance').text(maintenance);
-            $('#active-revenue-display').text(revenue.toLocaleString('vi-VN') + ' đ');
-        }
-
-        // Dynamic State UI updates
-        function updateTableCardState(tableId, status, session = null) {
-            const card = $(`#table-card-${tableId}`);
-            if (!card.length) return;
-
-            // Remove previous status classes
-            card.removeClass('status-available status-playing status-waiting status-maintenance');
-            card.addClass('status-' + getStatusCssClass(status));
-
-            // Badge text & color
-            const badge = card.find(`#badge-${tableId}`);
-            badge.removeClass('bg-success bg-primary bg-warning bg-danger bg-secondary');
-            badge.addClass('bg-' + getStatusBadgeClass(status)).text(getStatusText(status));
-
-            // Graphic Icon
-            const graphicContainer = card.find('.table-visual-graphic');
-            graphicContainer.empty();
-            if (status === 1) graphicContainer.append('<i class="fa-solid fa-circle-check"></i>');
-            else if (status === 2) graphicContainer.append('<i class="fa-solid fa-play fa-spin-pulse"></i>');
-            else if (status === 3) graphicContainer.append('<i class="fa-solid fa-clock"></i>');
-            else if (status === 4) graphicContainer.append('<i class="fa-solid fa-wrench"></i>');
-
-            // Action box buttons
-            const actionBox = card.find(`#card-action-box-${tableId}`);
-            actionBox.empty();
-
-            // Playing Info Block
-            const playingInfo = card.find(`#playing-info-${tableId}`);
-
-            if (status === 1) {
-                playingInfo.hide();
-                actionBox.append(`
-                    <button class="btn btn-sm btn-staff-primary w-100 py-2 btn-card-start" data-table-id="${tableId}">
-                        <i class="fa-solid fa-play me-1"></i> Bắt đầu chơi
-                    </button>
-                `);
-            } else if (status === 2) {
-                playingInfo.show();
-                actionBox.append(`
-                    <button class="btn btn-sm btn-outline-primary w-100 py-2 btn-card-details" data-table-id="${tableId}">
-                        <i class="fa-solid fa-circle-info me-1"></i> Xem chi tiết / Gọi món
-                    </button>
-                `);
-
-                if (session) {
-                    const startTimeStr = session.StartTime || session.startTime;
-                    const comboEndTimeStr = session.ComboEndTime || session.comboEndTime || (session.ComboDurationMinutes || session.comboDurationMinutes > 0 ? new Date(new Date(startTimeStr).getTime() + (session.ComboDurationMinutes || session.comboDurationMinutes) * 60000).toISOString() : null);
-                    const hasCombo = !!(comboEndTimeStr || session.ComboId || session.comboId || (session.ComboDurationMinutes || session.comboDurationMinutes) > 0);
-                    const durationHours = session.DurationHours !== undefined ? session.DurationHours : (session.durationHours || 0);
-                    const isPayLater = !hasCombo && (durationHours === 0 || !session.EndTime || !session.endTime);
-
-                    if (hasCombo && comboEndTimeStr) {
-                        const comboEnd = new Date(comboEndTimeStr);
-                        const remComboSecs = Math.floor((comboEnd - new Date()) / 1000);
-                        const isOverCombo = remComboSecs <= 0;
-
-                        playingInfo.empty().append(`
-                            <div class="d-flex justify-content-between small text-muted mb-1">
-                                <span>Bắt đầu:</span>
-                                <span class="text-dark fw-bold">${formatTime(startTimeStr)}</span>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="small ${isOverCombo ? 'text-danger' : 'text-success'} fw-bold" id="card-timer-label-${tableId}">
-                                    <i class="fa-solid ${isOverCombo ? 'fa-triangle-exclamation' : 'fa-gift'} me-1"></i>${isOverCombo ? 'Quá giờ Combo:' : 'Còn lại (Combo):'}
-                                </span>
-                                <span class="card-timer-display ${isOverCombo ? 'timer-expired' : 'text-success fw-bold'}"
-                                      id="card-timer-${tableId}"
-                                      data-mode="combo"
-                                      data-start-time="${startTimeStr}"
-                                      data-combo-end-time="${comboEndTimeStr}">
-                                    ${isOverCombo ? '+' + formatTimerString(Math.abs(remComboSecs)) : formatTimerString(remComboSecs)}
-                                </span>
-                            </div>
-                            <div class="d-flex justify-content-between fw-bold text-success border-top pt-1 mt-1">
-                                <span class="small">Tạm tính:</span>
-                                <span class="small" id="card-total-price-${tableId}">${(session.CurrentTotal || session.currentTotal || 0).toLocaleString('vi-VN')} đ</span>
-                            </div>
-                        `);
-                    } else if (isPayLater) {
-                        const elapsedSecs = session.RemainingSeconds !== undefined ? session.RemainingSeconds : Math.max(0, Math.floor((new Date() - new Date(startTimeStr)) / 1000));
-                        playingInfo.empty().append(`
-                            <div class="d-flex justify-content-between small text-muted mb-1">
-                                <span>Bắt đầu:</span>
-                                <span class="text-dark fw-bold">${formatTime(startTimeStr)}</span>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="small text-primary fw-bold"><i class="fa-solid fa-clock me-1"></i>Đã chơi:</span>
-                                <span class="card-timer-display text-primary fw-bold"
-                                      id="card-timer-${tableId}"
-                                      data-mode="paylater"
-                                      data-start-time="${startTimeStr}"
-                                      data-remaining="${elapsedSecs}">
-                                    ${formatTimerString(elapsedSecs)}
-                                </span>
-                            </div>
-                            <div class="d-flex justify-content-between fw-bold text-success border-top pt-1 mt-1">
-                                <span class="small">Tạm tính:</span>
-                                <span class="small" id="card-total-price-${tableId}">${(session.CurrentTotal || session.currentTotal || 0).toLocaleString('vi-VN')} đ</span>
-                            </div>
-                        `);
-                    } else {
-                        const remaining = session.RemainingSeconds || session.remainingSeconds || 0;
-                        const endTime = session.EndTime || session.endTime || new Date(new Date(startTimeStr).getTime() + durationHours * 3600000).toISOString();
-                        
-                        playingInfo.empty().append(`
-                            <div class="d-flex justify-content-between small text-muted mb-1">
-                                <span>Bắt đầu:</span>
-                                <span class="text-dark fw-bold">${formatTime(startTimeStr)}</span>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="small text-muted">Còn lại:</span>
-                                <span class="card-timer-display"
-                                      id="card-timer-${tableId}"
-                                      data-mode="prepaid"
-                                      data-start-time="${startTimeStr}"
-                                      data-end-time="${endTime}"
-                                      data-remaining="${remaining}">
-                                    ${formatTimerString(remaining)}
-                                </span>
-                            </div>
-                            <div class="d-flex justify-content-between fw-bold text-success border-top pt-1 mt-1">
-                                <span class="small">Tạm tính:</span>
-                                <span class="small" id="card-total-price-${tableId}">${(session.CurrentTotal || session.currentTotal || 0).toLocaleString('vi-VN')} đ</span>
-                            </div>
-                        `);
-                    }
-                }
-            } else {
-                playingInfo.hide();
-                actionBox.append(`
-                    <button class="btn btn-sm btn-outline-secondary w-100 py-2 btn-card-details" data-table-id="${tableId}">
-                        <i class="fa-solid fa-arrows-spin me-1"></i> Thay đổi trạng thái
-                    </button>
-                `);
-            }
-        }
-
-        // Format Date to HH:mm
-        function formatTime(isoStr) {
-            if (!isoStr) return '--:--';
-            const date = new Date(isoStr);
-            return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-        }
-
-        // Helper maps
-        function getStatusCssClass(status) {
-            switch(status) {
-                case 1: return 'available';
-                case 2: return 'playing';
-                case 3: return 'waiting';
-                case 4: return 'maintenance';
-                default: return 'unknown';
-            }
-        }
-        function getStatusBadgeClass(status) {
-            switch(status) {
-                case 1: return 'success';
-                case 2: return 'primary';
-                case 3: return 'warning';
-                case 4: return 'danger';
-                default: return 'secondary';
-            }
-        }
-        function getStatusText(status) {
-            switch(status) {
-                case 1: return 'Trống bàn';
-                case 2: return 'Đang chơi';
-                case 3: return 'Chờ';
-                case 4: return 'Bảo trì';
-                default: return 'Không xác định';
-            }
-        }
-
-        // Ticking Timers implementation
-        function tickAllTimers() {
-            const now = new Date();
-            $('.card-timer-display').each(function () {
-                const mode = $(this).attr('data-mode') || $(this).data('mode');
-                const startTimeStr = $(this).attr('data-start-time');
-
-                if (mode === 'combo') {
-                    const comboEndTimeStr = $(this).attr('data-combo-end-time') || $(this).data('combo-end-time');
-                    if (!comboEndTimeStr) return;
-                    const comboEnd = new Date(comboEndTimeStr);
-                    const rem = Math.floor((comboEnd - now) / 1000);
-                    const cardIdStr = $(this).attr('id');
-                    const tableId = cardIdStr ? cardIdStr.replace('card-timer-', '') : null;
-                    const label = tableId ? $('#card-timer-label-' + tableId) : null;
-
-                    if (rem > 0) {
-                        $(this).text(formatTimerString(rem)).removeClass('timer-expired timer-warning text-danger text-primary').addClass('text-success fw-bold');
-                        if (label && label.length) {
-                            label.html('<i class="fa-solid fa-gift me-1"></i>Còn lại (Combo):').removeClass('text-primary text-danger').addClass('text-success fw-bold');
-                        }
-                    } else {
-                        const overSecs = Math.abs(rem);
-                        $(this).text('+' + formatTimerString(overSecs)).removeClass('timer-ok text-success text-primary').addClass('timer-expired text-danger fw-bold');
-                        if (label && label.length) {
-                            label.html('<i class="fa-solid fa-triangle-exclamation me-1"></i>Quá giờ Combo:').removeClass('text-primary text-success').addClass('text-danger fw-bold');
-                        }
-                    }
-                } else if (mode === 'paylater') {
-                    if (!startTimeStr) return;
-                    const start = new Date(startTimeStr);
-                    const elapsed = Math.max(0, Math.floor((now - start) / 1000));
-                    if (elapsed <= 3600) {
-                        const remFirstHour = 3600 - elapsed;
-                        $(this).text(formatTimerString(remFirstHour)).removeClass('timer-warning timer-expired').addClass('timer-ok text-primary');
-                    } else {
-                        $(this).text(formatTimerString(elapsed)).removeClass('timer-ok').addClass('text-teal fw-bold');
-                    }
-                } else {
-                    const endTimeStr = $(this).attr('data-end-time');
-                    if (!endTimeStr) return;
-                    const end = new Date(endTimeStr);
-                    const rem = Math.max(0, Math.floor((end - now) / 1000));
-                    $(this).text(formatTimerString(rem));
-
-                    $(this).removeClass('timer-ok timer-warning timer-expired');
-                    if (rem <= 0) {
-                        $(this).addClass('timer-expired');
-                    } else if (rem < 900) {
-                        $(this).addClass('timer-warning');
-                    } else {
-                        $(this).addClass('timer-ok');
-                    }
-                }
-            });
-
-            // If playing view modal is active, update elapsed and remaining times
-            if ($('#tableDetailsModal').is(':visible') && $('#op-playing-view').is(':visible')) {
-                const startStr = $('#op-playing-view').data('start-time');
-                const endStr = $('#op-playing-view').data('end-time');
-                const comboEndStr = $('#op-playing-view').data('combo-end-time');
-                const isPayLater = $('#op-playing-view').data('is-paylater');
-                const hasCombo = !!$('#op-playing-view').data('has-combo') || !!comboEndStr;
-
-                if (startStr) {
-                    const start = new Date(startStr);
-                    const elapsed = Math.max(0, Math.floor((now - start) / 1000));
-                    $('#detailsElapsedTime').text(formatTimerString(elapsed));
-
-                    if (hasCombo && comboEndStr) {
-                        const comboEnd = new Date(comboEndStr);
-                        const remCombo = Math.floor((comboEnd - now) / 1000);
-
-                        $('#detailsRemainingTimeCol').show();
-
-                        if (remCombo > 0) {
-                            $('#detailsRemainingTime').text(formatTimerString(remCombo)).removeClass('text-danger timer-blink text-warning').addClass('text-success fw-bold');
-                            $('#detailsRemainingTimeLabel').text('Còn lại (Combo)');
-
-                            const comboPrice = parseFloat($('#op-playing-view').data('combo-price')) || 0;
-                            const ordersTotal = parseFloat($('#op-playing-view').data('orders-total')) || 0;
-                            $('#detailsTablePrice').text('0 đ (Combo)');
-                            $('#detailsTotalPrice').text((comboPrice + ordersTotal).toLocaleString('vi-VN') + ' đ');
-                        } else {
-                            const overSecs = Math.abs(remCombo);
-                            $('#detailsRemainingTime').text('+' + formatTimerString(overSecs)).removeClass('text-success text-warning').addClass('text-danger timer-blink');
-                            $('#detailsRemainingTimeLabel').text('Quá giờ Combo');
-
-                            const comboPrice = parseFloat($('#op-playing-view').data('combo-price')) || 0;
-                            const hourlyRate = parseFloat($('#op-playing-view').data('hourly-rate')) || 0;
-                            const ordersTotal = parseFloat($('#op-playing-view').data('orders-total')) || 0;
-                            const overHours = overSecs / 3600;
-                            const overPlayFee = Math.round(overHours * hourlyRate);
-
-                            $('#detailsTablePrice').text(overPlayFee.toLocaleString('vi-VN') + ' đ');
-                            $('#detailsTotalPrice').text((comboPrice + ordersTotal + overPlayFee).toLocaleString('vi-VN') + ' đ');
-                        }
-                    } else if (isPayLater) {
-                        const hourlyRate = parseFloat($('#op-playing-view').data('hourly-rate')) || 0;
-                        const ordersTotal = parseFloat($('#op-playing-view').data('orders-total')) || 0;
-                        const livePlayFee = Math.max(hourlyRate, Math.round(elapsed / 3600 * hourlyRate));
-                        const liveTotal = livePlayFee + ordersTotal;
-
-                        $('#detailsTablePrice').text(livePlayFee.toLocaleString('vi-VN') + ' đ');
-                        $('#detailsTotalPrice').text(liveTotal.toLocaleString('vi-VN') + ' đ');
-                    } else if (endStr) {
-                        const end = new Date(endStr);
-                        const rem = Math.max(0, Math.floor((end - now) / 1000));
-                        $('#detailsRemainingTime').text(formatTimerString(rem));
-
-                        if (rem <= 0) {
-                            $('#detailsRemainingTime').removeClass('text-warning text-info').addClass('text-danger timer-blink');
-                        } else if (rem < 900) {
-                            $('#detailsRemainingTime').removeClass('text-danger text-info').addClass('text-warning');
-                        } else {
-                            $('#detailsRemainingTime').removeClass('text-danger text-warning').addClass('text-info');
-                        }
-                    }
-                }
-            }
-        }
-
-        function formatTimerString(totalSecs) {
-            const h = Math.floor(totalSecs / 3600);
-            const m = Math.floor((totalSecs % 3600) / 60);
-            const s = totalSecs % 60;
-            return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
-        }
-
-        // Populate Table Details Modal
-        function showTableDetails(tableId) {
-            selectedTableId = tableId;
-            const table = tablesData.find(t => t.Id === tableId || t.id === tableId);
-            if (!table) return;
-
-            const isVip = table.TableType.includes("VIP") || table.tableType?.includes("VIP");
-            $('#detailsModalTableName').text(table.TableName || table.tableName);
-            $('#detailsModalTableType').text(table.TableType || table.tableType);
-            
-            const badge = $('#detailsModalTableStatus');
-            const statusVal = table.Status !== undefined ? table.Status : table.status;
-            badge.removeClass('bg-success bg-primary bg-warning bg-danger bg-secondary')
-                 .addClass('bg-' + getStatusBadgeClass(statusVal))
-                 .text(getStatusText(statusVal));
-
-            $('#detailsModalTableRate').text(((table.HourlyRate || table.hourlyRate || 0)).toLocaleString('vi-VN') + ' đ/giờ');
-
-            // Hide all op views
-            $('.table-op-view').hide();
-
-            if (statusVal === 1) {
-                // Available View
-                $('#modalStartHoursInput').val(2);
-                $('#detailsComboSelect').val('');
-                $('#detailsComboInfo').hide();
-                $('.btn-hour-preset').removeClass('active');
-                $(`.btn-hour-preset[data-hours="2"]`).addClass('active');
-                updatePrepaidTotals();
-                $('#op-available-view').show();
-            } else if (statusVal === 2) {
-                // Playing View
-                const session = table.ActiveSession || table.activeSession;
-                if (session) {
-                    selectedSessionId = session.Id || session.id;
-                    const startTime = new Date(session.StartTime || session.startTime);
-                    
-                    const cName = session.CustomerName || session.customerName;
-                    const cPhone = session.CustomerPhone || session.customerPhone;
-                    if (cName || cPhone) {
-                        $('#playingCustomerName').text(cName || '');
-                        $('#playingCustomerPhone').text(cPhone || '');
-                        $('#playingCustomerInfo').show();
-                    } else {
-                        $('#playingCustomerInfo').hide();
-                    }
-
-                    const durationHours = session.DurationHours !== undefined ? session.DurationHours : (session.durationHours || 0);
-                    const comboEndTimeStr = session.ComboEndTime || session.comboEndTime || (session.ComboDurationMinutes || session.comboDurationMinutes > 0 ? new Date(startTime.getTime() + (session.ComboDurationMinutes || session.comboDurationMinutes) * 60000).toISOString() : null);
-                    const hasCombo = !!(comboEndTimeStr || session.ComboId || session.comboId || (session.ComboDurationMinutes || session.comboDurationMinutes) > 0);
-                    const isPayLater = !hasCombo && (durationHours === 0 || !session.EndTime || !session.endTime);
-
-                    const comboHours = session.ComboHours !== undefined ? session.ComboHours : (session.comboHours || 0);
-
-                    $('#op-playing-view').data('start-time', session.StartTime || session.startTime);
-                    const endTime = session.EndTime || session.endTime || new Date(startTime.getTime() + durationHours * 3600000).toISOString();
-                    $('#op-playing-view').data('end-time', endTime);
-                    $('#op-playing-view').data('combo-end-time', comboEndTimeStr);
-                    $('#op-playing-view').data('combo-price', session.ComboPrice || session.comboPrice || 0);
-                    $('#op-playing-view').data('is-paylater', isPayLater);
-                    $('#op-playing-view').data('hourly-rate', table.HourlyRate || table.hourlyRate || 0);
-                    $('#op-playing-view').data('orders-total', session.OrdersTotal || session.ordersTotal || 0);
-                    $('#op-playing-view').data('combo-hours', comboHours);
-                    $('#op-playing-view').data('has-combo', hasCombo);
-
-                    $('#detailsStartTime').text(startTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
-
-                    // Dynamic elapsed and remaining
-                    const now = new Date();
-                    const elapsed = Math.max(0, Math.floor((now - startTime) / 1000));
-                    $('#detailsElapsedTime').text(formatTimerString(elapsed));
-
-                    if (hasCombo && comboEndTimeStr) {
-                        $('#detailsRemainingTimeCol').show();
-                        const remCombo = Math.floor((new Date(comboEndTimeStr) - now) / 1000);
-                        if (remCombo > 0) {
-                            $('#detailsRemainingTime').text(formatTimerString(remCombo)).removeClass('text-danger timer-blink').addClass('text-success fw-bold');
-                            $('#detailsRemainingTimeLabel').text('Còn lại (Combo)');
-                        } else {
-                            $('#detailsRemainingTime').text('+' + formatTimerString(Math.abs(remCombo))).removeClass('text-success').addClass('text-danger timer-blink');
-                            $('#detailsRemainingTimeLabel').text('Quá giờ Combo');
-                        }
-                        $('#btnDetailsExtendTrigger').hide();
-                    } else if (isPayLater) {
-                        $('#detailsRemainingTimeCol').hide();
-                        $('#btnDetailsExtendTrigger').hide();
-                    } else {
-                        $('#detailsRemainingTimeCol').show();
-                        $('#detailsRemainingTimeLabel').text('Còn lại');
-                        const rem = Math.max(0, Math.floor((new Date(endTime) - now) / 1000));
-                        $('#detailsRemainingTime').text(formatTimerString(rem));
-                        $('#btnDetailsExtendTrigger').show();
-                    }
-
-                    // Pricing summary
-                    const playingFee = session.TotalPrice || session.totalPrice || 0;
-                    const serviceFee = session.OrdersTotal || session.ordersTotal || 0;
-                    const currentTotal = session.CurrentTotal || session.currentTotal || 0;
-
-                    $('#detailsTablePrice').text(playingFee.toLocaleString('vi-VN') + ' đ');
-                    $('#detailsOrdersPrice').text(serviceFee.toLocaleString('vi-VN') + ' đ');
-                    $('#detailsTotalPrice').text(currentTotal.toLocaleString('vi-VN') + ' đ');
-
-                    // Services list
-                    const listContainer = $('#detailsServicesList');
-                    listContainer.empty();
-
-                    const orderLines = session.OrderLines || session.orderLines || [];
-                    if (orderLines.length === 0) {
-                        listContainer.append('<tr><td colspan="4" class="text-center py-2 text-muted italic small">Chưa gọi món</td></tr>');
-                    } else {
-                        orderLines.forEach(line => {
-                            const unitPrice = line.UnitPrice || line.unitPrice || 0;
-                            const lineTotal = line.LineTotal || line.lineTotal || 0;
-                            listContainer.append(`
-                                <tr>
-                                    <td class="small">${line.ProductName || line.productName}</td>
-                                    <td class="text-center small">${line.Quantity || line.quantity}</td>
-                                    <td class="text-end small">${unitPrice.toLocaleString('vi-VN')} đ</td>
-                                    <td class="text-end small fw-bold">${lineTotal.toLocaleString('vi-VN')} đ</td>
-                                </tr>
-                            `);
-                        });
-                    }
-
-                    $('#op-playing-view').show();
-                } else {
-                    $('#op-other-view').show();
-                    $('#otherStatusMessage').text('Dữ liệu phiên chơi không tìm thấy hoặc đã lỗi. Vui lòng chuyển bàn về trạng thái trống.');
-                }
-            } else {
-                // Waiting or Maintenance View
-                const statusName = getStatusText(statusVal);
-                $('#otherStatusMessage').text(`Bàn đang ở trạng thái: ${statusName}.`);
-                $('#op-other-view').show();
+                return json.data || json.Data || json;
             }
 
-            detailsModal.show();
-        }
-
-        // Hooking preset hour select inside details modal
-        $('.btn-hour-preset').on('click', function () {
-            $('.btn-hour-preset').removeClass('active');
-            $(this).addClass('active');
-            $('#modalStartHoursInput').val($(this).data('hours'));
-            updatePrepaidTotals();
-        });
-        $('#modalStartHoursInput').on('input change', function() {
-            $('.btn-hour-preset').removeClass('active');
-            updatePrepaidTotals();
-        });
-
-        // Trigger action modals from Details modal
-        $('#btnDetailsOrderTrigger').on('click', function () {
-            detailsModal.hide();
-            openOrderPlacement();
-        });
-        $('#btnDetailsExtendTrigger').on('click', function () {
-            detailsModal.hide();
-            openExtendSession();
-        });
-        $('#btnDetailsEndTrigger').on('click', function () {
-            detailsModal.hide();
-            openEndSession();
-        });
-
-        // Helper to update Combo Payment Display & VietQR code
-        function updateComboPaymentDisplay() {
-            const selectedCombo = $('#applyComboPackageSelect option:selected');
-            const comboCode = $('#applyComboPackageSelect').val();
-            const paymentMethod = $('#applyComboPaymentMethod').val();
-
-            let extraItemsFee = 0;
-            $('.quick-qty-input-combo').each(function () {
-                const qty = parseInt($(this).val()) || 0;
-                const price = parseFloat($(this).data('price')) || 0;
-                if (qty > 0) {
-                    extraItemsFee += qty * price;
-                }
-            });
-
-            if (comboCode) {
-                const name = selectedCombo.data('name') || 'Gói Combo';
-                const price = parseFloat(selectedCombo.data('price')) || 0;
-                const hours = parseInt(selectedCombo.data('hours')) || 0;
-                const desc = selectedCombo.data('desc') || (hours > 0 ? `Bao gồm +${hours} giờ chơi bida & dịch vụ đi kèm` : 'Đồ ăn & Nước uống ưu đãi đi kèm');
-                const totalAmount = price + extraItemsFee;
-                const formattedPrice = totalAmount.toLocaleString('vi-VN') + ' đ';
-
-                $('#paymentComboCode').text(comboCode).show();
-                $('#paymentComboName').text(name);
-                $('#paymentComboAmount').text(formattedPrice);
-                $('#paymentComboDesc').text(desc + (extraItemsFee > 0 ? ` (+${extraItemsFee.toLocaleString('vi-VN')} đ gọi thêm)` : ''));
-                $('#btnSubmitApplyCombo').html(`<i class="fa-solid fa-credit-card me-2"></i>Duyệt Thanh Toán & Áp Dụng (${formattedPrice})`);
-
-                // QR Payment code update
-                if (paymentMethod === '2') {
-                    const qrUrl = `https://img.vietqr.io/image/BIDV-113366668888-compact2.png?amount=${totalAmount}&addInfo=THANH TOAN COMBO ${comboCode}`;
-                    $('#comboQrImage').attr('src', qrUrl);
-                    $('#comboQrAmountText').text(formattedPrice);
-                    $('#comboQrPaymentContainer').slideDown();
-                } else {
-                    $('#comboQrPaymentContainer').slideUp();
-                }
-            } else {
-                $('#paymentComboCode').hide();
-                $('#paymentComboName').text('Chưa chọn gói Combo');
-                $('#paymentComboAmount').text(extraItemsFee > 0 ? extraItemsFee.toLocaleString('vi-VN') + ' đ' : '0 đ');
-                $('#paymentComboDesc').text('Vui lòng chọn gói Combo để tiến hành thanh toán.');
-                $('#btnSubmitApplyCombo').html(`<i class="fa-solid fa-circle-check me-2"></i>Duyệt Thanh Toán & Áp Dụng (${extraItemsFee.toLocaleString('vi-VN')} đ)`);
-                $('#comboQrPaymentContainer').slideUp();
-            }
-        }
-
-        $(document).on('click', '.btn-quick-qty-plus', function () {
-            const targetId = $(this).data('target');
-            const max = parseInt($(this).data('max')) || 999;
-            const input = $('#' + targetId);
-            let val = parseInt(input.val()) || 0;
-            if (val < max) {
-                input.val(val + 1).trigger('change');
-            }
-        });
-
-        $(document).on('click', '.btn-quick-qty-minus', function () {
-            const targetId = $(this).data('target');
-            const input = $('#' + targetId);
-            let val = parseInt(input.val()) || 0;
-            if (val > 0) {
-                input.val(val - 1).trigger('change');
-            }
-        });
-
-        $(document).on('input change', '.quick-qty-input-combo', function () {
-            updateComboPaymentDisplay();
-        });
-
-        function populateTableDropdownOptions(tablesList, selectElem) {
-            selectElem.empty().append('<option value="" selected>-- Chọn bàn áp dụng --</option>');
-
-            const playingGroup = $('<optgroup label="Bàn đang chơi (Cộng giờ & Đồ ăn vào bàn)"></optgroup>');
-            const availableGroup = $('<optgroup label="Bàn trống (Thanh toán & Mở bàn mới)"></optgroup>');
-
-            tablesList.forEach(t => {
-                const status = (t.Status !== undefined ? t.Status : t.status);
-                const tableName = t.TableName || t.tableName;
-                const tableType = t.TableType || t.tableType || '';
-                const tableId = t.Id || t.id;
-
-                if (status === 2) {
-                    const session = t.ActiveSession || t.activeSession;
-                    if (session) {
-                        const sId = session.Id || session.id;
-                        playingGroup.append(`<option value="session:${sId}" data-type="playing" data-table-id="${tableId}">🎱 ${tableName} (${tableType} - Đang chơi)</option>`);
-                    }
-                } else if (status === 1) {
-                    availableGroup.append(`<option value="table:${tableId}" data-type="available" data-table-id="${tableId}">🟢 ${tableName} (${tableType} - Trống bàn)</option>`);
-                }
-            });
-
-            if (playingGroup.children().length > 0) selectElem.append(playingGroup);
-            if (availableGroup.children().length > 0) selectElem.append(availableGroup);
-        }
-
-        function filterTableDropdownBySelectedCombo() {
-            const comboCode = $('#applyComboPackageSelect').val();
-            const comboOption = $('#applyComboPackageSelect option:selected');
-            const select = $('#applyComboTableSelect');
-            
-            const currentTableVal = select.val();
-
-            if (!comboCode) {
-                populateTableDropdownOptions(tablesData, select);
-                return;
+            /* ---------- Rendering ---------- */
+            function sessionOf(table) {
+                return table.activeSession || table.ActiveSession || null;
             }
 
-            const isVipCombo = comboCode.toUpperCase().includes('VIP') || 
-                               comboOption.data('is-vip') === true || 
-                               comboOption.data('is-vip') === 'true' ||
-                               (comboOption.data('name') && comboOption.data('name').toUpperCase().includes('VIP'));
+            function renderTiles() {
+                const grid = document.getElementById('tableGrid');
+                if (!grid) return;
+                grid.innerHTML = '';
+                timers.forEach(t => clearInterval(t));
+                timers = [];
 
-            const filteredTables = tablesData.filter(t => {
-                const tableType = (t.TableType || t.tableType || '').toUpperCase();
-                const isVipTable = tableType.includes('VIP');
-                return isVipCombo ? isVipTable : !isVipTable;
-            });
-
-            populateTableDropdownOptions(filteredTables, select);
-
-            if (currentTableVal && select.find(`option[value="${currentTableVal}"]`).length > 0) {
-                select.val(currentTableVal);
-            }
-        }
-
-        // Open specific modals and prepare details
-        function openApplyComboModal(defaultComboCode = '') {
-            $('#startSessionForComboFields').hide();
-            $('.quick-qty-input-combo').val(0);
-
-            if (defaultComboCode) {
-                $('#applyComboPackageSelect').val(defaultComboCode);
-            } else {
-                $('#applyComboPackageSelect').val('');
-            }
-
-            filterTableDropdownBySelectedCombo();
-            updateComboPaymentDisplay();
-            applyComboModalInstance.show();
-        }
-
-        $('#applyComboPackageSelect').on('change', function () {
-            filterTableDropdownBySelectedCombo();
-            updateComboPaymentDisplay();
-        });
-
-        $('#applyComboPaymentMethod, #applyComboTableSelect').on('change', function () {
-            updateComboPaymentDisplay();
-
-            const selectedOption = $('#applyComboTableSelect option:selected');
-            const type = selectedOption.data('type');
-            if (type === 'available') {
-                $('#startSessionForComboFields').slideDown();
-            } else {
-                $('#startSessionForComboFields').slideUp();
-            }
-        });
-
-        $('#btnSubmitApplyCombo').on('click', async function () {
-            const val = $('#applyComboTableSelect').val();
-            const comboCode = $('#applyComboPackageSelect').val();
-
-            if (!comboCode) {
-                showNotification('Chưa chọn combo', 'warning', 'Vui lòng chọn gói Combo cần thanh toán.');
-                return;
-            }
-            if (!val) {
-                showNotification('Chưa chọn bàn', 'warning', 'Vui lòng chọn bàn đang chơi hoặc bàn trống để áp dụng combo.');
-                return;
-            }
-
-            const selectedOption = $('#applyComboTableSelect option:selected');
-            const type = selectedOption.data('type');
-            const tableId = selectedOption.data('table-id');
-
-            const btn = $(this);
-            btn.prop('disabled', true);
-            toggleLoading(true);
-
-            try {
-                let targetSessionId = null;
-
-                if (type === 'available') {
-                    // Start new session first
-                    const customerName = $('#applyComboCustomerName').val();
-                    const customerPhone = $('#applyComboCustomerPhone').val();
-                    const paymentMethod = parseInt($('#applyComboPaymentMethod').val()) || 0;
-
-                    if (!customerName || !customerPhone || customerName.trim() === '' || customerPhone.trim() === '') {
-                        showNotification('Thiếu thông tin', 'warning', 'Vui lòng nhập đầy đủ tên và số điện thoại khách hàng.');
-                        btn.prop('disabled', false);
-                        toggleLoading(false);
-                        return;
-                    }
-
-                    const phoneRegex = /^0\d{9}$/;
-                    if (!phoneRegex.test(customerPhone.trim())) {
-                        showNotification('Lỗi thông tin', 'warning', 'Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0.');
-                        btn.prop('disabled', false);
-                        toggleLoading(false);
-                        return;
-                    }
-
-                    // Check if combo has playing hours, else default 2 hours
-                    const comboOption = $('#applyComboPackageSelect option:selected');
-                    const comboHours = parseInt(comboOption.data('hours')) || 2;
-                    const hours = comboHours > 0 ? comboHours : 2;
-
-                    const newSession = await makeApiCall('table-sessions/start', 'POST', {
-                        tableId: tableId,
-                        durationHours: hours,
-                        customerName: customerName.trim(),
-                        customerPhone: customerPhone.trim(),
-                        paymentMethod: paymentMethod
-                    });
-
-                    targetSessionId = newSession.id || newSession.Id;
-                } else {
-                    // Extract sessionId from "session:GUID"
-                    targetSessionId = val.replace('session:', '');
-                }
-
-                // Apply Combo to session
-                const res = await makeApiCall('combos/apply', 'POST', {
-                    tableSessionId: targetSessionId,
-                    comboCode: comboCode
-                });
-
-                // Place extra food/drink orders if selected
-                const extraItems = [];
-                $('.quick-qty-input-combo').each(function () {
-                    const qty = parseInt($(this).val()) || 0;
-                    if (qty > 0) {
-                        extraItems.push({
-                            productId: $(this).data('product-id'),
-                            quantity: qty
-                        });
-                    }
-                });
-
-                if (extraItems.length > 0) {
-                    await makeApiCall('orders', 'POST', {
-                        sessionId: targetSessionId,
-                        items: extraItems
-                    });
-                }
-
-                showNotification('Thanh toán & Áp dụng Combo thành công!', 'success', res.message || 'Gói Combo và món gọi kèm đã được thanh toán và áp dụng.');
-                applyComboModalInstance.hide();
-                window.location.reload();
-            } catch (err) {
-                showNotification('Lỗi áp dụng Combo', 'error', err.message);
-            } finally {
-                btn.prop('disabled', false);
-                toggleLoading(false);
-            }
-        });
-
-        let currentStartMode = 'paylater';
-        let currentDetailsMode = 'paylater';
-
-        $('.btn-start-mode').on('click', function () {
-            $('.btn-start-mode').removeClass('active btn-primary btn-success').addClass('btn-outline-secondary');
-            currentStartMode = $(this).data('mode');
-            if (currentStartMode === 'combo') {
-                $(this).removeClass('btn-outline-secondary').addClass('active btn-success');
-            } else {
-                $(this).removeClass('btn-outline-secondary').addClass('active btn-primary');
-            }
-
-            if (currentStartMode === 'paylater') {
-                $('.start-paylater-notice').slideDown();
-                $('.start-prepaid-box, .start-prepaid-payment-container, #startComboBox').slideUp();
-                $('#btnConfirmStart').html('<i class="fa-solid fa-play me-2"></i>Mở Bàn Theo Giờ Ngay');
-            } else if (currentStartMode === 'combo') {
-                $('.start-paylater-notice, .start-prepaid-box, .start-prepaid-payment-container').slideUp();
-                $('#startComboBox').slideDown();
-                $('#btnConfirmStart').html('<i class="fa-solid fa-gift me-2"></i>Mở Bàn Bằng Combo');
-            } else {
-                $('.start-paylater-notice, #startComboBox').slideUp();
-                $('.start-prepaid-box, .start-prepaid-payment-container').slideDown();
-                $('#btnConfirmStart').html('<i class="fa-solid fa-credit-card me-2"></i>Duyệt Thanh Toán & Mở Bàn');
-                updatePrepaidTotals();
-            }
-        });
-
-        $('#startComboSelect').on('change', function () {
-            const selected = $(this).find('option:selected');
-            if (selected.val()) {
-                const table = tablesData.find(t => t.Id === selectedTableId || t.id === selectedTableId);
-                if (table) {
-                    const isVipTable = (table.TableType || table.tableType || '').toUpperCase().includes('VIP');
-                    const comboName = (selected.attr('data-name') || selected.text() || '').toUpperCase();
-                    const comboCode = (selected.attr('data-code') || '').toUpperCase();
-                    const isVipCombo = selected.attr('data-vip') === 'true' || comboName.includes('VIP') || comboCode.includes('VIP');
-
-                    if (isVipCombo && !isVipTable) {
-                        showNotification('Không tương thích', 'warning', `Gói Combo VIP '${selected.attr('data-name')}' chỉ áp dụng cho Bàn VIP. Vui lòng chọn bàn VIP hoặc chọn Combo thường!`);
-                        $(this).val('');
-                        $('#startComboInfo').slideUp();
-                        return;
-                    }
-                    if (!isVipCombo && isVipTable) {
-                        showNotification('Không tương thích', 'warning', `Gói Combo thường '${selected.attr('data-name')}' không áp dụng cho Bàn VIP (${table.TableName}). Vui lòng chọn Combo VIP!`);
-                        $(this).val('');
-                        $('#startComboInfo').slideUp();
-                        return;
-                    }
-                }
-                $('#startComboInfo').slideDown();
-            } else {
-                $('#startComboInfo').slideUp();
-            }
-        });
-
-        $('.btn-details-mode').on('click', function () {
-            $('.btn-details-mode').removeClass('active btn-primary').addClass('btn-outline-secondary');
-            $(this).removeClass('btn-outline-secondary').addClass('active btn-primary');
-            currentDetailsMode = $(this).data('mode');
-
-            if (currentDetailsMode === 'paylater') {
-                $('.details-paylater-notice').slideDown();
-                $('.details-prepaid-box, .details-prepaid-payment-container').slideUp();
-                $('#btnDetailsStartSession').html('<i class="fa-solid fa-play me-2"></i>Mở Bàn Theo Giờ Ngay');
-            } else {
-                $('.details-paylater-notice').slideUp();
-                $('.details-prepaid-box, .details-prepaid-payment-container').slideDown();
-                $('#btnDetailsStartSession').html('<i class="fa-solid fa-credit-card me-2"></i>Duyệt Thanh Toán & Mở Bàn Ngay');
-                updatePrepaidTotals();
-            }
-        });
-
-        function openStartSession(tableId) {
-            selectedTableId = tableId;
-            const table = tablesData.find(t => t.Id === tableId || t.id === tableId);
-            if (!table) return;
-
-            const statusVal = table.Status !== undefined ? table.Status : table.status;
-            if (statusVal === 2) {
-                showNotification('Bàn đang có người chơi', 'warning', `Bàn ${table.TableName || table.tableName} đang trong phiên chơi. Không thể tạo thêm phiên chơi mới!`);
-                return;
-            }
-            if (statusVal === 4) {
-                showNotification('Bàn bảo trì', 'warning', `Bàn ${table.TableName || table.tableName} đang bảo trì. Không thể mở phiên chơi mới!`);
-                return;
-            }
-
-            $('#startModalTableName').text(table.TableName || table.tableName);
-            $('#startCustomerName').val('');
-            $('#startCustomerPhone').val('');
-            $('.quick-qty-input-start').val(0);
-            $('#startComboSelect').val('');
-            $('#startComboInfo').hide();
-            $('#startComboBox').hide();
-            $('#customHoursInput').val(2);
-            $('.btn-hour-preset-direct').removeClass('active');
-            $(`.btn-hour-preset-direct[data-hours="2"]`).addClass('active');
-
-            currentStartMode = 'paylater';
-            $('.btn-start-mode').removeClass('active btn-primary btn-success').addClass('btn-outline-secondary');
-            $('.btn-start-mode[data-mode="paylater"]').removeClass('btn-outline-secondary').addClass('active btn-primary');
-            $('.start-paylater-notice').show();
-            $('.start-prepaid-box, .start-prepaid-payment-container, #startComboBox').hide();
-            $('#btnConfirmStart').html('<i class="fa-solid fa-play me-2"></i>Mở Bàn Theo Giờ Ngay');
-
-            updatePrepaidTotals();
-            startModal.show();
-        }
-
-        function updatePrepaidTotals() {
-            const table = tablesData.find(t => t.Id === selectedTableId || t.id === selectedTableId);
-            const hourlyRate = table ? (table.HourlyRate || table.hourlyRate || table.PricePerHour || table.pricePerHour || 0) : 0;
-
-            const modalHours = parseInt($('#customHoursInput').val()) || 1;
-            let modalQuickOrdersFee = 0;
-            $('.quick-qty-input-start').each(function() {
-                const qty = parseInt($(this).val()) || 0;
-                const price = parseFloat($(this).data('price')) || 0;
-                if (qty > 0) {
-                    modalQuickOrdersFee += qty * price;
-                }
-            });
-            const modalTotal = (hourlyRate * modalHours) + modalQuickOrdersFee;
-            $('#startPrepaidTotal').text(modalTotal.toLocaleString('vi-VN') + ' đ');
-
-            const detailsHours = parseInt($('#modalStartHoursInput').val()) || 1;
-            let detailsQuickOrdersFee = 0;
-            $('.quick-qty-input-details').each(function() {
-                const qty = parseInt($(this).val()) || 0;
-                const price = parseFloat($(this).data('price')) || 0;
-                if (qty > 0) {
-                    detailsQuickOrdersFee += qty * price;
-                }
-            });
-            const detailsTotal = (hourlyRate * detailsHours) + detailsQuickOrdersFee;
-            $('#detailsPrepaidTotal').text(detailsTotal.toLocaleString('vi-VN') + ' đ');
-        }
-
-        $('#customHoursInput, #modalStartHoursInput, .quick-qty-input-start, .quick-qty-input-details').on('input change keyup', updatePrepaidTotals);
-
-        $('#startPrepaidPaymentMethod').on('change', function() {
-            if ($(this).val() === '2') {
-                $('#startQrContainer').slideDown();
-                $('#btnConfirmStart').html('<i class="fa-solid fa-circle-check me-2"></i>Duyệt thanh toán & Mở bàn');
-            } else {
-                $('#startQrContainer').slideUp();
-                $('#btnConfirmStart').html('<i class="fa-solid fa-credit-card me-2"></i>Thanh toán & Mở bàn');
-            }
-        });
-
-        $('#detailsPrepaidPaymentMethod').on('change', function() {
-            if ($(this).val() === '2') {
-                $('#detailsQrContainer').slideDown();
-                $('#btnDetailsStartSession').html('<i class="fa-solid fa-circle-check me-2"></i>Duyệt thanh toán & Mở bàn ngay');
-            } else {
-                $('#detailsQrContainer').slideUp();
-                $('#btnDetailsStartSession').html('<i class="fa-solid fa-credit-card me-2"></i>Thanh toán & Mở bàn ngay');
-            }
-        });
-
-        $('#endPaymentSelect').on('change', function() {
-            if ($(this).val() === '2') {
-                $('#endQrContainer').slideDown();
-                $('#btnConfirmEnd').removeClass('btn-danger').addClass('btn-success').html('<i class="fa-solid fa-circle-check me-1"></i>Duyệt thanh toán & Kết thúc bàn');
-            } else {
-                $('#endQrContainer').slideUp();
-                $('#btnConfirmEnd').removeClass('btn-success').addClass('btn-danger').html('Xác nhận thanh toán');
-            }
-        });
-
-        $('.btn-hour-preset-direct').on('click', function () {
-            $('.btn-hour-preset-direct').removeClass('active');
-            $(this).addClass('active');
-            $('#customHoursInput').val($(this).data('hours'));
-            updatePrepaidTotals();
-        });
-        $('#customHoursInput').on('input', function() {
-            $('.btn-hour-preset-direct').removeClass('active');
-            updatePrepaidTotals();
-        });
-
-        function openExtendSession() {
-            const table = tablesData.find(t => t.Id === selectedTableId || t.id === selectedTableId);
-            if (!table) return;
-
-            $('#extendModalTableName').text(table.TableName || table.tableName);
-            extendModal.show();
-        }
-
-        function openOrderPlacement() {
-            const table = tablesData.find(t => t.Id === selectedTableId || t.id === selectedTableId);
-            if (!table) return;
-
-            $('#orderModalTableName').text(table.TableName || table.tableName);
-            $('.qty-input').val(0);
-            $('#orderSummaryContainer').addClass('d-none');
-            $('#orderSummaryList').empty();
-            $('#orderProductSearch').val('');
-            filterProducts();
-            orderModal.show();
-        }
-
-        function openEndSession() {
-            const table = tablesData.find(t => t.Id === selectedTableId || t.id === selectedTableId);
-            if (!table) return;
-
-            $('#endModalTableName').text(table.TableName || table.tableName);
-            const session = table.ActiveSession || table.activeSession;
-            if (!session) return;
-            selectedSessionId = session.Id || session.id;
-
-            const comboPrice = session.ComboPrice || session.comboPrice || 0;
-            const serviceFee = session.OrdersTotal || session.ordersTotal || 0;
-            const tableFeeAfterCombo = session.TableFeeAfterCombo !== undefined ? session.TableFeeAfterCombo : (session.tableFeeAfterCombo || session.TotalPrice || session.totalPrice || 0);
-            const isOverCombo = session.IsOverComboTime || session.isOverComboTime;
-            const overMins = session.OverComboMinutes || session.overComboMinutes || 0;
-
-            if (comboPrice > 0) {
-                $('#modalComboFeeRow').show();
-                $('#modalComboFee').text(comboPrice.toLocaleString('vi-VN') + ' đ');
-            } else {
-                $('#modalComboFeeRow').hide();
-            }
-
-            $('#modalServiceFee').text(serviceFee.toLocaleString('vi-VN') + ' đ');
-            
-            if (isOverCombo || overMins > 0) {
-                $('#modalTableFeeLabel').html(`<i class="fa-solid fa-triangle-exclamation text-danger me-1"></i>Tiền bàn sau Combo (${overMins} phút quá giờ):`);
-            } else if (comboPrice > 0) {
-                $('#modalTableFeeLabel').html(`<i class="fa-solid fa-clock text-success me-1"></i>Tiền bàn (Trong giờ Combo - 0 đ):`);
-            } else {
-                $('#modalTableFeeLabel').html(`<i class="fa-solid fa-clock text-warning me-1"></i>Tiền bàn:`);
-            }
-            
-            $('#modalPlayingFee').text(tableFeeAfterCombo.toLocaleString('vi-VN') + ' đ');
-            const subtotal = comboPrice + serviceFee + tableFeeAfterCombo;
-            $('#modalSubtotalFee').text(subtotal.toLocaleString('vi-VN') + ' đ');
-
-            endModal.show();
-        }
-
-        // Trigger clicks on cards
-        $(document).on('click', '.billiard-table-card', function (e) {
-            if ($(e.target).closest('button').length > 0) return;
-            const tableId = $(this).data('table-id');
-            showTableDetails(tableId);
-        });
-
-        // Click Start Session directly from card
-        $(document).on('click', '.btn-card-start', function (e) {
-            e.stopPropagation();
-            const tableId = $(this).data('table-id');
-            openStartSession(tableId);
-        });
-
-        // Click details/change status from card
-        $(document).on('click', '.btn-card-details', function (e) {
-            e.stopPropagation();
-            const tableId = $(this).data('table-id');
-            showTableDetails(tableId);
-        });
-
-        // Call Action: Start Session Confirm
-        $('#btnConfirmStart, #btnDetailsStartSession').on('click', async function () {
-            const isDetails = this.id === 'btnDetailsStartSession';
-            const mode = isDetails ? currentDetailsMode : currentStartMode;
-            const hoursInputId = isDetails ? '#modalStartHoursInput' : '#customHoursInput';
-            const hours = mode === 'paylater' || mode === 'combo' ? 0 : (parseInt($(hoursInputId).val()) || 2);
-            
-            const targetTable = tablesData.find(t => t.Id === selectedTableId || t.id === selectedTableId);
-            if (targetTable) {
-                const statusVal = targetTable.Status !== undefined ? targetTable.Status : targetTable.status;
-                if (statusVal === 2) {
-                    showNotification('Bàn đang có người chơi', 'warning', `Bàn ${targetTable.TableName || targetTable.tableName} đang có phiên chơi hoạt động. Vui lòng kết thúc bàn hiện tại trước khi tạo phiên mới!`);
+                if (!tables.length) {
+                    grid.innerHTML = '<div style="grid-column:1/-1"><div class="empty-state"><i class="fa-solid fa-table-cells"></i><h6>Chưa có bàn nào trong cửa hàng</h6></div></div>';
                     return;
                 }
-            }
 
-            let comboId = null;
-            if (mode === 'combo') {
-                comboId = $('#startComboSelect').val();
-                if (!comboId) {
-                    showNotification('Chưa chọn Combo', 'warning', 'Vui lòng chọn gói Combo để mở bàn.');
-                    return;
-                }
-            }
+                tables.forEach(function (table) {
+                    const status = table.status ?? table.Status;
+                    const session = sessionOf(table);
+                    const tile = document.createElement('button');
+                    tile.type = 'button';
+                    tile.className = 'table-tile ' + (
+                        status === 1 ? 'tile-available' :
+                        status === 2 ? 'tile-playing' :
+                        status === 3 ? 'tile-waiting' : 'tile-maintenance');
+                    tile.dataset.tableId = table.id || table.Id;
 
-            const customerName = $(isDetails ? '#detailsCustomerName' : '#startCustomerName').val();
-            const customerPhone = $(isDetails ? '#detailsCustomerPhone' : '#startCustomerPhone').val();
+                    const icon = status === 1 ? 'fa-circle-check' : status === 2 ? 'fa-circle-play' : status === 3 ? 'fa-clock' : 'fa-wrench';
+                    const name = table.tableName || table.TableName;
+                    const rate = Number(table.hourlyRate || table.HourlyRate || 0);
 
-            if (!customerName || !customerPhone || customerName.trim() === '' || customerPhone.trim() === '') {
-                showNotification('Thiếu thông tin', 'warning', 'Vui lòng nhập đầy đủ tên và số điện thoại khách hàng.');
-                return;
-            }
+                    let meta = money(rate) + '/giờ';
+                    if (status === 2 && session) {
+                        meta = '<span class="timer-badge" data-timer="' + (table.id || table.Id) + '">--:--:--</span>';
+                    } else if (status === 3) {
+                        meta = 'Đang chờ khách';
+                    } else if (status === 4) {
+                        meta = 'Bảo trì';
+                    }
 
-            const phoneRegex = /^0\d{9}$/;
-            if (!phoneRegex.test(customerPhone.trim())) {
-                showNotification('Lỗi thông tin', 'warning', 'Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678).');
-                return;
-            }
-
-            const paymentMethod = parseInt($(isDetails ? '#detailsPrepaidPaymentMethod' : '#startPrepaidPaymentMethod').val()) || 0;
-
-            const buttons = $('#btnConfirmStart, #btnDetailsStartSession');
-            buttons.prop('disabled', true);
-
-            toggleLoading(true);
-            try {
-                // 1. Start session
-                const session = await makeApiCall('table-sessions/start', 'POST', {
-                    tableId: selectedTableId,
-                    durationHours: hours,
-                    customerName: customerName,
-                    customerPhone: customerPhone,
-                    paymentMethod: paymentMethod,
-                    comboId: comboId
+                    tile.innerHTML = '<i class="fa-solid ' + icon + '"></i>' +
+                        '<span class="tile-name">' + name + '</span>' +
+                        '<span class="tile-meta">' + meta + '</span>' +
+                        '<span class="tile-meta">' + (table.tableType || table.TableType || '') + '</span>';
+                    grid.appendChild(tile);
                 });
-                
-                // 2. Place Quick Orders if selected
-                const qtySelector = isDetails ? '.quick-qty-input-details' : '.quick-qty-input-start';
-                const items = [];
-                $(qtySelector).each(function () {
-                    const qty = parseInt($(this).val()) || 0;
-                    if (qty > 0) {
-                        items.push({
-                            productId: $(this).data('product-id'),
-                            quantity: qty
-                        });
+
+                startTimers();
+                updateStats();
+            }
+
+            function startTimers() {
+                document.querySelectorAll('[data-timer]').forEach(function (el) {
+                    const tableId = el.dataset.timer;
+                    const table = tables.find(t => (t.id || t.Id) === tableId);
+                    const session = table ? sessionOf(table) : null;
+                    if (!session) return;
+                    const start = new Date(session.startTime || session.StartTime);
+                    const endTime = session.endTime || session.EndTime
+                        ? new Date(session.endTime || session.EndTime)
+                        : new Date(start.getTime() + (Number(session.durationHours || session.DurationHours || 1) * 3600000));
+                    const comboEnd = session.comboEndTime || session.ComboEndTime
+                        ? new Date(session.comboEndTime || session.ComboEndTime)
+                        : null;
+
+                    function tick() {
+                        const now = Date.now();
+                        const total = Math.max(0, Math.floor((endTime.getTime() - now) / 1000));
+                        const h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), s = total % 60;
+                        let text = [h, m, s].map(n => String(n).padStart(2, '0')).join(':');
+                        if (comboEnd && now > comboEnd.getTime()) text += ' (quá combo)';
+                        el.textContent = text;
+                    }
+                    tick();
+                    timers.push(setInterval(tick, 1000));
+                });
+            }
+
+            function updateStats() {
+                const counts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+                let revenue = 0;
+                tables.forEach(function (t) {
+                    const status = t.status ?? t.Status;
+                    if (counts[status] !== undefined) counts[status]++;
+                    if (status === 2) {
+                        const session = sessionOf(t);
+                        if (session) revenue += Number(session.currentTotal || session.CurrentTotal || 0);
                     }
                 });
-
-                if (items.length > 0) {
-                    await makeApiCall('orders', 'POST', {
-                        sessionId: session.id || session.Id,
-                        items: items
-                    });
-                    // Reset quick qty
-                    $(qtySelector).val(0);
-                }
-                
-                // Update local state
-                const table = tablesData.find(t => t.Id === selectedTableId || t.id === selectedTableId);
-                if (table) {
-                    table.Status = 2;
-                    table.status = 2;
-                    table.ActiveSession = session;
-                    table.activeSession = session;
-                }
-                updateTableCardState(selectedTableId, 2, session);
-                recalculateStats();
-
-                // Clear inputs
-                $('#detailsCustomerName, #startCustomerName, #detailsCustomerPhone, #startCustomerPhone').val('');
-                
-                startModal.hide();
-                detailsModal.hide();
-                showNotification('Mở bàn chơi thành công!', 'success');
-            } catch (err) {
-                showNotification('Lỗi mở bàn chơi', 'error', err.message);
-                buttons.prop('disabled', false);
-            } finally {
-                toggleLoading(false);
-            }
-        });
-
-        // Call Action: Quick Product ordering quantities triggers
-        $('.btn-quick-qty-minus').on('click', function () {
-            const targetId = $(this).data('target');
-            const input = $('#' + targetId);
-            let val = parseInt(input.val()) || 0;
-            if (val > 0) {
-                input.val(val - 1).trigger('change');
-            }
-        });
-        $('.btn-quick-qty-plus').on('click', function () {
-            const targetId = $(this).data('target');
-            const maxVal = parseInt($(this).data('max')) || 0;
-            const input = $('#' + targetId);
-            let val = parseInt(input.val()) || 0;
-            if (val < maxVal) {
-                input.val(val + 1).trigger('change');
-            } else {
-                showNotification('Số lượng tối đa', 'warning', 'Đã đạt số lượng tồn kho tối đa (' + maxVal + ')');
-            }
-        });
-
-        // Call Action: Extend Session Confirm
-        $(document).on('click', '.btn-extend-option', async function () {
-            if (!selectedSessionId) return;
-            const mins = parseInt($(this).data('minutes')) || 30;
-
-            const buttons = $('.btn-extend-option');
-            buttons.prop('disabled', true);
-
-            toggleLoading(true);
-            try {
-                await makeApiCall(`table-sessions/extend/${selectedSessionId}`, 'POST', {
-                    additionalMinutes: mins
+                ['stat-available', 'stat-playing', 'stat-waiting', 'stat-maintenance'].forEach(function (id, i) {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = counts[[1, 2, 3, 4][i]];
                 });
-                extendModal.hide();
-                showNotification(`Gia hạn thêm ${mins} phút thành công!`, 'success');
-            } catch (err) {
-                showNotification('Lỗi gia hạn bàn', 'error', err.message);
-                buttons.prop('disabled', false);
-            } finally {
-                toggleLoading(false);
-            }
-        });
-
-        // Call Action: Product ordering quantities triggers
-        $('.btn-qty-minus').on('click', function () {
-            const prodId = $(this).data('product-id');
-            const input = $(`#qty-${prodId}`);
-            let val = parseInt(input.val()) || 0;
-            if (val > 0) {
-                input.val(val - 1).trigger('change');
-            }
-        });
-        $('.btn-qty-plus').on('click', function () {
-            const prodId = $(this).data('product-id');
-            const maxVal = parseInt($(this).data('max')) || 0;
-            const input = $(`#qty-${prodId}`);
-            let val = parseInt(input.val()) || 0;
-            if (val < maxVal) {
-                input.val(val + 1).trigger('change');
-            } else {
-                showNotification('Số lượng tối đa', 'warning', 'Đã đạt số lượng tồn kho tối đa (' + maxVal + ')');
-            }
-        });
-
-        // Live calculation of ordering summary & Quantity validation
-        $('.qty-input, .quick-qty-input-start, .quick-qty-input-details').on('change keyup blur', function () {
-            let val = parseInt($(this).val());
-            const max = parseInt($(this).data('max')) || parseInt($(this).attr('max')) || 0;
-
-            if (isNaN(val) || val < 0) {
-                $(this).val(0);
-            } else if (max > 0 && val > max) {
-                showNotification('Vượt quá tồn kho', 'warning', 'Số lượng nhập vượt quá số lượng tồn kho (Tồn kho: ' + max + ')');
-                $(this).val(max);
+                ['legend-available', 'legend-playing', 'legend-waiting', 'legend-maintenance'].forEach(function (id, i) {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = counts[[1, 2, 3, 4][i]];
+                });
+                const rev = document.getElementById('active-revenue-display');
+                if (rev) rev.textContent = money(revenue);
             }
 
-            let totalQty = 0;
-            let totalPrice = 0;
-            const list = $('#orderSummaryList');
-            if (list.length) list.empty();
+            /* ---------- Table modal ---------- */
+            function openTableModal(tableId) {
+                const table = tables.find(t => (t.id || t.Id) === tableId);
+                if (!table) return;
+                currentTableId = table.id || table.Id;
+                const status = table.status ?? table.Status;
+                const session = sessionOf(table);
+                currentSessionId = session ? (session.id || session.Id) : null;
 
-            $('.qty-input').each(function () {
-                const qty = parseInt($(this).val()) || 0;
-                if (qty > 0) {
-                    const price = parseFloat($(this).data('product-price')) || 0;
-                    const name = $(this).data('product-name');
-                    totalQty += qty;
-                    totalPrice += qty * price;
+                document.getElementById('tableModalTitle').innerHTML =
+                    '<i class="fa-solid fa-table-cells me-2 text-primary"></i>' + (table.tableName || table.TableName);
 
-                    if (list.length) {
-                        list.append(`
-                            <li class="d-flex justify-content-between small mb-1 border-bottom-dotted">
-                                <span>• ${name} <span class="text-secondary">x${qty}</span></span>
-                                <span class="fw-bold">${(qty * price).toLocaleString('vi-VN')} đ</span>
-                            </li>
-                        `);
-                    }
-                }
-            });
+                const body = document.getElementById('tableModalBody');
+                const rate = Number(table.hourlyRate || table.HourlyRate || 0);
 
-            if ($('#orderSummaryCount').length) $('#orderSummaryCount').text(totalQty);
-            if ($('#orderSummaryTotal').length) $('#orderSummaryTotal').text(totalPrice.toLocaleString('vi-VN') + ' đ');
-
-            if ($('#orderSummaryContainer').length) {
-                if (totalQty > 0) {
-                    $('#orderSummaryContainer').removeClass('d-none');
+                if (status === 2 && session) {
+                    const start = new Date(session.startTime || session.StartTime);
+                    const total = Number(session.currentTotal || session.CurrentTotal || 0);
+                    const ordersTotal = Number(session.ordersTotal || session.OrdersTotal || 0);
+                    const isCombo = !!(session.comboId || session.ComboId || session.isUsingCombo || session.IsUsingCombo);
+                    body.innerHTML =
+                        '<dl class="mb-3">' +
+                        '<div class="kv-row"><dt>Khách</dt><dd>' + ((session.customerName || session.CustomerName) || '—') + '</dd></div>' +
+                        '<div class="kv-row"><dt>Số điện thoại</dt><dd>' + ((session.customerPhone || session.CustomerPhone) || '—') + '</dd></div>' +
+                        '<div class="kv-row"><dt>Bắt đầu</dt><dd>' + start.toLocaleString('vi-VN') + '</dd></div>' +
+                        '<div class="kv-row"><dt>Giá giờ</dt><dd>' + money(rate) + '</dd></div>' +
+                        '<div class="kv-row"><dt>Tiền gọi món</dt><dd>' + money(ordersTotal) + '</dd></div>' +
+                        '<div class="kv-row"><dt>Tổng tạm tính</dt><dd class="money">' + money(total) + '</dd></div>' +
+                        (isCombo ? '<div class="kv-row"><dt>Gói combo</dt><dd>Đang áp dụng</dd></div>' : '') +
+                        '</dl>' +
+                        '<div class="d-flex gap-2 flex-wrap">' +
+                        '<button type="button" class="btn btn-soft" id="btnExtendSession"><i class="fa-solid fa-clock-rotate-left"></i>Gia hạn</button>' +
+                        '<button type="button" class="btn btn-soft" id="btnOpenOrder"><i class="fa-solid fa-cart-plus"></i>Gọi món</button>' +
+                        '<button type="button" class="btn btn-soft" id="btnOpenCombo"><i class="fa-solid fa-layer-group"></i>Áp combo</button>' +
+                        '<button type="button" class="btn btn-accent" id="btnEndSession"><i class="fa-solid fa-circle-check"></i>Kết thúc &amp; thanh toán</button>' +
+                        '</div>';
+                } else if (status === 4) {
+                    body.innerHTML = '<div class="empty-state"><i class="fa-solid fa-wrench"></i><h6>Bàn đang bảo trì</h6><p>Liên hệ Admin cửa hàng để đưa bàn vào sử dụng.</p></div>';
                 } else {
-                    $('#orderSummaryContainer').addClass('d-none');
+                    body.innerHTML =
+                        '<dl class="mb-3">' +
+                        '<div class="kv-row"><dt>Loại bàn</dt><dd>' + (table.tableType || table.TableType || '—') + '</dd></div>' +
+                        '<div class="kv-row"><dt>Giá mỗi giờ</dt><dd>' + money(rate) + '</dd></div>' +
+                        '<div class="kv-row"><dt>Trạng thái</dt><dd>' + (status === 3 ? 'Đang chờ khách' : 'Bàn trống') + '</dd></div>' +
+                        '</dl>' +
+                        '<form id="startSessionForm">' +
+                        '<div class="row g-3">' +
+                        '<div class="col-md-6"><label class="form-label" for="startDuration">Số giờ chơi</label>' +
+                        '<input type="number" id="startDuration" class="form-control" min="1" max="24" value="2" required /></div>' +
+                        '<div class="col-md-6"><label class="form-label" for="startPayment">Thanh toán</label>' +
+                        '<select id="startPayment" class="form-select"><option value="1">Tiền mặt</option><option value="2">Chuyển khoản</option><option value="3">Thẻ tín dụng</option></select></div>' +
+                        '<div class="col-md-6"><label class="form-label" for="startCustomer">Tên khách</label>' +
+                        '<input type="text" id="startCustomer" class="form-control" maxlength="100" placeholder="VD: Nguyễn Văn A" /></div>' +
+                        '<div class="col-md-6"><label class="form-label" for="startPhone">Số điện thoại</label>' +
+                        '<input type="text" id="startPhone" class="form-control" maxlength="10" placeholder="0912345678" /></div>' +
+                        '<div class="col-12"><label class="form-label" for="startCombo">Áp dụng combo (không bắt buộc)</label>' +
+                        '<select id="startCombo" class="form-select"><option value="">-- Không áp combo --</option>' +
+                        combos.map(c => '<option value="' + c.comboCode + '" data-hours="' + (c.playingHours || 0) + '">' + c.name + ' — ' + money(c.price) + '</option>').join('') +
+                        '</select></div>' +
+                        '</div>' +
+                        '<div class="d-flex gap-2 justify-content-end mt-3">' +
+                        '<button type="submit" class="btn btn-accent"><i class="fa-solid fa-play"></i>Bắt đầu phiên chơi</button>' +
+                        '</div></form>';
                 }
-            }
-        });
 
-        // Confirm Service Orders
-        $('#btnConfirmOrder').on('click', async function () {
-            if (!selectedSessionId) return;
-
-            const items = [];
-            $('.qty-input').each(function () {
-                const qty = parseInt($(this).val()) || 0;
-                if (qty > 0) {
-                    items.push({
-                        productId: $(this).data('product-id'),
-                        quantity: qty
-                    });
-                }
-            });
-
-            if (items.length === 0) {
-                showNotification('Hãy chọn ít nhất 1 dịch vụ để gọi món!', 'warning');
-                return;
+                new bootstrap.Modal(document.getElementById('tableModal')).show();
+                bindTableModalActions();
             }
 
-            const btn = $(this);
-            btn.prop('disabled', true);
-
-            toggleLoading(true);
-            try {
-                await makeApiCall('orders', 'POST', {
-                    sessionId: selectedSessionId,
-                    items: items
-                });
-                orderModal.hide();
-                showNotification('Gọi món thành công!', 'success');
-            } catch (err) {
-                showNotification('Lỗi gọi món', 'error', err.message);
-                btn.prop('disabled', false);
-            } finally {
-                toggleLoading(false);
-            }
-        });
-
-        // Confirm checkout End Session
-        $('#btnConfirmEnd').on('click', async function () {
-            if (!selectedSessionId) return;
-
-            const payMethod = parseInt($('#endPaymentSelect').val()) || 0;
-
-            const btn = $(this);
-            btn.prop('disabled', true);
-
-            toggleLoading(true);
-            try {
-                const endedSession = await makeApiCall(`table-sessions/end/${selectedSessionId}`, 'POST', {
-                    paymentMethod: payMethod
-                });
-                
-                const tableId = endedSession.tableId || endedSession.TableId || selectedTableId;
-                const table = tablesData.find(t => t.Id === tableId || t.id === tableId);
-                if (table) {
-                    table.Status = 1;
-                    table.status = 1;
-                    table.ActiveSession = null;
-                    table.activeSession = null;
-                }
-                updateTableCardState(tableId, 1, null);
-                recalculateStats();
-
-                endModal.hide();
-                detailsModal.hide();
-                showNotification('Đã thanh toán hóa đơn và đóng bàn thành công!', 'success');
-            } catch (err) {
-                showNotification('Lỗi thanh toán', 'error', err.message);
-                btn.prop('disabled', false);
-            } finally {
-                toggleLoading(false);
-            }
-        });
-
-        // Direct Change Status (Reserved, Maintenance, or Back to Available)
-        async function changeStatusDirect(tableId, targetStatusKey, reason = 'Nhân viên thay đổi trạng thái') {
-            toggleLoading(true);
-            try {
-                await makeApiCall(`tables/${tableId}/status`, 'PUT', {
-                    status: targetStatusKey,
-                    reason: reason,
-                    force: true
-                });
-                detailsModal.hide();
-                showNotification(`Đã chuyển trạng thái bàn sang ${targetStatusKey}!`, 'success');
-            } catch (err) {
-                showNotification('Lỗi thay đổi trạng thái', 'error', err.message);
-            } finally {
-                toggleLoading(false);
-            }
-        }
-
-        // Bind clicks for direct state switches
-        $(document).on('click', '.btn-change-status-direct', function () {
-            const key = $(this).data('status-key');
-            changeStatusDirect(selectedTableId, key);
-        });
-
-        $('#btnResetToAvailable').on('click', function () {
-            changeStatusDirect(selectedTableId, 'Available');
-        });
-
-        // Filtering tables locally
-        $('#status-filters button').on('click', function () {
-            $('#status-filters button').removeClass('active');
-            $(this).addClass('active');
-
-            const filterVal = $(this).data('filter');
-            $('.table-card-col').each(function () {
-                const statusKey = $(this).data('status-key');
-                if (filterVal === 'all' || statusKey === filterVal) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
-                }
-            });
-        });
-
-        // Product search filtering in Order Modal
-        function filterProducts() {
-            const query = $('#orderProductSearch').val().toLowerCase().trim();
-            const activeTab = $('#orderCategoryTabs .active').attr('id');
-            const targetCategory = activeTab === 'cat-all-tab' ? 'all' : activeTab.replace('cat-', '').replace('-tab', '').replace(/-/g, ' ');
-
-            $('.product-search-item').each(function () {
-                const name = $(this).data('product-name');
-                const cat = $(this).data('product-category');
-
-                const matchesQuery = name.includes(query);
-                const matchesCat = targetCategory === 'all' || cat === targetCategory;
-
-                if (matchesQuery && matchesCat) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
-                }
-            });
-        }
-
-        $('#orderProductSearch').on('input', filterProducts);
-        $('#orderCategoryTabs').on('shown.bs.tab', filterProducts);
-
-        // REAL-TIME SIGNALR HUB CONNECTIONS
-        $(document).ready(function() {
-            // Clock ticking
-            setInterval(() => {
-                const now = new Date();
-                $('#clockDisplay').text(now.toLocaleTimeString('vi-VN'));
-            }, 1000);
-
-            // Tick active playing card timers
-            setInterval(tickAllTimers, 1000);
-
-            // SignalR registration
-            if (typeof window.connectTableStatusHub === 'function') {
-                window.connectTableStatusHub({
-                    onStatusChanged: function (payload) {
-                        const status = payload.status !== undefined ? payload.status : payload.Status;
-                        const tableId = payload.tableId || payload.TableId;
-                        console.log('SignalR: TableStatusChanged received', tableId, status);
-
-                        // Find locally and update
-                        const table = tablesData.find(t => t.Id === tableId || t.id === tableId);
-                        if (table) {
-                            table.Status = status;
-                            table.status = status;
-                            if (status !== 2) {
-                                table.ActiveSession = null;
-                                table.activeSession = null;
-                            }
-                        }
-
-                        // Update DOM
-                        updateTableCardState(tableId, status, null);
-                        recalculateStats();
-
-                        // If details modal is open for this table, refresh it
-                        if (selectedTableId === tableId && $('#tableDetailsModal').is(':visible')) {
-                            showTableDetails(tableId);
-                        }
-                    },
-                    onSessionUpdated: function (payload) {
-                        const tableId = payload.tableId || payload.TableId;
-                        console.log('SignalR: SessionUpdated received for table', tableId, payload);
-
-                        // Map payload to standard session DTO
-                        const mappedSession = {
-                            Id: payload.SessionId || payload.sessionId,
-                            id: payload.SessionId || payload.sessionId,
-                            TableId: payload.TableId || payload.tableId,
-                            tableId: payload.TableId || payload.tableId,
-                            TableName: payload.TableName || payload.tableName,
-                            tableName: payload.TableName || payload.tableName,
-                            Status: payload.Status || payload.status,
-                            status: payload.Status || payload.status,
-                            StartTime: payload.StartTime || payload.startTime,
-                            startTime: payload.StartTime || payload.startTime,
-                            EndTime: payload.EndTime || payload.endTime,
-                            endTime: payload.EndTime || payload.endTime,
-                            DurationHours: payload.DurationHours || payload.durationHours,
-                            durationHours: payload.DurationHours || payload.durationHours,
-                            RemainingMinutes: payload.RemainingMinutes || payload.remainingMinutes,
-                            remainingMinutes: payload.RemainingMinutes || payload.remainingMinutes,
-                            RemainingSeconds: payload.RemainingSeconds || payload.remainingSeconds,
-                            remainingSeconds: payload.RemainingSeconds || payload.remainingSeconds,
-                            TotalPrice: payload.TotalPrice || payload.totalPrice || 0,
-                            totalPrice: payload.TotalPrice || payload.totalPrice || 0,
-                            OrdersTotal: payload.OrdersTotal || payload.ordersTotal || 0,
-                            ordersTotal: payload.OrdersTotal || payload.ordersTotal || 0,
-                            CurrentTotal: payload.CurrentTotal || payload.currentTotal || 0,
-                            currentTotal: payload.CurrentTotal || payload.currentTotal || 0,
-                            IsExpired: payload.IsExpired || payload.isExpired || false,
-                            isExpired: payload.IsExpired || payload.isExpired || false,
-                            IsFinished: payload.IsFinished || payload.isFinished || false,
-                            isFinished: payload.IsFinished || payload.isFinished || false,
-                            CustomerName: payload.CustomerName || payload.customerName,
-                            customerName: payload.CustomerName || payload.customerName,
-                            CustomerPhone: payload.CustomerPhone || payload.customerPhone,
-                            customerPhone: payload.CustomerPhone || payload.customerPhone,
-                            OrderLines: payload.OrderLines || payload.orderLines || []
+            function bindTableModalActions() {
+                document.getElementById('startSessionForm')?.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+                    const btn = e.querySelector('button[type="submit"]');
+                    btn.disabled = true;
+                    try {
+                        const comboSelect = document.getElementById('startCombo');
+                        const comboValue = comboSelect?.value || '';
+                        const combo = comboValue ? combos.find(c => c.comboCode === comboValue) : null;
+                        const duration = combo && combo.playingHours > 0 ? combo.playingHours : (parseInt(document.getElementById('startDuration').value) || 2);
+                        const payload = {
+                            tableId: currentTableId,
+                            durationHours: duration,
+                            customerName: document.getElementById('startCustomer').value.trim() || null,
+                            customerPhone: document.getElementById('startPhone').value.trim() || null,
+                            paymentMethod: parseInt(document.getElementById('startPayment').value) || 1
                         };
+                        if (combo) payload.comboId = combo.id;
 
-                        const table = tablesData.find(t => t.Id === tableId || t.id === tableId);
-                        const isFinished = mappedSession.IsFinished || mappedSession.isFinished || mappedSession.Status === 2 || mappedSession.status === 2;
-
-                        if (table) {
-                            if (isFinished) {
-                                const newStatus = payload.TableStatus || payload.tableStatus || 1;
-                                table.Status = newStatus;
-                                table.status = newStatus;
-                                table.ActiveSession = null;
-                                table.activeSession = null;
-                            } else {
-                                table.Status = 2;
-                                table.status = 2;
-                                table.ActiveSession = mappedSession;
-                                table.activeSession = mappedSession;
-                            }
+                        const session = await api('table-sessions/start', 'POST', payload);
+                        showToast('Đã mở phiên chơi mới.', 'success');
+                        bootstrap.Modal.getInstance(document.getElementById('tableModal'))?.hide();
+                        await reload();
+                        if (session) {
+                            const id = session.id || session.Id;
+                            setTimeout(function () { openTableModal(tables.find(t => (t.id || t.Id) === id) ? id : currentTableId); }, 400);
                         }
-
-                        // Update DOM
-                        const targetStatus = table ? (table.Status !== undefined ? table.Status : table.status) : (isFinished ? 1 : 2);
-                        const targetSession = (targetStatus === 2) ? mappedSession : null;
-                        updateTableCardState(tableId, targetStatus, targetSession);
-                        recalculateStats();
-
-                        // If details modal is open for this table, refresh it
-                        if (selectedTableId === tableId && $('#tableDetailsModal').is(':visible')) {
-                            showTableDetails(tableId);
-                        }
-                    },
-                    onMessage: function (msg) {
-                        console.log('SignalR: ReceiveTableUpdate message', msg);
+                    } catch (err) {
+                        showToast(err.message || 'Không thể mở phiên chơi', 'error');
+                    } finally {
+                        btn.disabled = false;
                     }
                 });
-            }
-        });
-    </script>
-</body>
-</html>
 
+                document.getElementById('btnExtendSession')?.addEventListener('click', async function () {
+                    const minutes = await promptForMinutes();
+                    if (minutes === null) return;
+                    try {
+                        await api('table-sessions/extend/' + currentSessionId, 'POST', { additionalMinutes: minutes });
+                        showToast('Đã gia hạn phiên chơi.', 'success');
+                        bootstrap.Modal.getInstance(document.getElementById('tableModal'))?.hide();
+                        await reload();
+                    } catch (err) {
+                        showToast(err.message || 'Không thể gia hạn', 'error');
+                    }
+                });
+
+                document.getElementById('btnEndSession')?.addEventListener('click', async function () {
+                    const ok = await confirmAction({
+                        title: 'Kết thúc phiên chơi',
+                        message: 'Xác nhận thanh toán và kết thúc phiên chơi của bàn này?',
+                        confirmText: 'Thanh toán'
+                    });
+                    if (!ok) return;
+                    try {
+                        await api('table-sessions/end/' + currentSessionId, 'POST', { paymentMethod: 1 });
+                        showToast('Đã thanh toán và kết thúc phiên chơi.', 'success');
+                        bootstrap.Modal.getInstance(document.getElementById('tableModal'))?.hide();
+                        await reload();
+                    } catch (err) {
+                        showToast(err.message || 'Không thể kết thúc phiên chơi', 'error');
+                    }
+                });
+
+                document.getElementById('btnOpenOrder')?.addEventListener('click', function () {
+                    openOrderModal(currentSessionId);
+                });
+
+                document.getElementById('btnOpenCombo')?.addEventListener('click', function () {
+                    const select = document.getElementById('comboSelect');
+                    if (select) {
+                        const selected = select.options[select.selectedIndex];
+                        const code = selected?.value;
+                        const combo = combos.find(c => c.comboCode === code);
+                        document.getElementById('comboDetail').textContent = combo
+                            ? 'Giá: ' + money(combo.price) + ' • Giờ chơi đi kèm: ' + (combo.playingHours || 0) + 'h'
+                            : '';
+                    }
+                    new bootstrap.Modal(document.getElementById('comboModal')).show();
+                });
+            }
+
+            function promptForMinutes() {
+                const value = window.prompt('Số phút gia hạn thêm (15, 30, 60…):', '30');
+                if (value === null) return null;
+                const minutes = parseInt(value);
+                return isNaN(minutes) || minutes <= 0 ? null : minutes;
+            }
+
+            /* ---------- Order modal ---------- */
+            function openOrderModal(sessionId) {
+                if (!sessionId) return;
+                currentSessionId = sessionId;
+                Object.keys(orderQuantities).forEach(k => delete orderQuantities[k]);
+                renderOrderProducts('');
+                new bootstrap.Modal(document.getElementById('orderModal')).show();
+            }
+
+            function renderOrderProducts(query) {
+                const body = document.getElementById('orderProductBody');
+                if (!body) return;
+                const q = (query || '').toLowerCase().trim();
+                const list = products.filter(p => !q || (p.name || '').toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q));
+                if (!list.length) {
+                    body.innerHTML = '<tr><td colspan="3"><div class="empty-state"><i class="fa-solid fa-box-open"></i><h6>Không có sản phẩm phù hợp</h6></div></td></tr>';
+                    return;
+                }
+                body.innerHTML = list.map(function (p) {
+                    const id = p.id || p.Id;
+                    const qty = orderQuantities[id] || 0;
+                    return '<tr>' +
+                        '<td class="cell-strong">' + (p.name || '') + '<span class="cell-sub d-block">' + (p.category || '') + '</span></td>' +
+                        '<td class="num">' + money(p.price) + '</td>' +
+                        '<td class="num"><input type="number" class="form-control form-control-sm order-qty" data-id="' + id + '" value="' + qty + '" min="0" max="100" style="max-width:90px;margin-left:auto" /></td>' +
+                        '</tr>';
+                }).join('');
+                updateOrderSummary();
+            }
+
+            function updateOrderSummary() {
+                let total = 0;
+                let count = 0;
+                document.querySelectorAll('.order-qty').forEach(function (input) {
+                    const qty = parseInt(input.value) || 0;
+                    if (qty > 0) {
+                        orderQuantities[input.dataset.id] = qty;
+                        const product = products.find(p => (p.id || p.Id) === input.dataset.id);
+                        total += qty * Number(product?.price || 0);
+                        count += qty;
+                    } else {
+                        delete orderQuantities[input.dataset.id];
+                    }
+                });
+                const summary = document.getElementById('orderSummary');
+                if (summary) summary.textContent = count > 0 ? count + ' món — ' + money(total) : 'Chưa chọn món nào';
+            }
+
+            /* ---------- Combo ---------- */
+            document.getElementById('comboSelect')?.addEventListener('change', function () {
+                const selected = this.options[this.selectedIndex];
+                const combo = combos.find(c => c.comboCode === selected?.value);
+                document.getElementById('comboDetail').textContent = combo
+                    ? 'Giá: ' + money(combo.price) + ' • Giờ chơi đi kèm: ' + (combo.playingHours || 0) + 'h'
+                    : '';
+            });
+
+            document.getElementById('applyComboBtn')?.addEventListener('click', async function () {
+                const code = document.getElementById('comboSelect')?.value;
+                if (!code) { showToast('Vui lòng chọn gói combo.', 'warning'); return; }
+                if (!currentSessionId) { showToast('Bàn chưa có phiên chơi.', 'warning'); return; }
+                const btn = this;
+                btn.disabled = true;
+                try {
+                    await api('combos/apply', 'POST', { tableSessionId: currentSessionId, comboCode: code });
+                    showToast('Đã áp dụng gói combo.', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('comboModal'))?.hide();
+                    bootstrap.Modal.getInstance(document.getElementById('tableModal'))?.hide();
+                    await reload();
+                } catch (err) {
+                    showToast(err.message || 'Không thể áp dụng combo', 'error');
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+
+            /* ---------- Order submit ---------- */
+            document.getElementById('submitOrderBtn')?.addEventListener('click', async function () {
+                const items = Object.keys(orderQuantities)
+                    .map(id => ({ productId: id, quantity: orderQuantities[id] }))
+                    .filter(i => i.quantity > 0);
+                if (!items.length) { showToast('Hãy chọn ít nhất một món.', 'warning'); return; }
+                const btn = this;
+                btn.disabled = true;
+                try {
+                    await api('orders', 'POST', { sessionId: currentSessionId, items: items });
+                    showToast('Đã gửi đơn tới bàn.', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('orderModal'))?.hide();
+                    await reload();
+                } catch (err) {
+                    showToast(err.message || 'Không thể gửi đơn', 'error');
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+
+            document.getElementById('orderProductBody')?.addEventListener('input', updateOrderSummary);
+            document.getElementById('orderSearchInput')?.addEventListener('input', function () {
+                renderOrderProducts(this.value);
+            });
+
+            /* ---------- Grid interactions ---------- */
+            document.getElementById('tableGrid')?.addEventListener('click', function (e) {
+                const tile = e.target.closest('.table-tile');
+                if (!tile) return;
+                openTableModal(tile.dataset.tableId);
+            });
+
+            document.getElementById('refreshMapBtn')?.addEventListener('click', async function () {
+                await reload();
+                showToast('Đã làm mới sơ đồ bàn.', 'success');
+            });
+
+            async function reload() {
+                try {
+                    const data = await api('table-sessions/dashboard', 'GET');
+                    if (Array.isArray(data)) {
+                        tables = data;
+                        renderTiles();
+                    }
+                } catch (err) {
+                    console.warn(err);
+                }
+            }
+
+            renderTiles();
+
+            /* ---------- Realtime ---------- */
+            const token = document.querySelector('meta[name="api-token"]')?.content;
+            const hubBase = document.querySelector('meta[name="hub-base-url"]')?.content || '';
+            if (token && window.signalR) {
+                const conn = new signalR.HubConnectionBuilder()
+                    .withUrl(hubBase + '/hubs/table', { accessTokenFactory: () => token })
+                    .withAutomaticReconnect()
+                    .build();
+                conn.on('TableStatusChanged', reload);
+                conn.on('SessionUpdated', reload);
+                conn.on('ReceiveTableUpdate', reload);
+                conn.start().catch(function (err) { console.warn('SignalR:', err); });
+            }
+        })();
+    </script>
+}

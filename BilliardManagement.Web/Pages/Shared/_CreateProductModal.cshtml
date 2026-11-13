@@ -1,58 +1,68 @@
+@model List<BilliardManagement.Web.Models.CategoryDto>
 <div class="modal fade" id="createProductModal" tabindex="-1" aria-labelledby="createProductModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-            <form id="createProductForm" enctype="multipart/form-data">
+            <form id="createProductForm" enctype="multipart/form-data" novalidate>
                 <div class="modal-header">
                     <h5 class="modal-title" id="createProductModalLabel">
                         <i class="fa-solid fa-box me-2 text-primary"></i>Tạo sản phẩm mới
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Tên sản phẩm</label>
-                            <input type="text" name="name" id="createProductNameInput" class="form-control" required />
-                            <div id="productNameError" class="invalid-feedback fw-semibold d-none"><i class="fa-solid fa-triangle-exclamation me-1"></i>Tên sản phẩm đã tồn tại</div>
+                            <label class="form-label" for="createProductNameInput">Tên sản phẩm</label>
+                            <input type="text" id="createProductNameInput" name="name" class="form-control" placeholder="VD: Nước suối" required maxlength="100" />
+                            <div id="productNameError" class="invalid-feedback fw-semibold d-none">
+                                <i class="fa-solid fa-triangle-exclamation me-1"></i>Tên sản phẩm đã tồn tại
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Danh mục</label>
-                            <select name="category" class="form-select" required>
-                                <option value="Nước ngọt">Nước ngọt</option>
-                                <option value="Cafe">Cafe</option>
-                                <option value="Bia">Bia</option>
-                                <option value="Đồ ăn vặt">Đồ ăn vặt</option>
-                                <option value="Trà sữa">Trà sữa</option>
+                            <label class="form-label" for="createProductCategory">Danh mục</label>
+                            <select id="createProductCategory" name="categoryId" class="form-select" required>
+                                <option value="">-- Chọn danh mục --</option>
+                                @foreach (var category in Model)
+                                {
+                                    <option value="@category.Id">@category.CategoryName</option>
+                                }
                             </select>
+                            @if (!Model.Any())
+                            {
+                                <div class="form-text text-danger mt-1">
+                                    <i class="fa-solid fa-circle-exclamation me-1"></i>Chưa có danh mục nào.
+                                    <a href="/Admin/Categories/Index" target="_blank">Tạo danh mục</a>
+                                </div>
+                            }
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Giá bán (VNĐ)</label>
-                            <input type="number" name="price" class="form-control" min="1000" step="1000" required />
+                            <label class="form-label" for="createProductPrice">Giá bán (VNĐ)</label>
+                            <input type="number" id="createProductPrice" name="price" class="form-control" min="0" step="1000" placeholder="15000" required />
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Tồn kho</label>
-                            <input type="number" name="stock" class="form-control" min="0" value="50" />
+                            <label class="form-label" for="createProductStock">Tồn kho</label>
+                            <input type="number" id="createProductStock" name="stock" class="form-control" min="0" value="50" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Mô tả</label>
-                            <textarea name="description" class="form-control" rows="2"></textarea>
+                            <label class="form-label" for="createProductDescription">Mô tả</label>
+                            <textarea id="createProductDescription" name="description" class="form-control" rows="2" placeholder="Mô tả ngắn về sản phẩm"></textarea>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Hình ảnh (jpg, png, jpeg)</label>
-                            <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png" />
+                        <div class="col-md-7">
+                            <label class="form-label" for="createProductImage">Hình ảnh (jpg, png, jpeg)</label>
+                            <input type="file" id="createProductImage" name="image" class="form-control" accept=".jpg,.jpeg,.png" />
                         </div>
-                        <div class="col-md-6 d-flex align-items-end">
-                            <div class="form-check form-switch">
+                        <div class="col-md-5 d-flex align-items-end">
+                            <div class="form-check form-switch mb-2">
                                 <input class="form-check-input" type="checkbox" name="isAvailable" id="productIsAvailable" value="true" checked />
-                                <label class="form-check-label" for="productIsAvailable">Trạng thái bán (đang bán)</label>
+                                <label class="form-check-label" for="productIsAvailable">Đang bán</label>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-primary">
-                        <span id="createProductSpinner" class="spinner-border spinner-border-sm me-1 d-none"></span>
+                    <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-accent">
+                        <span id="createProductSpinner" class="spinner-border spinner-border-sm d-none"></span>
                         Lưu sản phẩm
                     </button>
                 </div>

@@ -1,245 +1,318 @@
 @page
 @model BilliardManagement.Web.Pages.Admin.Stores.IndexModel
 @{
-    ViewData["Title"] = "Quản lý cửa hàng";
+    ViewData["Title"] = "Cửa hàng";
+    var activeStores = Model.Stores.Count(s => s.IsActive);
+    var totalTables = Model.Stores.Sum(s => s.TableCount);
+    var totalUsers = Model.Stores.Sum(s => s.UserCount);
 }
 
-<div class="dashboard-header mb-4 d-flex justify-content-between align-items-center">
-    <h1 class="page-title"><i class="fa-solid fa-store me-2"></i>Quản lý cửa hàng</h1>
+<div class="page-head">
     <div>
-        <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#createAdminModal">
-            <i class="fa-solid fa-user-plus me-1"></i> Tạo Admin cửa hàng
+        <h1 class="page-title"><i class="fa-solid fa-store"></i>Quản lý Cửa hàng</h1>
+        <p class="page-subtitle">Tạo, chỉnh sửa và ngừng hoạt động các chi nhánh của hệ thống.</p>
+    </div>
+    <div class="page-actions">
+        <button class="btn btn-soft" type="button" data-bs-toggle="modal" data-bs-target="#createAdminModal">
+            <i class="fa-solid fa-user-plus"></i>Tạo Admin cửa hàng
         </button>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createStoreModal">
-            <i class="fa-solid fa-plus me-1"></i> Tạo cửa hàng
+        <button class="btn btn-accent" type="button" data-bs-toggle="modal" data-bs-target="#createStoreModal">
+            <i class="fa-solid fa-plus"></i>Tạo cửa hàng
         </button>
     </div>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
-    <div class="alert alert-warning">@Model.ErrorMessage</div>
+    <div class="alert alert-danger" role="alert">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>@Model.ErrorMessage
+    </div>
 }
 
-<div class="card-panel">
-    <div class="panel-header">
-        <h5 class="panel-title">Danh sách cửa hàng (@Model.Stores.Count)</h5>
-        <div class="btn-group" role="group" aria-label="Kiểu hiển thị"><button type="button" id="storeTableButton" class="btn btn-sm btn-outline-primary active" aria-pressed="true">Bảng</button><button type="button" id="storeGridButton" class="btn btn-sm btn-outline-primary" aria-pressed="false">Thẻ</button></div>
+<div class="stat-grid">
+    <div class="stat-card stat-info">
+        <span class="stat-icon"><i class="fa-solid fa-store"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Tổng cửa hàng</div>
+            <div class="stat-value">@Model.Stores.Count</div>
+        </div>
     </div>
-    <div class="panel-body p-0">
-        <div class="table-responsive" id="storeTableView">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Tên cửa hàng</th>
-                        <th>Liên hệ</th>
-                        <th>Địa chỉ</th>
-                        <th class="text-center">Người dùng</th>
-                        <th class="text-center">Bàn</th>
-                        <th>Trạng thái</th>
-                        <th>Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @{ var index = 1; }
-                    @foreach (var store in Model.Stores)
-                    {
-                        <tr>
-                            <td>@(index++)</td>
-                            <td>
-                                <div class="fw-semibold">@store.Name</div>
-                                @if (!string.IsNullOrEmpty(store.Email))
-                                {
-                                    <div class="text-muted small">@store.Email</div>
-                                }
-                            </td>
-                            <td>@(store.PhoneNumber ?? "—")</td>
-                            <td>@(store.Address ?? "—")</td>
-                            <td class="text-center">@store.UserCount</td>
-                            <td class="text-center">@store.TableCount</td>
-                            <td>
-                                @if (store.IsActive)
-                                {
-                                    <span class="status-dot active"><i class="fa-solid fa-circle"></i> Hoạt động</span>
-                                }
-                                else
-                                {
-                                    <span class="status-dot inactive"><i class="fa-solid fa-circle"></i> Ngừng</span>
-                                }
-                            </td>
-                            <td>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#detail-@store.Id" aria-label="Chi tiết @store.Name"><i class="fa-solid fa-eye"></i></button>
-                                <button type="button"
-                                        class="btn btn-sm btn-outline-primary me-1 btn-edit-store"
-                                        data-id="@store.Id"
-                                        data-name="@store.Name"
-                                        data-address="@store.Address"
-                                        data-phone="@store.PhoneNumber"
-                                        data-email="@store.Email"
-                                        data-logo="@store.LogoUrl"
-                                        data-active="@store.IsActive.ToString().ToLower()"
-                                        title="Sửa cửa hàng">
-                                    <i class="fa-solid fa-pen"></i>
-                                </button>
-                                @if (store.IsActive)
-                                {
-                                    <form method="post" asp-page-handler="Deactivate" asp-route-id="@store.Id" class="d-inline"
-                                          onsubmit="return confirm('Bạn có chắc muốn vô hiệu hóa cửa hàng này?');">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Vô hiệu hóa">
-                                            <i class="fa-solid fa-ban"></i>
-                                        </button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <form method="post" asp-page-handler="Activate" asp-route-id="@store.Id" class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Kích hoạt">
-                                            <i class="fa-solid fa-rotate-left"></i>
-                                        </button>
-                                    </form>
-                                }
-                            </td>
-                        </tr>
-                    }
-                    @if (!Model.Stores.Any())
-                    {
-                        <tr><td colspan="8" class="text-center py-4 text-muted">Chưa có cửa hàng nào</td></tr>
-                    }
-                </tbody>
-            </table>
+    <div class="stat-card stat-success">
+        <span class="stat-icon"><i class="fa-solid fa-circle-check"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Đang hoạt động</div>
+            <div class="stat-value">@activeStores</div>
+        </div>
+    </div>
+    <div class="stat-card stat-violet">
+        <span class="stat-icon"><i class="fa-solid fa-table-cells"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Tổng số bàn</div>
+            <div class="stat-value">@totalTables</div>
+        </div>
+    </div>
+    <div class="stat-card stat-teal">
+        <span class="stat-icon"><i class="fa-solid fa-users"></i></span>
+        <div class="stat-body">
+            <div class="stat-label">Tài khoản</div>
+            <div class="stat-value">@totalUsers</div>
         </div>
     </div>
 </div>
 
-<div id="storeGridView" class="row g-3 mt-2" hidden>
-@foreach (var store in Model.Stores)
-{
-    var stats = Model.Statistics.FirstOrDefault(s => s.StoreId == store.Id);
-    <div class="col-md-6 col-xl-4"><div class="card-panel p-4 store-card">
-        <h5>@store.Name</h5><span class="status-dot @(store.IsActive ? "active" : "inactive")">@(store.IsActive ? "Hoạt động" : "Ngừng hoạt động")</span>
-        <p class="text-muted mt-3">@store.TableCount bàn · @(stats?.StaffCount ?? 0) nhân viên</p>
-        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detail-@store.Id">Chi tiết / Sửa</button>
-        <form method="post" asp-page-handler="@(store.IsActive ? "Deactivate" : "Activate")" asp-route-id="@store.Id" class="d-inline" onsubmit="return confirm('Cập nhật trạng thái cửa hàng?')"><button class="btn btn-outline-secondary">@(store.IsActive ? "Vô hiệu hóa" : "Kích hoạt")</button></form>
-    </div></div>
-}
-@if (!Model.Stores.Any()) { <p class="text-muted">Chưa có cửa hàng nào</p> }
-</div>
-@foreach (var store in Model.Stores)
-{
-    var stats = Model.Statistics.FirstOrDefault(s => s.StoreId == store.Id);
-    <div class="modal fade" id="detail-@store.Id" tabindex="-1" aria-label="Chi tiết @store.Name" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">@store.Name</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
-        <div class="modal-body"><p>Địa chỉ: @(store.Address ?? "—")</p><p>Điện thoại: @(store.PhoneNumber ?? "—") · Email: @(store.Email ?? "—")</p><hr />
-        <h6>Thống kê nhanh (UTC)</h6><p>Nhân viên: @(stats?.StaffCount ?? 0) · Bàn: @store.TableCount</p><p>Phiên hôm nay: @(stats?.SessionsToday ?? 0)</p><p>Doanh thu tháng: @((stats?.MonthRevenue ?? 0).ToString("N0")) đ</p><hr />
-        <h6>Admin cửa hàng</h6>
-        @foreach (var admin in Model.Admins.Where(a => a.StoreId == store.Id))
-        { <div class="d-flex justify-content-between mb-2"><span>@admin.FullName</span><a class="btn btn-sm btn-outline-secondary" href="/Admin/Users/Index?StoreId=@store.Id">Quản lý / Đặt lại MK</a></div> }
-        @if (!Model.Admins.Any(a => a.StoreId == store.Id)) { <p class="text-muted">Chưa có Admin</p> }
+<div class="panel">
+    <div class="panel-head">
+        <div>
+            <h5 class="panel-title"><i class="fa-solid fa-list"></i>Danh sách cửa hàng</h5>
+            <p class="panel-sub">@Model.Stores.Count cửa hàng trong hệ thống</p>
         </div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button><button type="button" class="btn btn-primary btn-edit-store" data-bs-dismiss="modal" data-id="@store.Id" data-name="@store.Name" data-address="@store.Address" data-phone="@store.PhoneNumber" data-email="@store.Email" data-logo="@store.LogoUrl" data-active="@store.IsActive.ToString().ToLower()">Sửa cửa hàng</button></div>
-    </div></div></div>
+    </div>
+    <div class="panel-body">
+        @if (!Model.Stores.Any())
+        {
+            <div class="empty-state">
+                <i class="fa-solid fa-store"></i>
+                <h6>Chưa có cửa hàng nào</h6>
+                <p>Tạo cửa hàng đầu tiên để bắt đầu vận hành hệ thống.</p>
+            </div>
+        }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var store in Model.Stores)
+                {
+                    var stats = Model.Statistics.FirstOrDefault(s => s.StoreId == store.Id);
+                    var storeAdmins = Model.Admins.Where(a => a.StoreId == store.Id).ToList();
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="product-card h-100">
+                            <div class="product-info p-4">
+                                <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                                    <h6 class="product-name" style="font-size:1.05rem">@store.Name</h6>
+                                    @if (store.IsActive)
+                                    {
+                                        <span class="chip chip-success"><span class="dot dot-success"></span>Hoạt động</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="chip chip-muted"><span class="dot dot-muted"></span>Ngừng</span>
+                                    }
+                                </div>
+
+                                <dl class="mb-3">
+                                    <div class="kv-row"><dt>Địa chỉ</dt><dd class="text-truncate-1">@(store.Address ?? "—")</dd></div>
+                                    <div class="kv-row"><dt>Điện thoại</dt><dd>@(store.PhoneNumber ?? "—")</dd></div>
+                                    <div class="kv-row"><dt>Email</dt><dd class="text-truncate-1">@(store.Email ?? "—")</dd></div>
+                                    <div class="kv-row"><dt>Bàn / Phiên hôm nay</dt><dd>@store.TableCount / @(stats?.SessionsToday ?? 0)</dd></div>
+                                    <div class="kv-row"><dt>Doanh thu tháng</dt><dd>@((stats?.MonthRevenue ?? 0).ToString("N0")) đ</dd></div>
+                                    <div class="kv-row"><dt>Admin phụ trách</dt><dd>@(storeAdmins.Count > 0 ? string.Join(", ", storeAdmins.Select(a => a.FullName)) : "Chưa có")</dd></div>
+                                </dl>
+
+                                <div class="d-flex gap-2 flex-wrap mt-auto pt-2">
+                                    <button type="button" class="btn btn-soft btn-sm" data-bs-toggle="modal" data-bs-target="#detail-@store.Id">
+                                        <i class="fa-solid fa-eye"></i>Chi tiết
+                                    </button>
+                                    <button type="button" class="btn btn-soft btn-sm btn-edit-store"
+                                            data-id="@store.Id"
+                                            data-name="@store.Name"
+                                            data-address="@store.Address"
+                                            data-phone="@store.PhoneNumber"
+                                            data-email="@store.Email"
+                                            data-logo="@store.LogoUrl"
+                                            data-active="@store.IsActive.ToString().ToLowerInvariant()">
+                                        <i class="fa-solid fa-pen-to-square"></i>Sửa
+                                    </button>
+                                    @if (store.IsActive)
+                                    {
+                                        <form method="post" asp-page-handler="Deactivate" asp-route-id="@store.Id" class="d-inline" data-confirm="Bạn có chắc muốn ngừng hoạt động cửa hàng này?">
+                                            <button type="submit" class="btn btn-icon sm danger" title="Ngừng hoạt động">
+                                                <i class="fa-solid fa-ban"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form method="post" asp-page-handler="Activate" asp-route-id="@store.Id" class="d-inline">
+                                            <button type="submit" class="btn btn-icon sm" title="Kích hoạt lại">
+                                                <i class="fa-solid fa-rotate-left"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    <a href="/SuperAdmin/StoreSelect" class="btn btn-soft btn-sm">
+                                        <i class="fa-solid fa-right-left"></i>Chọn để xem
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@foreach (var store in Model.Stores)
+{
+    var stats = Model.Statistics.FirstOrDefault(s => s.StoreId == store.Id);
+    var storeAdmins = Model.Admins.Where(a => a.StoreId == store.Id).ToList();
+    <div class="modal fade" id="detail-@store.Id" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa-solid fa-store me-2 text-primary"></i>@store.Name</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <dl class="mb-0">
+                        <div class="kv-row"><dt>Địa chỉ</dt><dd>@(store.Address ?? "—")</dd></div>
+                        <div class="kv-row"><dt>Điện thoại</dt><dd>@(store.PhoneNumber ?? "—")</dd></div>
+                        <div class="kv-row"><dt>Email</dt><dd>@(store.Email ?? "—")</dd></div>
+                        <div class="kv-row"><dt>Ngày tạo</dt><dd>@store.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</dd></div>
+                        <div class="kv-row"><dt>Tổng bàn</dt><dd>@store.TableCount</dd></div>
+                        <div class="kv-row"><dt>Nhân viên</dt><dd>@(stats?.StaffCount ?? 0)</dd></div>
+                        <div class="kv-row"><dt>Phiên hôm nay</dt><dd>@(stats?.SessionsToday ?? 0)</dd></div>
+                        <div class="kv-row"><dt>Doanh thu tháng</dt><dd>@((stats?.MonthRevenue ?? 0).ToString("N0")) đ</dd></div>
+                    </dl>
+
+                    <div class="divider"></div>
+
+                    <h6 class="panel-title mb-2">Admin cửa hàng</h6>
+                    @if (storeAdmins.Any())
+                    {
+                        foreach (var admin in storeAdmins)
+                        {
+                            <div class="kv-row">
+                                <dt>@admin.FullName</dt>
+                                <dd><span class="chip @(admin.IsActive ? "chip-success" : "chip-muted")">@(admin.IsActive ? "Hoạt động" : "Tạm khoá")</span></dd>
+                            </div>
+                        }
+                        <a href="/Admin/Users/Index?StoreId=@store.Id" class="btn btn-soft btn-sm w-100 mt-2 justify-content-center">
+                            <i class="fa-solid fa-users-gear"></i>Quản lý Admin cửa hàng
+                        </a>
+                    }
+                    else
+                    {
+                        <p class="cell-sub mb-2">Cửa hàng chưa có tài khoản Admin.</p>
+                        <a href="/Admin/Users/Index?StoreId=@store.Id" class="btn btn-soft btn-sm w-100 justify-content-center">
+                            <i class="fa-solid fa-user-plus"></i>Tạo Admin cửa hàng
+                        </a>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
 }
 
-<!-- Create Store Modal -->
+<!-- Create store -->
 <div class="modal fade" id="createStoreModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form method="post" asp-page-handler="Create">
                 <div class="modal-header">
-                    <h5 class="modal-title">Tạo cửa hàng mới</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title"><i class="fa-solid fa-circle-plus me-2 text-primary"></i>Tạo cửa hàng mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
                 <div class="modal-body">
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3"></div>
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
                     <div class="mb-3">
-                        <label class="form-label">Tên cửa hàng <span class="text-danger">*</span></label>
-                        <input asp-for="NewStore.Name" class="form-control" />
+                        <label asp-for="NewStore.Name" class="form-label">Tên cửa hàng <span class="text-danger">*</span></label>
+                        <input asp-for="NewStore.Name" class="form-control" maxlength="200" placeholder="VD: BilliardPro Quận 1" />
                         <span asp-validation-for="NewStore.Name" class="text-danger small"></span>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Địa chỉ</label>
-                        <input asp-for="NewStore.Address" class="form-control" />
+                        <label asp-for="NewStore.Address" class="form-label">Địa chỉ</label>
+                        <input asp-for="NewStore.Address" class="form-control" maxlength="500" />
                     </div>
-                    <div class="mb-3"><label asp-for="NewStore.LogoUrl" class="form-label">URL logo</label><input asp-for="NewStore.LogoUrl" class="form-control" type="url" /></div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Số điện thoại</label>
-                            <input asp-for="NewStore.PhoneNumber" class="form-control" />
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="NewStore.PhoneNumber" class="form-label">Số điện thoại</label>
+                            <input asp-for="NewStore.PhoneNumber" class="form-control" maxlength="20" />
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Email</label>
+                        <div class="col-md-6">
+                            <label asp-for="NewStore.Email" class="form-label">Email</label>
                             <input asp-for="NewStore.Email" class="form-control" type="email" />
                             <span asp-validation-for="NewStore.Email" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="NewStore.LogoUrl" class="form-label">URL logo</label>
+                            <input asp-for="NewStore.LogoUrl" class="form-control" type="url" placeholder="https://..." />
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-primary">Tạo cửa hàng</button>
+                    <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-accent"><i class="fa-solid fa-floppy-disk"></i>Tạo cửa hàng</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Edit Store Modal -->
+<!-- Edit store -->
 <div class="modal fade" id="editStoreModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form method="post" asp-page-handler="Update">
                 <input type="hidden" asp-for="EditStoreId" id="editStoreId" />
                 <div class="modal-header">
-                    <h5 class="modal-title">Cập nhật cửa hàng</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title"><i class="fa-solid fa-pen-to-square me-2 text-primary"></i>Cập nhật cửa hàng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Tên cửa hàng <span class="text-danger">*</span></label>
+                        <label asp-for="EditStore.Name" class="form-label">Tên cửa hàng <span class="text-danger">*</span></label>
                         <input asp-for="EditStore.Name" class="form-control" id="editStoreName" />
                         <span asp-validation-for="EditStore.Name" class="text-danger small"></span>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Địa chỉ</label>
+                        <label asp-for="EditStore.Address" class="form-label">Địa chỉ</label>
                         <input asp-for="EditStore.Address" class="form-control" id="editStoreAddress" />
                     </div>
-                    <div class="mb-3"><label asp-for="EditStore.LogoUrl" class="form-label">URL logo</label><input asp-for="EditStore.LogoUrl" class="form-control" type="url" id="editStoreLogo" /></div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Số điện thoại</label>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="EditStore.PhoneNumber" class="form-label">Số điện thoại</label>
                             <input asp-for="EditStore.PhoneNumber" class="form-control" id="editStorePhone" />
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Email</label>
+                        <div class="col-md-6">
+                            <label asp-for="EditStore.Email" class="form-label">Email</label>
                             <input asp-for="EditStore.Email" class="form-control" type="email" id="editStoreEmail" />
+                            <span asp-validation-for="EditStore.Email" class="text-danger small"></span>
                         </div>
-                    </div>
-                    <div class="form-check">
-                        <input asp-for="EditStore.IsActive" class="form-check-input" id="editStoreActive" />
-                        <label asp-for="EditStore.IsActive" class="form-check-label">Đang hoạt động</label>
+                        <div class="col-12">
+                            <label asp-for="EditStore.LogoUrl" class="form-label">URL logo</label>
+                            <input asp-for="EditStore.LogoUrl" class="form-control" type="url" id="editStoreLogo" />
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input asp-for="EditStore.IsActive" class="form-check-input" id="editStoreActive" />
+                                <label asp-for="EditStore.IsActive" class="form-check-label">Đang hoạt động</label>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                    <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-accent"><i class="fa-solid fa-floppy-disk"></i>Lưu thay đổi</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Create Store Admin Modal -->
+<!-- Create store admin -->
 <div class="modal fade" id="createAdminModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form method="post" asp-page-handler="CreateAdmin">
                 <div class="modal-header">
-                    <h5 class="modal-title">Tạo tài khoản Admin cửa hàng</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title"><i class="fa-solid fa-user-plus me-2 text-primary"></i>Tạo tài khoản Admin cửa hàng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Cửa hàng <span class="text-danger">*</span></label>
+                        <label asp-for="NewAdmin.StoreId" class="form-label">Cửa hàng <span class="text-danger">*</span></label>
                         <select asp-for="NewAdmin.StoreId" class="form-select">
                             <option value="">-- Chọn cửa hàng --</option>
                             @foreach (var store in Model.Stores.Where(s => s.IsActive))
@@ -250,34 +323,35 @@
                         <span asp-validation-for="NewAdmin.StoreId" class="text-danger small"></span>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
-                        <input asp-for="NewAdmin.FullName" class="form-control" />
+                        <label asp-for="NewAdmin.FullName" class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                        <input asp-for="NewAdmin.FullName" class="form-control" maxlength="100" />
                         <span asp-validation-for="NewAdmin.FullName" class="text-danger small"></span>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Tên đăng nhập <span class="text-danger">*</span></label>
-                        <input asp-for="NewAdmin.Username" class="form-control" />
+                        <label asp-for="NewAdmin.Username" class="form-label">Tên đăng nhập <span class="text-danger">*</span></label>
+                        <input asp-for="NewAdmin.Username" class="form-control" maxlength="100" />
                         <span asp-validation-for="NewAdmin.Username" class="text-danger small"></span>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Mật khẩu <span class="text-danger">*</span></label>
+                        <label asp-for="NewAdmin.Password" class="form-label">Mật khẩu <span class="text-danger">*</span></label>
                         <input asp-for="NewAdmin.Password" class="form-control" type="password" />
                         <span asp-validation-for="NewAdmin.Password" class="text-danger small"></span>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Số điện thoại</label>
-                            <input asp-for="NewAdmin.PhoneNumber" class="form-control" />
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="NewAdmin.PhoneNumber" class="form-label">Số điện thoại</label>
+                            <input asp-for="NewAdmin.PhoneNumber" class="form-control" maxlength="20" />
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Email</label>
+                        <div class="col-md-6">
+                            <label asp-for="NewAdmin.Email" class="form-label">Email</label>
                             <input asp-for="NewAdmin.Email" class="form-control" type="email" />
+                            <span asp-validation-for="NewAdmin.Email" class="text-danger small"></span>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-primary">Tạo tài khoản</button>
+                    <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-accent"><i class="fa-solid fa-floppy-disk"></i>Tạo tài khoản</button>
                 </div>
             </form>
         </div>
@@ -286,32 +360,43 @@
 
 @section Scripts {
     <script>
-        $(function () {
+        (function () {
             const activeModal = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ActiveModal));
-            if (activeModal) bootstrap.Modal.getOrCreateInstance(document.getElementById(activeModal)).show();
-            function setView(grid) {
-                $('#storeTableView').prop('hidden', grid);
-                $('#storeGridView').prop('hidden', !grid);
-                $('#storeTableButton').toggleClass('active', !grid).attr('aria-pressed', String(!grid));
-                $('#storeGridButton').toggleClass('active', grid).attr('aria-pressed', String(grid));
+            if (activeModal) {
+                const el = document.getElementById(activeModal);
+                if (el) new bootstrap.Modal(el).show();
             }
-            $('#storeTableButton').on('click', () => setView(false));
-            $('#storeGridButton').on('click', () => setView(true));
+
             const detailId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DetailId?.ToString()));
-            if (detailId && document.getElementById('detail-' + detailId)) bootstrap.Modal.getOrCreateInstance(document.getElementById('detail-' + detailId)).show();
-            $('.btn-edit-store').on('click', function () {
-                $('#editStoreId').val($(this).data('id'));
-                $('#editStoreName').val($(this).data('name'));
-                $('#editStoreAddress').val($(this).data('address'));
-                $('#editStorePhone').val($(this).data('phone'));
-                $('#editStoreEmail').val($(this).data('email'));
-                $('#editStoreLogo').val($(this).data('logo'));
-                $('#editStoreActive').prop('checked', String($(this).data('active')) === 'true');
-                const openEdit = () => bootstrap.Modal.getOrCreateInstance(document.getElementById('editStoreModal')).show();
-                const detail = $(this).closest('.modal')[0];
-                if (detail) detail.addEventListener('hidden.bs.modal', openEdit, { once: true });
-                else openEdit();
+            if (detailId) {
+                const el = document.getElementById('detail-' + detailId);
+                if (el) new bootstrap.Modal(el).show();
+            }
+
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('.btn-edit-store');
+                if (!btn) return;
+                document.getElementById('editStoreId').value = btn.dataset.id;
+                document.getElementById('editStoreName').value = btn.dataset.name || '';
+                document.getElementById('editStoreAddress').value = btn.dataset.address || '';
+                document.getElementById('editStorePhone').value = btn.dataset.phone || '';
+                document.getElementById('editStoreEmail').value = btn.dataset.email || '';
+                document.getElementById('editStoreLogo').value = btn.dataset.logo || '';
+                document.getElementById('editStoreActive').checked = btn.dataset.active === 'true';
+                new bootstrap.Modal(document.getElementById('editStoreModal')).show();
             });
-        });
+
+            document.addEventListener('submit', async function (e) {
+                const form = e.target.closest('form[data-confirm]');
+                if (!form) return;
+                e.preventDefault();
+                const ok = await confirmAction({
+                    title: 'Cập nhật cửa hàng',
+                    message: form.dataset.confirm,
+                    confirmText: 'Xác nhận'
+                });
+                if (ok) form.submit();
+            });
+        })();
     </script>
 }

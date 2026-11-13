@@ -1,24 +1,30 @@
 @page
 @model BilliardManagement.Web.Pages.Auth.LogoutModel
-@{ Layout = null; }
+@{
+    Layout = null;
+    ViewData["Title"] = "Đăng xuất";
+}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Billiard Pro</title>
-    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <title>Đăng xuất &mdash; BilliardPro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="/BilliardManagement.Web.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="/css/auth.css" asp-append-version="true" />
 </head>
 <body>
-
-
-
-    <script src="/lib/jquery/dist/jquery.min.js"></script>
-    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/site.js" asp-append-version="true"></script>
-
+    <div class="error-screen">
+        <div class="error-box">
+            <div class="error-code" style="background:linear-gradient(120deg,#34d399,#22d3ee);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">BYE</div>
+            <h1 class="error-title">Đang đăng xuất&hellip;</h1>
+            <p class="error-text">Phiên làm việc của bạn đã được kết thúc. Bạn sẽ được chuyển về trang đăng nhập.</p>
+            <div class="error-actions">
+                <a href="/Auth/Login" class="error-btn error-btn-primary">
+                    <i class="fa-solid fa-right-to-bracket"></i> Về trang đăng nhập
+                </a>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

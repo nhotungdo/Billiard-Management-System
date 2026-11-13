@@ -4,14 +4,20 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace BilliardManagement.Web.Pages
 {
     /// <summary>
-    /// Base page model for Admin-only pages.
-    /// Redirects to Login if not authenticated or not Admin.
+    /// Base class for every page that requires an authenticated session.
+    /// Handles the login redirect, the role gate and the 30-minute session timeout.
     /// </summary>
-    public abstract class AdminPageModel : PageModel
+    public abstract class AuthenticatedPageModel : PageModel
     {
-        public string CurrentUsername => HttpContext.Session.GetString("Username") ?? "Admin";
-        public string CurrentFullName => HttpContext.Session.GetString("FullName") ?? "Administrator";
+        public string CurrentUsername => HttpContext.Session.GetString("Username") ?? "";
+        public string CurrentFullName => HttpContext.Session.GetString("FullName") ?? "";
         public string CurrentRole => HttpContext.Session.GetString("UserRole") ?? "";
+
+        /// <summary>Roles allowed to open the page.</summary>
+        protected abstract string[] AllowedRoles { get; }
+
+        /// <summary>Extra path prefixes that require a selected store (multi-tenant context).</summary>
+        protected virtual string[] StoreScopedPaths => Array.Empty<string>();
 
         public override void OnPageHandlerExecuting(Microsoft.AspNetCore.Mvc.Filters.PageHandlerExecutingContext context)
         {
@@ -24,15 +30,15 @@ namespace BilliardManagement.Web.Pages
                 return;
             }
 
-            if (role != "Admin" && role != "SuperAdmin")
+            if (role == null || !AllowedRoles.Contains(role))
             {
                 context.Result = new RedirectToPageResult("/AccessDenied");
                 return;
             }
 
-            var storePages = new[] { "/Admin/Tables", "/Admin/Products", "/Admin/Categories",
-                "/Admin/Combos", "/Admin/Staff", "/Admin/Customers" };
-            if (role == "SuperAdmin" && storePages.Any(path => HttpContext.Request.Path.StartsWithSegments(path)) &&
+            // SuperAdmin must pick a store before using the store-scoped screens.
+            if (role == "SuperAdmin" && StoreScopedPaths.Length > 0 &&
+                StoreScopedPaths.Any(path => HttpContext.Request.Path.StartsWithSegments(path)) &&
                 !Guid.TryParse(HttpContext.Session.GetString("ViewAsStoreId"), out _))
             {
                 context.Result = new RedirectToPageResult("/SuperAdmin/StoreSelect");
@@ -59,18 +65,44 @@ namespace BilliardManagement.Web.Pages
     }
 
     /// <summary>
-    /// Base page model for SuperAdmin-only pages (store management).
+    /// Admin pages: /Admin/Dashboard, /Admin/Revenue, /Admin/Tables, /Admin/Products,
+    /// /Admin/Categories, /Admin/Combos, /Admin/Staff, /Admin/Customers.
     /// </summary>
-    public abstract class SuperAdminPageModel : PageModel
+    public abstract class AdminPageModel : AuthenticatedPageModel
     {
-        public string CurrentUsername => HttpContext.Session.GetString("Username") ?? "SuperAdmin";
-        public string CurrentFullName => HttpContext.Session.GetString("FullName") ?? "Super Admin";
-        public string CurrentRole => HttpContext.Session.GetString("UserRole") ?? "";
+        protected override string[] AllowedRoles => new[] { "Admin", "SuperAdmin" };
+
+        protected override string[] StoreScopedPaths => new[]
+        {
+            "/Admin/Tables",
+            "/Admin/Products",
+            "/Admin/Categories",
+            "/Admin/Combos",
+            "/Admin/Staff",
+            "/Admin/Customers"
+        };
+    }
+
+    /// <summary>
+    /// SuperAdmin-only pages: /Admin/Stores, /Admin/Users, /Admin/Reports, /SuperAdmin/*.
+    /// </summary>
+    public abstract class SuperAdminPageModel : AuthenticatedPageModel
+    {
+        protected override string[] AllowedRoles => new[] { "SuperAdmin" };
+    }
+
+    /// <summary>
+    /// Pages shared by Admin and Staff (staff-facing tables / products screens),
+    /// with an explicit exception that lets SuperAdmin open the personal profile.
+    /// </summary>
+    public abstract class AdminOrStaffPageModel : AuthenticatedPageModel
+    {
+        protected override string[] AllowedRoles => new[] { "Admin", "Staff", "SuperAdmin" };
 
         public override void OnPageHandlerExecuting(Microsoft.AspNetCore.Mvc.Filters.PageHandlerExecutingContext context)
         {
-            var token = HttpContext.Session.GetString("JWToken");
             var role = HttpContext.Session.GetString("UserRole");
+            var token = HttpContext.Session.GetString("JWToken");
 
             if (string.IsNullOrEmpty(token))
             {
@@ -78,114 +110,28 @@ namespace BilliardManagement.Web.Pages
                 return;
             }
 
-            if (role != "SuperAdmin")
+            // SuperAdmin is only allowed on the profile page.
+            if (role == "SuperAdmin" && !HttpContext.Request.Path.StartsWithSegments("/Profile"))
             {
                 context.Result = new RedirectToPageResult("/AccessDenied");
                 return;
             }
 
-            var lastActivity = HttpContext.Session.GetString("LastActivity");
-            if (!string.IsNullOrEmpty(lastActivity) && DateTime.TryParse(lastActivity, out var lastTime))
+            if (role != "Admin" && role != "Staff" && role != "SuperAdmin")
             {
-                if ((DateTime.UtcNow - lastTime).TotalMinutes > 30)
-                {
-                    HttpContext.Session.Clear();
-                    context.Result = new RedirectToPageResult("/Auth/Login");
-                    return;
-                }
+                context.Result = new RedirectToPageResult("/AccessDenied");
+                return;
             }
 
-            HttpContext.Session.SetString("LastActivity", DateTime.UtcNow.ToString("o"));
             base.OnPageHandlerExecuting(context);
         }
     }
 
     /// <summary>
-    /// Base page model for Admin or Staff operational pages (tables, products).
+    /// Staff-only pages: /Staff/Dashboard, /Staff/Tables, /Staff/Products, /Staff/Combos, /Staff/Revenue.
     /// </summary>
-    public abstract class AdminOrStaffPageModel : PageModel
+    public abstract class StaffPageModel : AuthenticatedPageModel
     {
-        public string CurrentUsername => HttpContext.Session.GetString("Username") ?? "";
-        public string CurrentFullName => HttpContext.Session.GetString("FullName") ?? "";
-        public string CurrentRole => HttpContext.Session.GetString("UserRole") ?? "";
-
-        public override void OnPageHandlerExecuting(Microsoft.AspNetCore.Mvc.Filters.PageHandlerExecutingContext context)
-        {
-            var token = HttpContext.Session.GetString("JWToken");
-            var role = HttpContext.Session.GetString("UserRole");
-
-            if (string.IsNullOrEmpty(token))
-            {
-                context.Result = new RedirectToPageResult("/Auth/Login");
-                return;
-            }
-
-            if (role != "Admin" && role != "Staff" &&
-                !(role == "SuperAdmin" && HttpContext.Request.Path.StartsWithSegments("/Profile")))
-            {
-                context.Result = new RedirectToPageResult("/AccessDenied");
-                return;
-            }
-
-            var lastActivity = HttpContext.Session.GetString("LastActivity");
-            if (!string.IsNullOrEmpty(lastActivity) && DateTime.TryParse(lastActivity, out var lastTime))
-            {
-                if ((DateTime.UtcNow - lastTime).TotalMinutes > 30)
-                {
-                    HttpContext.Session.Clear();
-                    context.Result = new RedirectToPageResult("/Auth/Login");
-                    return;
-                }
-            }
-
-            HttpContext.Session.SetString("LastActivity", DateTime.UtcNow.ToString("o"));
-            base.OnPageHandlerExecuting(context);
-        }
-    }
-
-    /// <summary>
-    /// Base page model for Staff-only pages.
-    /// Redirects to Login if not authenticated or not Staff.
-    /// </summary>
-    public abstract class StaffPageModel : PageModel
-    {
-        public string CurrentUsername => HttpContext.Session.GetString("Username") ?? "Staff";
-        public string CurrentFullName => HttpContext.Session.GetString("FullName") ?? "Staff Member";
-        public string CurrentRole => HttpContext.Session.GetString("UserRole") ?? "";
-
-        public override void OnPageHandlerExecuting(Microsoft.AspNetCore.Mvc.Filters.PageHandlerExecutingContext context)
-        {
-            var token = HttpContext.Session.GetString("JWToken");
-            var role = HttpContext.Session.GetString("UserRole");
-
-            if (string.IsNullOrEmpty(token))
-            {
-                context.Result = new RedirectToPageResult("/Auth/Login");
-                return;
-            }
-
-            if (role != "Staff")
-            {
-                context.Result = new RedirectToPageResult("/AccessDenied");
-                return;
-            }
-
-            // Session timeout check (30 minutes)
-            var lastActivity = HttpContext.Session.GetString("LastActivity");
-            if (!string.IsNullOrEmpty(lastActivity) && DateTime.TryParse(lastActivity, out var lastTime))
-            {
-                if ((DateTime.UtcNow - lastTime).TotalMinutes > 30)
-                {
-                    HttpContext.Session.Clear();
-                    context.Result = new RedirectToPageResult("/Auth/Login");
-                    return;
-                }
-            }
-
-            // Refresh last activity
-            HttpContext.Session.SetString("LastActivity", DateTime.UtcNow.ToString("o"));
-
-            base.OnPageHandlerExecuting(context);
-        }
+        protected override string[] AllowedRoles => new[] { "Staff" };
     }
 }
