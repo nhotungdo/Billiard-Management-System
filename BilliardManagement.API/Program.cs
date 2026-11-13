@@ -1,9 +1,11 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
 using BilliardManagement.Data;
+using BilliardManagement.Models.Models;
 using BilliardManagement.Business;
 using BilliardManagement.API.Middlewares;
 using BilliardManagement.API.Hubs;
@@ -12,12 +14,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers()
+    // Configure JSON serializer options
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         // Enums serialize as numeric values (1, 2) for Web client compatibility
-    });
-builder.Services.AddEndpointsApiExplorer();
+    })
+    // Add XML serializer formatters for content negotiation (supports application/xml)
+    .AddXmlSerializerFormatters();
+
+// Configure DbContext
 
 // Configure DbContext
 builder.Services.AddDbContext<BilliardManagementDbContext>(options =>
@@ -137,8 +143,6 @@ app.UseAuthentication();
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 
-app.MapControllers();
-
 // Redirect root to Swagger
 app.MapGet("/", () => Results.Redirect("/swagger"));
 
@@ -148,4 +152,4 @@ app.MapHub<ProductHub>("/hubs/product").RequireAuthorization();
 app.MapHub<OrderHub>("/hubs/order").RequireAuthorization();
 app.MapHub<NotificationHub>("/hubs/notification").RequireAuthorization();
 
-app.Run();
+app.Run();
