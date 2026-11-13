@@ -30,4 +30,8 @@
     <ProjectReference Include="..\BilliardManagement.Common\BilliardManagement.Common.csproj" />
   </ItemGroup>
 
+  <Target Name="KillProcessBeforeBuild" BeforeTargets="BeforeBuild" Condition="'$(OS)' == 'Windows_NT'">
+    <Exec Command="taskkill /F /IM $(TargetFileName) 2&gt;nul || exit 0" ContinueOnError="true" />
+  </Target>
+
 </Project>
