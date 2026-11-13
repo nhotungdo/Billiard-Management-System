@@ -1,0 +1,208 @@
+Using launch settings from F:\OJT-Review\Billiard-Management-System\BilliardManagement.API\Properties\launchSettings.json...
+Building...
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (11ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (9ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+info: Microsoft.EntityFrameworkCore.Migrations[20405]
+      No migrations were applied. The database is already up to date.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [s].[Id], [s].[Address], [s].[CreatedAt], [s].[Email], [s].[IsActive], [s].[LogoUrl], [s].[Name], [s].[PhoneNumber]
+      FROM [Stores] AS [s]
+      WHERE [s].[Id] = '00000000-0000-0000-0000-000000000001'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (8ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[Email], [u].[FullName], [u].[IsActive], [u].[PasswordHash], [u].[PhoneNumber], [u].[ProfilePictureUrl], [u].[Role], [u].[StoreId], [u].[Username]
+      FROM [Users] AS [u]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [u].[Role] = 0 OR ([u].[StoreId] IS NOT NULL AND [u].[StoreId] = @__ef_filter__StoreId_1)) AND [u].[Username] = N'superadmin'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[Email], [u].[FullName], [u].[IsActive], [u].[PasswordHash], [u].[PhoneNumber], [u].[ProfilePictureUrl], [u].[Role], [u].[StoreId], [u].[Username]
+      FROM [Users] AS [u]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [u].[Role] = 0 OR ([u].[StoreId] IS NOT NULL AND [u].[StoreId] = @__ef_filter__StoreId_1)) AND [u].[Username] = N'admin'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[Email], [u].[FullName], [u].[IsActive], [u].[PasswordHash], [u].[PhoneNumber], [u].[ProfilePictureUrl], [u].[Role], [u].[StoreId], [u].[Username]
+      FROM [Users] AS [u]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [u].[Role] = 0 OR ([u].[StoreId] IS NOT NULL AND [u].[StoreId] = @__ef_filter__StoreId_1)) AND [u].[Username] = N'staff01'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [u].[Id], [u].[CreatedAt], [u].[Email], [u].[FullName], [u].[IsActive], [u].[PasswordHash], [u].[PhoneNumber], [u].[ProfilePictureUrl], [u].[Role], [u].[StoreId], [u].[Username]
+      FROM [Users] AS [u]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [u].[Role] = 0 OR ([u].[StoreId] IS NOT NULL AND [u].[StoreId] = @__ef_filter__StoreId_1)) AND [u].[Username] = N'staff02'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p10='?' (DbType = Guid), @p0='?' (DbType = DateTime2), @p1='?' (Size = 100), @p2='?' (Size = 100), @p3='?' (DbType = Boolean), @p4='?' (Size = 4000), @p5='?' (Size = 20), @p6='?' (Size = 500), @p7='?' (DbType = Int32), @p8='?' (DbType = Guid), @p9='?' (Size = 50), @p21='?' (DbType = Guid), @p11='?' (DbType = DateTime2), @p12='?' (Size = 100), @p13='?' (Size = 100), @p14='?' (DbType = Boolean), @p15='?' (Size = 4000), @p16='?' (Size = 20), @p17='?' (Size = 500), @p18='?' (DbType = Int32), @p19='?' (DbType = Guid), @p20='?' (Size = 50), @p32='?' (DbType = Guid), @p22='?' (DbType = DateTime2), @p23='?' (Size = 100), @p24='?' (Size = 100), @p25='?' (DbType = Boolean), @p26='?' (Size = 4000), @p27='?' (Size = 20), @p28='?' (Size = 500), @p29='?' (DbType = Int32), @p30='?' (DbType = Guid), @p31='?' (Size = 50)], CommandType='Text', CommandTimeout='30']
+      SET NOCOUNT ON;
+      UPDATE [Users] SET [CreatedAt] = @p0, [Email] = @p1, [FullName] = @p2, [IsActive] = @p3, [PasswordHash] = @p4, [PhoneNumber] = @p5, [ProfilePictureUrl] = @p6, [Role] = @p7, [StoreId] = @p8, [Username] = @p9
+      OUTPUT 1
+      WHERE [Id] = @p10;
+      UPDATE [Users] SET [CreatedAt] = @p11, [Email] = @p12, [FullName] = @p13, [IsActive] = @p14, [PasswordHash] = @p15, [PhoneNumber] = @p16, [ProfilePictureUrl] = @p17, [Role] = @p18, [StoreId] = @p19, [Username] = @p20
+      OUTPUT 1
+      WHERE [Id] = @p21;
+      UPDATE [Users] SET [CreatedAt] = @p22, [Email] = @p23, [FullName] = @p24, [IsActive] = @p25, [PasswordHash] = @p26, [PhoneNumber] = @p27, [ProfilePictureUrl] = @p28, [Role] = @p29, [StoreId] = @p30, [Username] = @p31
+      OUTPUT 1
+      WHERE [Id] = @p32;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [BilliardTables] AS [b]
+              WHERE @__ef_filter__p_0 = CAST(1 AS bit) OR [b].[StoreId] = @__ef_filter__StoreId_1) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [BilliardTables] AS [b]
+              WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [b].[StoreId] = @__ef_filter__StoreId_1) AND [b].[TableName] = N'Bàn 11') THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [BilliardTables] AS [b]
+              WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [b].[StoreId] = @__ef_filter__StoreId_1) AND [b].[TableName] = N'Bàn VIP 01') THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [b].[Id], [b].[CreatedAt], [b].[Description], [b].[PricePerHour], [b].[IsActive], [b].[Status], [b].[StoreId], [b].[TableName], [b].[TableType]
+      FROM [BilliardTables] AS [b]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [b].[StoreId] = @__ef_filter__StoreId_1) AND [b].[TableName] = N'Bàn 01 (Pool 8)'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [b].[Id], [b].[CreatedAt], [b].[Description], [b].[PricePerHour], [b].[IsActive], [b].[Status], [b].[StoreId], [b].[TableName], [b].[TableType]
+      FROM [BilliardTables] AS [b]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [b].[StoreId] = @__ef_filter__StoreId_1) AND [b].[TableName] = N'Bàn 02 (Pool 8)'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [b].[Id], [b].[CreatedAt], [b].[Description], [b].[PricePerHour], [b].[IsActive], [b].[Status], [b].[StoreId], [b].[TableName], [b].[TableType]
+      FROM [BilliardTables] AS [b]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [b].[StoreId] = @__ef_filter__StoreId_1) AND [b].[TableName] = N'Bàn 03 (Pool 9)'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [b].[Id], [b].[CreatedAt], [b].[Description], [b].[PricePerHour], [b].[IsActive], [b].[Status], [b].[StoreId], [b].[TableName], [b].[TableType]
+      FROM [BilliardTables] AS [b]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [b].[StoreId] = @__ef_filter__StoreId_1) AND [b].[TableName] = N'Bàn 07 (VIP)'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [Categories] AS [c]
+              WHERE @__ef_filter__p_0 = CAST(1 AS bit) OR [c].[StoreId] = @__ef_filter__StoreId_1) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [c].[Id], [c].[CategoryName], [c].[Description], [c].[StoreId]
+      FROM [Categories] AS [c]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [c].[StoreId] = @__ef_filter__StoreId_1) AND [c].[CategoryName] = N'Nước ngọt'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [c].[Id], [c].[CategoryName], [c].[Description], [c].[StoreId]
+      FROM [Categories] AS [c]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [c].[StoreId] = @__ef_filter__StoreId_1) AND [c].[CategoryName] = N'Cafe'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [c].[Id], [c].[CategoryName], [c].[Description], [c].[StoreId]
+      FROM [Categories] AS [c]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [c].[StoreId] = @__ef_filter__StoreId_1) AND [c].[CategoryName] = N'Bia'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [c].[Id], [c].[CategoryName], [c].[Description], [c].[StoreId]
+      FROM [Categories] AS [c]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [c].[StoreId] = @__ef_filter__StoreId_1) AND [c].[CategoryName] = N'Đồ ăn vặt'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [c].[Id], [c].[CategoryName], [c].[Description], [c].[StoreId]
+      FROM [Categories] AS [c]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [c].[StoreId] = @__ef_filter__StoreId_1) AND [c].[CategoryName] = N'Trà sữa'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [Products] AS [p]
+              WHERE @__ef_filter__p_0 = CAST(1 AS bit) OR [p].[StoreId] = @__ef_filter__StoreId_1) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [Products] AS [p]
+              WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [p].[StoreId] = @__ef_filter__StoreId_1) AND [p].[ProductName] = N'7 Up') THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [p].[Id], [p].[CategoryId], [p].[CreatedAt], [p].[Description], [p].[ImageUrl], [p].[IsAvailable], [p].[IsDeleted], [p].[Price], [p].[ProductName], [p].[StockQuantity], [p].[StoreId]
+      FROM [Products] AS [p]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [p].[StoreId] = @__ef_filter__StoreId_1) AND [p].[ProductName] = N'Coca Cola'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [p].[Id], [p].[CategoryId], [p].[CreatedAt], [p].[Description], [p].[ImageUrl], [p].[IsAvailable], [p].[IsDeleted], [p].[Price], [p].[ProductName], [p].[StockQuantity], [p].[StoreId]
+      FROM [Products] AS [p]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [p].[StoreId] = @__ef_filter__StoreId_1) AND [p].[ProductName] = N'Sting'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [p].[Id], [p].[CategoryId], [p].[CreatedAt], [p].[Description], [p].[ImageUrl], [p].[IsAvailable], [p].[IsDeleted], [p].[Price], [p].[ProductName], [p].[StockQuantity], [p].[StoreId]
+      FROM [Products] AS [p]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [p].[StoreId] = @__ef_filter__StoreId_1) AND [p].[ProductName] = N'Heineken'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [p].[Id], [p].[CategoryId], [p].[CreatedAt], [p].[Description], [p].[ImageUrl], [p].[IsAvailable], [p].[IsDeleted], [p].[Price], [p].[ProductName], [p].[StockQuantity], [p].[StoreId]
+      FROM [Products] AS [p]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [p].[StoreId] = @__ef_filter__StoreId_1) AND [p].[ProductName] = N'Cá Viên Chiên'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [p].[Id], [p].[CategoryId], [p].[CreatedAt], [p].[Description], [p].[ImageUrl], [p].[IsAvailable], [p].[IsDeleted], [p].[Price], [p].[ProductName], [p].[StockQuantity], [p].[StoreId]
+      FROM [Products] AS [p]
+      WHERE (@__ef_filter__p_0 = CAST(1 AS bit) OR [p].[StoreId] = @__ef_filter__StoreId_1) AND [p].[ProductName] = N'Trà Sữa'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [TableSessions] AS [t]
+              WHERE @__ef_filter__p_0 = CAST(1 AS bit) OR [t].[StoreId] = @__ef_filter__StoreId_1) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__ef_filter__p_0='?' (DbType = Boolean), @__ef_filter__StoreId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [Combos] AS [c]
+              WHERE @__ef_filter__p_0 = CAST(1 AS bit) OR [c].[StoreId] = @__ef_filter__StoreId_1) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:8082
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: F:\OJT-Review\Billiard-Management-System\BilliardManagement.API
