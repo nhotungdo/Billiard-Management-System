@@ -146,6 +146,9 @@ app.UseAuthorization();
 // Redirect root to Swagger
 app.MapGet("/", () => Results.Redirect("/swagger"));
 
+// Map Controllers
+app.MapControllers();
+
 // Map Hubs
 app.MapHub<TableHub>("/hubs/table").RequireAuthorization();
 app.MapHub<ProductHub>("/hubs/product").RequireAuthorization();
