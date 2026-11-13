@@ -63,14 +63,24 @@ namespace BilliardManagement.Web.Pages.Admin.Dashboard
 
         public async Task<IActionResult> OnGetAsync()
         {
-            try
+            if (CurrentRole == "SuperAdmin")
             {
-                if (CurrentRole == "SuperAdmin")
+                try
                 {
                     SystemOverview = await _stores.GetOverviewAsync() ?? new();
-                    return Page();
                 }
-                // 1. Fetch dashboard/revenue summary from RevenueService
+                catch (Exception ex)
+                {
+                    ErrorMessage = $"Không thể tải tổng quan hệ thống: {ex.Message}";
+                }
+                return Page();
+            }
+
+            var errors = new List<string>();
+
+            // 1. Fetch dashboard/revenue summary from RevenueService
+            try
+            {
                 var summary = await _revenueService.GetTotalRevenueAsync(null, null, null);
                 if (summary != null)
                 {
@@ -79,30 +89,72 @@ namespace BilliardManagement.Web.Pages.Admin.Dashboard
                     TotalInvoicesToday = summary.TodayInvoices;
                     TopStaff = summary.StaffRevenues.OrderByDescending(s => s.TotalRevenue).Take(5).ToList();
                 }
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"Doanh thu: {ex.Message}");
+            }
 
-                // 2. Fetch active sessions & live table status
+            // 2. Fetch active sessions & live table status
+            try
+            {
                 var liveTables = await _sessionService.GetDashboardAsync();
                 LiveTables = liveTables ?? new();
                 ActiveTablesCount = LiveTables.Count(t => t.Status == 2); // 2 is Playing
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"Trạng thái bàn: {ex.Message}");
+            }
 
-                // 3. Fetch today's sessions count (filter by today's date in local/UTC time)
+            // 3. Fetch today's sessions count (filter by today's date in local/UTC time)
+            try
+            {
                 var todayUtc = DateTime.UtcNow.Date;
                 var sessionsResult = await _sessionService.GetPagedSessionsAsync(1, 1000, null, null, null, "StartTime", true);
                 TotalSessionsToday = sessionsResult?.Items?.Count(s => s.StartTime.Date == todayUtc) ?? 0;
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"Lượt chơi: {ex.Message}");
+            }
 
-                // 4. Fetch online staff count (checked-in shifts without CheckOut time)
+            // 4. Fetch online staff count (checked-in shifts without CheckOut time)
+            try
+            {
                 var todayShifts = await _staffService.GetTodayShiftsAsync();
                 OnlineStaffCount = todayShifts?.Count(s => s.CheckOut == null) ?? 0;
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"Nhân viên trực: {ex.Message}");
+            }
 
-                // 5. Fetch 10 most recent paid invoices
+            // 5. Fetch 10 most recent paid invoices
+            try
+            {
                 var invoicesResult = await _invoiceService.GetPagedInvoicesAsync(1, 10, true, null, "CreatedAt", true);
                 RecentInvoices = invoicesResult?.Items ?? new();
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"Hóa đơn gần đây: {ex.Message}");
+            }
 
-                // 6. Fetch monthly revenue trend (last 30 days)
+            // 6. Fetch monthly revenue trend (last 30 days)
+            try
+            {
                 var dailyRevenue = await _revenueService.GetMonthlyRevenueAsync();
                 DailyRevenueTrend = dailyRevenue ?? new();
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"Biểu đồ doanh thu: {ex.Message}");
+            }
 
-                // 7. Calculate Revenue by Table Type & Playing vs Services Breakdown from all invoices
+            // 7. Calculate Revenue by Table Type & Playing vs Services Breakdown from all invoices
+            try
+            {
                 var allInvoicesResult = await _invoiceService.GetAllInvoicesAsync();
                 var allInvoices = allInvoicesResult ?? new();
 
@@ -115,7 +167,12 @@ namespace BilliardManagement.Web.Pages.Admin.Dashboard
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Không thể tải dữ liệu Dashboard: {ex.Message}";
+                errors.Add($"Cơ cấu doanh thu: {ex.Message}");
+            }
+
+            if (errors.Count > 0)
+            {
+                ErrorMessage = $"Một số dữ liệu chưa tải được: {string.Join("; ", errors)}";
             }
 
             return Page();

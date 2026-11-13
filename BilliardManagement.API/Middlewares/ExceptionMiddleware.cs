@@ -40,6 +40,12 @@ namespace BilliardManagement.API.Middlewares
                 statusCode = customException.StatusCode;
                 message = customException.Message;
             }
+            else
+            {
+                message = exception.InnerException != null 
+                    ? $"{exception.Message} -> {exception.InnerException.Message}" 
+                    : exception.Message;
+            }
 
             context.Response.StatusCode = statusCode;
 
