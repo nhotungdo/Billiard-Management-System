@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.OData.Query;
 using BilliardManagement.Business.Interfaces;
 using BilliardManagement.Business.DTOs;
 using BilliardManagement.Common.Responses;
@@ -22,6 +23,15 @@ namespace BilliardManagement.API.Controllers
             _tableService = tableService;
             _hubContext = hubContext;
         }
+        // OData Query endpoint (ho tro $select, $filter, $orderby, $count)
+        [HttpGet("odata")]
+        [EnableQuery]
+        public async Task<IActionResult> GetOData()
+        {
+            var tables = await _tableService.GetAllTablesAsync();
+            return Ok(tables.AsQueryable());
+        }
+
         // lấy danh sách bàn hoặc phân trang/tìm kiếm
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] TableQueryParameters query)

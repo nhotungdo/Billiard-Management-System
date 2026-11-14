@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.OData;
 using BilliardManagement.Data;
 using BilliardManagement.Models.Models;
 using BilliardManagement.Business;
@@ -14,6 +15,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers()
+    // Configure OData support ($select, $filter, $orderby, $expand, $count)
+    .AddOData(options => options.Select().Filter().OrderBy().Expand().Count().SetMaxTop(100))
     // Configure JSON serializer options
     .AddJsonOptions(options =>
     {

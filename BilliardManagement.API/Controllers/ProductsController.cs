@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.OData.Query;
 using BilliardManagement.Business.Interfaces;
 using BilliardManagement.Business.Services;
 using BilliardManagement.Common.Responses;
@@ -53,6 +54,15 @@ namespace BilliardManagement.API.Controllers
             _productHub = productHub;
             _env = env;
             _logger = logger;
+        }
+
+        // OData Query endpoint (ho tro $select, $filter, $orderby, $count)
+        [HttpGet("odata")]
+        [EnableQuery]
+        public async Task<IActionResult> GetOData()
+        {
+            var products = await _productService.GetAllProductsAsync();
+            return Ok(products.AsQueryable());
         }
 
         [HttpGet]
