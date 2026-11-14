@@ -46,22 +46,26 @@ namespace BilliardManagement.Web.Services
 
         private static string FormatErrorMessage(HttpResponseMessage response, string content)
         {
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                return "Phiên đăng nhập đã hết hạn hoặc không có quyền (Unauthorized). Vui lòng đăng nhập lại.";
-            }
-
-            var errMsg = $"API Error ({response.StatusCode})";
             try
             {
                 var apiErr = JsonSerializer.Deserialize<ApiResponse<object>>(content, ApiJson.Options);
                 if (apiErr != null && !string.IsNullOrEmpty(apiErr.Message))
                 {
-                    errMsg = apiErr.Message;
+                    if (string.Equals(apiErr.Message, "Invalid credentials", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return "Tên đăng nhập hoặc mật khẩu không chính xác.";
+                    }
+                    return apiErr.Message;
                 }
             }
             catch { }
-            return errMsg;
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return "Phiên đăng nhập đã hết hạn hoặc không có quyền (Unauthorized). Vui lòng đăng nhập lại.";
+            }
+
+            return $"API Error ({response.StatusCode})";
         }
 
         protected async Task<T?> GetAsync<T>(string url)

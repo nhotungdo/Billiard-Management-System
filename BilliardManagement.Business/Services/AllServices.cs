@@ -54,7 +54,7 @@ namespace BilliardManagement.Business.Services
                 .FirstOrDefaultAsync(u => u.Username == dto.Username);
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
-                throw new CustomException("Invalid credentials", 401);
+                throw new CustomException("Tên đăng nhập hoặc mật khẩu không chính xác.", 401);
 
             if (!user.IsActive)
                 throw new CustomException("Tài khoản đã bị vô hiệu hóa", 403);

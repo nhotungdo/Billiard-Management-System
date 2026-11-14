@@ -504,6 +504,7 @@ namespace BilliardManagement.Business.Services
 
         public SessionRealtimeDto BuildRealtimeDto(TableSession session, BilliardTable table, decimal ordersTotal = 0)
         {
+            EnsureSessionEndTime(session);
             var sessionCombos = _unitOfWork.Repository<SessionCombo>().GetAllAsync(sc => sc.TableSessionId == session.Id).GetAwaiter().GetResult();
             var appliedCombos = _mapper.Map<List<SessionComboDto>>(sessionCombos.OrderBy(sc => sc.AppliedAt).ToList());
 
@@ -569,7 +570,6 @@ namespace BilliardManagement.Business.Services
             }
             else
             {
-                EnsureSessionEndTime(session);
                 var endVal = session.EndTime!.Value;
                 remainingSeconds = Math.Max(0, (int)(endVal - effectiveNow).TotalSeconds);
                 remainingMinutes = remainingSeconds / 60;
@@ -588,7 +588,7 @@ namespace BilliardManagement.Business.Services
                 Status = (int)session.Status,
                 TableStatus = (int)table.Status,
                 StartTime = AsUtc(session.StartTime),
-                EndTime = comboEndTime ?? session.EndTime,
+                EndTime = AsUtc(comboEndTime ?? session.EndTime),
                 DurationHours = session.DurationHours,
                 RemainingMinutes = remainingMinutes,
                 RemainingSeconds = remainingSeconds,
@@ -603,7 +603,7 @@ namespace BilliardManagement.Business.Services
                 ComboId = session.ComboId,
                 ComboHours = session.ComboHours,
                 ComboDurationMinutes = comboDurationMinutes,
-                ComboEndTime = comboEndTime,
+                ComboEndTime = AsUtc(comboEndTime),
                 ComboPrice = comboPrice,
                 IsUsingCombo = isUsingCombo,
                 IsOverComboTime = isOverComboTime,
@@ -616,6 +616,7 @@ namespace BilliardManagement.Business.Services
         private async Task<SessionDto> MapSessionDtoAsync(TableSession session, BilliardTable table)
         {
             await RepairSessionIfNeededAsync(session);
+            EnsureSessionEndTime(session);
 
             var (ordersTotal, orderLines) = await LoadOrderSummaryAsync(session.Id);
             var sessionCombos = await _unitOfWork.Repository<SessionCombo>().GetAllAsync(sc => sc.TableSessionId == session.Id);
@@ -679,7 +680,6 @@ namespace BilliardManagement.Business.Services
             }
             else
             {
-                EnsureSessionEndTime(session);
                 var endVal = session.EndTime!.Value;
                 remainingSeconds = Math.Max(0, (int)(endVal - effectiveNow).TotalSeconds);
                 remainingMinutes = remainingSeconds / 60;
@@ -700,7 +700,7 @@ namespace BilliardManagement.Business.Services
                 CustomerPhone = session.Customer?.PhoneNumber,
                 HourlyRate = table.HourlyRate,
                 StartTime = AsUtc(session.StartTime),
-                EndTime = comboEndTime ?? session.EndTime,
+                EndTime = AsUtc(comboEndTime ?? session.EndTime),
                 DurationHours = session.DurationHours,
                 DurationMinutes = session.DurationMinutes,
                 RemainingMinutes = remainingMinutes,
@@ -714,7 +714,7 @@ namespace BilliardManagement.Business.Services
                 ComboId = session.ComboId,
                 ComboHours = session.ComboHours,
                 ComboDurationMinutes = comboDurationMinutes,
-                ComboEndTime = comboEndTime,
+                ComboEndTime = AsUtc(comboEndTime),
                 ComboPrice = comboPrice,
                 IsUsingCombo = isUsingCombo,
                 IsOverComboTime = isOverComboTime,
@@ -808,6 +808,12 @@ namespace BilliardManagement.Business.Services
                 DateTimeKind.Local => dt.ToUniversalTime(),
                 _ => DateTime.SpecifyKind(dt, DateTimeKind.Utc)
             };
+        }
+
+        private static DateTime? AsUtc(DateTime? dt)
+        {
+            if (!dt.HasValue) return null;
+            return AsUtc(dt.Value);
         }
 
         public async Task<PagedResult<SessionDto>> GetPagedSessionsAsync(SessionQueryParameters query)

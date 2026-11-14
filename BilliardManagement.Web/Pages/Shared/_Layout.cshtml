@@ -24,12 +24,12 @@
     <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="/css/app.css" asp-append-version="true" />
     <link rel="stylesheet" href="/BilliardManagement.Web.styles.css" asp-append-version="true" />
+    <meta name="api-base-url" content="@apiBaseUrl" />
+    <meta name="api-origin" content="@apiOrigin" />
+    <meta name="hub-base-url" content="@apiOrigin" />
     @if (!string.IsNullOrEmpty(apiToken))
     {
         <meta name="api-token" content="@apiToken" />
-        <meta name="api-base-url" content="@apiBaseUrl" />
-        <meta name="api-origin" content="@apiOrigin" />
-        <meta name="hub-base-url" content="@apiOrigin" />
     }
     @RenderSection("Styles", required: false)
 </head>

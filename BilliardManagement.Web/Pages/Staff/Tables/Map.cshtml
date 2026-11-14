@@ -193,7 +193,7 @@
     <script src="/js/table-status.js" asp-append-version="true"></script>
     <script>
         (function () {
-            const API_BASE = document.querySelector('meta[name="api-base-url"]')?.content || '';
+            const API_BASE = document.querySelector('meta[name="api-base-url"]')?.content || 'http://localhost:8080/api/';
             const API_TOKEN = document.querySelector('meta[name="api-token"]')?.content || '';
 
             let tables = @Html.Raw(JsonSerializer.Serialize(Model.TableDashboard, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
@@ -207,12 +207,42 @@
 
             const money = v => Math.round(Number(v) || 0).toLocaleString('vi-VN') + ' đ';
 
+            function isVipTableType(table) {
+                if (!table) return false;
+                const type = (table.tableType || table.TableType || '').toLowerCase();
+                const name = (table.tableName || table.TableName || '').toLowerCase();
+                return type.includes('vip') || name.includes('vip');
+            }
+
+            function isVipComboType(combo) {
+                if (!combo) return false;
+                const isVip = !!(combo.isVip ?? combo.IsVip);
+                const name = (combo.name || combo.Name || '').toLowerCase();
+                const code = (combo.comboCode || combo.ComboCode || '').toLowerCase();
+                return isVip || name.includes('vip') || code.includes('vip');
+            }
+
+            function parseUtcDate(val) {
+                if (!val) return null;
+                if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+                let s = String(val).trim();
+                if (!s) return null;
+                if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/.test(s)) {
+                    s += 'Z';
+                }
+                const d = new Date(s);
+                return isNaN(d.getTime()) ? null : d;
+            }
+
             async function api(endpoint, method, payload) {
                 const headers = { 'Content-Type': 'application/json' };
                 if (API_TOKEN) headers['Authorization'] = 'Bearer ' + API_TOKEN;
                 const config = { method: method, headers: headers };
                 if (payload) config.body = JSON.stringify(payload);
-                const res = await fetch(API_BASE + endpoint, config);
+                const baseUrl = (API_BASE || '').trim().replace(/\/+$/, '');
+                const path = (endpoint || '').trim().replace(/^\/+/, '');
+                const url = baseUrl ? (baseUrl + '/' + path) : ('/' + path);
+                const res = await fetch(url, config);
                 let json;
                 try { json = await res.json(); }
                 catch (e) { json = { success: false, message: 'Lỗi hệ thống (' + res.status + ')' }; }
@@ -275,26 +305,68 @@
             }
 
             function startTimers() {
+                timers.forEach(t => clearInterval(t));
+                timers = [];
+
                 document.querySelectorAll('[data-timer]').forEach(function (el) {
                     const tableId = el.dataset.timer;
                     const table = tables.find(t => (t.id || t.Id) === tableId);
                     const session = table ? sessionOf(table) : null;
                     if (!session) return;
-                    const start = new Date(session.startTime || session.StartTime);
-                    const endTime = session.endTime || session.EndTime
-                        ? new Date(session.endTime || session.EndTime)
-                        : new Date(start.getTime() + (Number(session.durationHours || session.DurationHours || 1) * 3600000));
-                    const comboEnd = session.comboEndTime || session.ComboEndTime
-                        ? new Date(session.comboEndTime || session.ComboEndTime)
-                        : null;
+
+                    const start = parseUtcDate(session.startTime || session.StartTime);
+                    const comboEnd = parseUtcDate(session.comboEndTime || session.ComboEndTime);
+                    let endTime = parseUtcDate(session.endTime || session.EndTime);
+
+                    if (!endTime && comboEnd) {
+                        endTime = comboEnd;
+                    } else if (!endTime && start) {
+                        const durHours = Number(session.durationHours || session.DurationHours || session.comboHours || session.ComboHours || 0);
+                        if (durHours > 0) {
+                            endTime = new Date(start.getTime() + (durHours * 3600000));
+                        }
+                    }
+
+                    // Fallback to remainingSeconds from backend if available and endTime is already expired
+                    const remSec = Number(session.remainingSeconds ?? session.RemainingSeconds);
+                    const initNow = Date.now();
+                    if (!isNaN(remSec) && remSec > 0 && (!endTime || endTime.getTime() <= initNow)) {
+                        endTime = new Date(initNow + remSec * 1000);
+                    }
+
+                    if (!endTime) {
+                        if (start) {
+                            function tickUp() {
+                                const now = Date.now();
+                                const elapsed = Math.max(0, Math.floor((now - start.getTime()) / 1000));
+                                const h = Math.floor(elapsed / 3600), m = Math.floor((elapsed % 3600) / 60), s = elapsed % 60;
+                                el.textContent = [h, m, s].map(n => String(n).padStart(2, '0')).join(':');
+                            }
+                            tickUp();
+                            timers.push(setInterval(tickUp, 1000));
+                        } else {
+                            el.textContent = '--:--:--';
+                        }
+                        return;
+                    }
 
                     function tick() {
                         const now = Date.now();
-                        const total = Math.max(0, Math.floor((endTime.getTime() - now) / 1000));
-                        const h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), s = total % 60;
-                        let text = [h, m, s].map(n => String(n).padStart(2, '0')).join(':');
-                        if (comboEnd && now > comboEnd.getTime()) text += ' (quá combo)';
-                        el.textContent = text;
+                        const diffSec = Math.floor((endTime.getTime() - now) / 1000);
+
+                        if (diffSec <= 0) {
+                            const overSec = Math.abs(diffSec);
+                            const h = Math.floor(overSec / 3600), m = Math.floor((overSec % 3600) / 60), s = overSec % 60;
+                            const formatted = [h, m, s].map(n => String(n).padStart(2, '0')).join(':');
+                            const isOverCombo = comboEnd ? (now > comboEnd.getTime()) : !!(session.isOverComboTime || session.IsOverComboTime);
+                            el.textContent = formatted + (isOverCombo ? ' (quá combo)' : ' (hết giờ)');
+                            el.classList.add('text-danger', 'fw-bold');
+                        } else {
+                            const h = Math.floor(diffSec / 3600), m = Math.floor((diffSec % 3600) / 60), s = diffSec % 60;
+                            const formatted = [h, m, s].map(n => String(n).padStart(2, '0')).join(':');
+                            el.textContent = formatted;
+                            el.classList.remove('text-danger', 'fw-bold');
+                        }
                     }
                     tick();
                     timers.push(setInterval(tick, 1000));
@@ -340,7 +412,7 @@
                 const rate = Number(table.hourlyRate || table.HourlyRate || 0);
 
                 if (status === 2 && session) {
-                    const start = new Date(session.startTime || session.StartTime);
+                    const start = parseUtcDate(session.startTime || session.StartTime);
                     const total = Number(session.currentTotal || session.CurrentTotal || 0);
                     const ordersTotal = Number(session.ordersTotal || session.OrdersTotal || 0);
                     const isCombo = !!(session.comboId || session.ComboId || session.isUsingCombo || session.IsUsingCombo);
@@ -363,26 +435,58 @@
                 } else if (status === 4) {
                     body.innerHTML = '<div class="empty-state"><i class="fa-solid fa-wrench"></i><h6>Bàn đang bảo trì</h6><p>Liên hệ Admin cửa hàng để đưa bàn vào sử dụng.</p></div>';
                 } else {
+                    const isVip = isVipTableType(table);
+                    const suitableCombos = combos.filter(c => isVipComboType(c) === isVip);
+                    const unsuitableCombos = combos.filter(c => isVipComboType(c) !== isVip);
+
+                    let comboOptionsHtml = '<option value="">-- Không áp combo --</option>';
+                    if (suitableCombos.length > 0) {
+                        comboOptionsHtml += suitableCombos.map(c => {
+                            const code = c.comboCode || c.ComboCode || '';
+                            const name = c.name || c.Name || '';
+                            const price = c.price ?? c.Price ?? 0;
+                            const hours = c.playingHours ?? c.PlayingHours ?? 0;
+                            return '<option value="' + code + '" data-hours="' + hours + '">' +
+                                name + ' — ' + money(price) + (hours > 0 ? ' (' + hours + 'h)' : '') +
+                                '</option>';
+                        }).join('');
+                    }
+                    if (unsuitableCombos.length > 0) {
+                        comboOptionsHtml += '<optgroup label="Không áp dụng cho ' + (isVip ? 'bàn VIP' : 'bàn thường') + '">';
+                        comboOptionsHtml += unsuitableCombos.map(c => {
+                            const name = c.name || c.Name || '';
+                            const price = c.price ?? c.Price ?? 0;
+                            return '<option value="" disabled>' + name + ' — ' + money(price) + ' (Chỉ áp dụng cho ' + (isVip ? 'bàn thường' : 'bàn VIP') + ')</option>';
+                        }).join('');
+                        comboOptionsHtml += '</optgroup>';
+                    }
+
                     body.innerHTML =
                         '<dl class="mb-3">' +
-                        '<div class="kv-row"><dt>Loại bàn</dt><dd>' + (table.tableType || table.TableType || '—') + '</dd></div>' +
+                        '<div class="kv-row"><dt>Loại bàn</dt><dd>' + (table.tableType || table.TableType || '—') + (isVip ? ' <span class="badge bg-warning text-dark ms-1">VIP</span>' : '') + '</dd></div>' +
                         '<div class="kv-row"><dt>Giá mỗi giờ</dt><dd>' + money(rate) + '</dd></div>' +
                         '<div class="kv-row"><dt>Trạng thái</dt><dd>' + (status === 3 ? 'Đang chờ khách' : 'Bàn trống') + '</dd></div>' +
                         '</dl>' +
+                        '<div id="startSessionError" class="alert alert-danger d-none my-2" role="alert"></div>' +
                         '<form id="startSessionForm">' +
                         '<div class="row g-3">' +
-                        '<div class="col-md-6"><label class="form-label" for="startDuration">Số giờ chơi</label>' +
-                        '<input type="number" id="startDuration" class="form-control" min="1" max="24" value="2" required /></div>' +
+                        '<div class="col-md-6">' +
+                        '<label class="form-label" for="startDuration">Số giờ chơi <span class="text-danger">*</span></label>' +
+                        '<input type="number" id="startDuration" class="form-control" min="1" max="24" value="2" required />' +
+                        '<small id="startDurationNote" class="text-info d-none mt-1"></small>' +
+                        '</div>' +
                         '<div class="col-md-6"><label class="form-label" for="startPayment">Thanh toán</label>' +
                         '<select id="startPayment" class="form-select"><option value="1">Tiền mặt</option><option value="2">Chuyển khoản</option><option value="3">Thẻ tín dụng</option></select></div>' +
                         '<div class="col-md-6"><label class="form-label" for="startCustomer">Tên khách</label>' +
                         '<input type="text" id="startCustomer" class="form-control" maxlength="100" placeholder="VD: Nguyễn Văn A" /></div>' +
-                        '<div class="col-md-6"><label class="form-label" for="startPhone">Số điện thoại</label>' +
-                        '<input type="text" id="startPhone" class="form-control" maxlength="10" placeholder="0912345678" /></div>' +
+                        '<div class="col-md-6">' +
+                        '<label class="form-label" for="startPhone">Số điện thoại <span class="text-danger">*</span></label>' +
+                        '<input type="tel" id="startPhone" class="form-control" maxlength="10" placeholder="0912345678" required pattern="^0[0-9]{9}$" />' +
+                        '<small class="text-muted">Bắt buộc đúng 10 số (bắt đầu bằng 0)</small>' +
+                        '</div>' +
                         '<div class="col-12"><label class="form-label" for="startCombo">Áp dụng combo (không bắt buộc)</label>' +
-                        '<select id="startCombo" class="form-select"><option value="">-- Không áp combo --</option>' +
-                        combos.map(c => '<option value="' + c.comboCode + '" data-hours="' + (c.playingHours || 0) + '">' + c.name + ' — ' + money(c.price) + '</option>').join('') +
-                        '</select></div>' +
+                        '<select id="startCombo" class="form-select">' + comboOptionsHtml + '</select>' +
+                        '</div>' +
                         '</div>' +
                         '<div class="d-flex gap-2 justify-content-end mt-3">' +
                         '<button type="submit" class="btn btn-accent"><i class="fa-solid fa-play"></i>Bắt đầu phiên chơi</button>' +
@@ -394,36 +498,83 @@
             }
 
             function bindTableModalActions() {
+                const startComboSelect = document.getElementById('startCombo');
+                if (startComboSelect) {
+                    startComboSelect.addEventListener('change', function () {
+                        const selected = this.options[this.selectedIndex];
+                        const hours = parseInt(selected?.dataset?.hours) || 0;
+                        const durationInput = document.getElementById('startDuration');
+                        const note = document.getElementById('startDurationNote');
+                        if (hours > 0 && durationInput) {
+                            durationInput.value = hours;
+                            if (note) {
+                                note.textContent = 'Thời lượng tự động theo gói combo: ' + hours + ' giờ';
+                                note.classList.remove('d-none');
+                            }
+                        } else {
+                            if (note) {
+                                note.textContent = '';
+                                note.classList.add('d-none');
+                            }
+                        }
+                    });
+                }
+
                 document.getElementById('startSessionForm')?.addEventListener('submit', async function (e) {
                     e.preventDefault();
-                    const btn = e.querySelector('button[type="submit"]');
-                    btn.disabled = true;
+                    const form = e.target || this;
+                    const btn = form.querySelector('button[type="submit"]');
+                    const errorBox = document.getElementById('startSessionError');
+                    if (errorBox) {
+                        errorBox.classList.add('d-none');
+                        errorBox.textContent = '';
+                    }
+                    if (btn) btn.disabled = true;
+
                     try {
+                        const phone = (document.getElementById('startPhone')?.value || '').trim();
+                        if (!phone) {
+                            throw new Error('Vui lòng nhập số điện thoại khách hàng.');
+                        }
+                        if (!/^0\d{9}$/.test(phone)) {
+                            throw new Error('Số điện thoại phải bao gồm đúng 10 chữ số và bắt đầu bằng số 0 (ví dụ: 0912345678).');
+                        }
+
                         const comboSelect = document.getElementById('startCombo');
                         const comboValue = comboSelect?.value || '';
-                        const combo = comboValue ? combos.find(c => c.comboCode === comboValue) : null;
-                        const duration = combo && combo.playingHours > 0 ? combo.playingHours : (parseInt(document.getElementById('startDuration').value) || 2);
+                        const combo = comboValue ? combos.find(c => (c.comboCode || c.ComboCode) === comboValue) : null;
+                        const duration = combo && (combo.playingHours || combo.PlayingHours) > 0
+                            ? (combo.playingHours || combo.PlayingHours)
+                            : (parseInt(document.getElementById('startDuration')?.value) || 2);
+
                         const payload = {
                             tableId: currentTableId,
                             durationHours: duration,
-                            customerName: document.getElementById('startCustomer').value.trim() || null,
-                            customerPhone: document.getElementById('startPhone').value.trim() || null,
-                            paymentMethod: parseInt(document.getElementById('startPayment').value) || 1
+                            customerName: (document.getElementById('startCustomer')?.value || '').trim() || null,
+                            customerPhone: phone,
+                            paymentMethod: parseInt(document.getElementById('startPayment')?.value) || 1
                         };
-                        if (combo) payload.comboId = combo.id;
+                        if (combo) payload.comboId = combo.id || combo.Id;
 
                         const session = await api('table-sessions/start', 'POST', payload);
-                        showToast('Đã mở phiên chơi mới.', 'success');
+                        showToast('Đã mở phiên chơi mới thành công.', 'success');
                         bootstrap.Modal.getInstance(document.getElementById('tableModal'))?.hide();
                         await reload();
                         if (session) {
                             const id = session.id || session.Id;
-                            setTimeout(function () { openTableModal(tables.find(t => (t.id || t.Id) === id) ? id : currentTableId); }, 400);
+                            setTimeout(function () {
+                                openTableModal(tables.find(t => (t.id || t.Id) === id) ? id : currentTableId);
+                            }, 400);
                         }
                     } catch (err) {
-                        showToast(err.message || 'Không thể mở phiên chơi', 'error');
+                        const msg = err.message || 'Không thể mở phiên chơi';
+                        if (errorBox) {
+                            errorBox.textContent = msg;
+                            errorBox.classList.remove('d-none');
+                        }
+                        showToast(msg, 'danger');
                     } finally {
-                        btn.disabled = false;
+                        if (btn) btn.disabled = false;
                     }
                 });
 
@@ -441,7 +592,8 @@
                 });
 
                 document.getElementById('btnEndSession')?.addEventListener('click', async function () {
-                    const ok = await confirmAction({
+                    const confirmFn = window.confirmAction || (window.App && window.App.confirm) || (opts => Promise.resolve(window.confirm(opts.message || 'Xác nhận?')));
+                    const ok = await confirmFn({
                         title: 'Kết thúc phiên chơi',
                         message: 'Xác nhận thanh toán và kết thúc phiên chơi của bàn này?',
                         confirmText: 'Thanh toán'
@@ -462,14 +614,33 @@
                 });
 
                 document.getElementById('btnOpenCombo')?.addEventListener('click', function () {
+                    const table = tables.find(t => (t.id || t.Id) === currentTableId);
+                    const isVip = isVipTableType(table);
+                    const suitable = combos.filter(c => isVipComboType(c) === isVip);
                     const select = document.getElementById('comboSelect');
                     if (select) {
+                        if (!suitable.length) {
+                            select.innerHTML = '<option value="">-- Không có gói combo phù hợp với loại bàn này --</option>';
+                        } else {
+                            select.innerHTML = suitable.map(c => {
+                                const code = c.comboCode || c.ComboCode || '';
+                                const name = c.name || c.Name || '';
+                                const price = c.price ?? c.Price ?? 0;
+                                const hours = c.playingHours ?? c.PlayingHours ?? 0;
+                                return '<option value="' + code + '" data-hours="' + hours + '">' +
+                                    name + ' — ' + money(price) + (hours > 0 ? ' (+' + hours + 'h)' : '') +
+                                    '</option>';
+                            }).join('');
+                        }
                         const selected = select.options[select.selectedIndex];
                         const code = selected?.value;
-                        const combo = combos.find(c => c.comboCode === code);
-                        document.getElementById('comboDetail').textContent = combo
-                            ? 'Giá: ' + money(combo.price) + ' • Giờ chơi đi kèm: ' + (combo.playingHours || 0) + 'h'
-                            : '';
+                        const combo = combos.find(c => (c.comboCode || c.ComboCode) === code);
+                        const detailEl = document.getElementById('comboDetail');
+                        if (detailEl) {
+                            detailEl.textContent = combo
+                                ? 'Giá: ' + money(combo.price || combo.Price) + ' • Giờ chơi đi kèm: ' + (combo.playingHours || combo.PlayingHours || 0) + 'h'
+                                : '';
+                        }
                     }
                     new bootstrap.Modal(document.getElementById('comboModal')).show();
                 });
